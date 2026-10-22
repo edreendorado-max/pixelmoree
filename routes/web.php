@@ -1,17 +1,14 @@
 <?php
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 require_once base_path('app/Week12Helpers.php');
-require_once base_path('app/Database.php');
 require_once base_path('app/ArtworkRepository.php');
 
-$week12ArtworkStore = static fn (): ArtworkRepository => new ArtworkRepository(Database::connection());
+$week12ArtworkStore = static fn (): ArtworkRepository => new ArtworkRepository(DB::connection()->getPdo());
 
 Route::view('/', 'home')->name('home');
-Route::get('/guest-copy', function () {
-    return response()->file(base_path('guest-copy/index.html'));
-})->name('guest-copy');
 Route::view('/about', 'about')->name('about');
 Route::view('/admin', 'admin')->name('admin');
 Route::view('/user', 'home')->name('user');
@@ -38,7 +35,6 @@ Route::view('/create-account', 'register')->name('create-account');
 Route::get('/week12', function () use ($week12ArtworkStore) {
     return view('week12.client.index', [
         'artworks' => $week12ArtworkStore()->all(),
-        'week12CsrfToken' => csrf_token(),
     ]);
 })->name('week12.client');
 
@@ -46,24 +42,19 @@ Route::get('/week12/artworks/{id}', function (string $id) use ($week12ArtworkSto
     $artwork = $week12ArtworkStore()->find($id);
     abort_if($artwork === null, 404);
 
-    return view('week12.client.show', [
-        'artwork' => $artwork,
-        'week12CsrfToken' => csrf_token(),
-    ]);
+    return view('week12.client.show', ['artwork' => $artwork]);
 })->where('id', '[a-z0-9-]+')->name('week12.client.artwork');
 
 Route::get('/week12/admin', function () use ($week12ArtworkStore) {
     return view('week12.admin.dashboard', [
         'counts' => $week12ArtworkStore()->counts(),
         'artworks' => $week12ArtworkStore()->recent(),
-        'week12CsrfToken' => csrf_token(),
     ]);
 })->name('week12.admin');
 
 Route::get('/week12/admin/artworks', function () use ($week12ArtworkStore) {
     return view('week12.admin.artworks', [
         'artworks' => $week12ArtworkStore()->all(),
-        'week12CsrfToken' => csrf_token(),
     ]);
 })->name('week12.admin.artworks');
 
@@ -75,7 +66,7 @@ Route::post('/week12/admin/artworks', function () use ($week12ArtworkStore) {
     }
 
     return redirect()->route('week12.client.artwork', ['id' => $id]);
-});
+})->name('week12.admin.artworks.store');
 
 Route::post('/week12/admin/artworks/{id}/status', function (string $id) use ($week12ArtworkStore) {
     try {
@@ -87,7 +78,7 @@ Route::post('/week12/admin/artworks/{id}/status', function (string $id) use ($we
     }
 
     return redirect()->route('week12.admin.artworks');
-})->where('id', '[a-z0-9-]+');
+})->where('id', '[a-z0-9-]+')->name('week12.admin.artworks.status');
 
 Route::post('/week12/admin/artworks/{id}/delete', function (string $id) use ($week12ArtworkStore) {
     try {
@@ -97,4 +88,4 @@ Route::post('/week12/admin/artworks/{id}/delete', function (string $id) use ($we
     }
 
     return redirect()->route('week12.admin.artworks');
-})->where('id', '[a-z0-9-]+');
+})->where('id', '[a-z0-9-]+')->name('week12.admin.artworks.delete');
