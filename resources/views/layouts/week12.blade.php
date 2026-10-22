@@ -1,40 +1,45 @@
+<?php
+$week12Title ??= 'Pixmoree';
+$week12Area ??= '';
+$week12CsrfToken ??= '';
+?>
 <!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Pixmoree Week 12 static marketplace interface demonstration.">
-    <title>@yield('title', 'Pixmoree') · Week 12 Demo</title>
+    <meta name="description" content="Pixmoree Week 12 marketplace database demonstration.">
+    <title><?= week12_escape($week12Title) ?> · Pixmoree</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Pixelify+Sans:wght@500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/week12.css') }}" rel="stylesheet">
+    <link href="<?= week12_escape(week12_asset('css/week12.css')) ?>" rel="stylesheet">
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark w12-navbar">
     <div class="container">
-        <a class="navbar-brand" href="{{ route('week12.client') }}" aria-label="Pixmoree marketplace">
-            <img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree">
+        <a class="navbar-brand" href="<?= week12_escape(week12_url('/week12')) ?>" aria-label="Pixmoree marketplace">
+            <img src="<?= week12_escape(week12_asset('assets/Pixmoree Neon Pixel Logo.png')) ?>" alt="Pixmoree">
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#week12Nav" aria-controls="week12Nav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="week12Nav">
             <div class="navbar-nav ms-auto align-items-lg-center gap-lg-2 py-3 py-lg-0">
-                <a class="nav-link @if(request()->routeIs('week12.client*')) active @endif" href="{{ route('week12.client') }}">Marketplace</a>
-                <a class="nav-link @if(request()->routeIs('week12.admin*')) active @endif" href="{{ route('week12.admin') }}">Admin demo</a>
-                <span class="w12-demo-pill"><i class="bi bi-info-circle"></i> Static class demo</span>
+                <a class="nav-link <?= $week12Area === 'client' ? 'active' : '' ?>" href="<?= week12_escape(week12_url('/week12')) ?>">Marketplace</a>
+                <a class="nav-link <?= $week12Area === 'admin' ? 'active' : '' ?>" href="<?= week12_escape(week12_url('/week12/admin')) ?>">Admin demo</a>
+                <span class="w12-demo-pill"><i class="bi bi-info-circle"></i> MySQL-backed listings</span>
             </div>
         </div>
     </div>
 </nav>
 <main>
-    @yield('content')
+    <?php require $week12ContentView; ?>
 </main>
 <footer class="w12-footer">
     <div class="container d-flex flex-column flex-sm-row justify-content-between gap-2">
         <span>Pixmoree · Week 12 interface prototype</span>
-        <span>Sample data only · no accounts, purchases, or admin changes are persisted</span>
+        <span>Fictional demo listings · no real payments or accounts</span>
     </div>
 </footer>
 <div class="toast-container position-fixed bottom-0 end-0 p-3">

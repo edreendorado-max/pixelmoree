@@ -3,7 +3,7 @@
 This package adds a guest-facing Pixmoree landing page based on the supplied screenshot and keeps the existing marketplace browsing UI below it.
 
 ## Included
-- Week 12 static Laravel/Bootstrap 5 interface under `/week12`: a client marketplace, artwork detail, admin overview, and artwork-management screen sharing a responsive Blade layout. All listings are fictional; action buttons are labeled demos and do not persist changes.
+- Week 12 Bootstrap 5 marketplace under `/week12`: client gallery and artwork details, plus an admin overview and artwork manager sharing a responsive layout. Artwork listings persist in MySQL; purchase/favorite buttons remain simulated.
 - Guest homepage hero with Welcome headline, gradient call-to-action, sparkle details, supplied Pixmoree logo, and background artwork.
 - Dedicated About page covering Pixmoree, its mission, marketplace features, student-project context, and project contact guidance, with editable creator profile placeholders.
 - The guest and user About pages include a student project brief with purpose, core features, learning goals, tools/technology stack, project scope/limitations, and a project start date of October 15, 2026.
@@ -23,23 +23,27 @@ This package adds a guest-facing Pixmoree landing page based on the supplied scr
 - `/user` pages are front-end demos, not authenticated accounts. Favorites, demo collection items, purchase records, recent views, profile changes, and pending checkout details are stored in local browser storage only; demo purchases do not process payments. The terms and originality policy is a draft and needs professional/legal review before use in a live service.
 - Responsive styles for desktop, tablet, and mobile.
 
-## Install
-1. Copy `routes/web.php`, the views in `resources/views/`, `public/css/site.css`, the scripts in `public/js/`, and `public/assets/` into the corresponding locations in your Laravel project.
-2. Ensure your Laravel app has a `/login` route if you want the Log in, View profile, and save-art links to resolve to authentication.
-3. In a Laravel app, run `php artisan serve` and open the local URL. The standalone PHP entry point can also be run with `php -S localhost:8000 index.php`.
+## Run with XAMPP and MySQL
+
+1. Start **Apache** and **MySQL** in the XAMPP Control Panel.
+2. In phpMyAdmin, import [`database/setup.sql`](database/setup.sql). It creates the `pixelmoree` database, an `artworks` table, and three fictional starter listings. Re-importing it updates those starter rows.
+3. Optionally copy `.env.example` to `.env` and set `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD` to match your local MySQL account. The XAMPP defaults are already used if `.env` is absent; the default XAMPP account is often `root` with an empty password.
+4. Open the project through XAMPP (for example `http://localhost/pixelmoree/week12`) or run `C:\xampp\php\php.exe -S localhost:8000 index.php` from the project folder and open `http://localhost:8000/week12`.
+
+The artwork admin screen can add fictional listings, approve/unlist them, or delete them; changes persist in the local database. The database user needs access to `pixelmoree`. Do not publish a populated `.env` file or put real credentials in the repository.
 
 Bootstrap 5.3 and Bootstrap Icons are loaded from CDN. This is a guest-facing front end; authentication and account features need to be supplied by your Laravel application.
 
 ## Week 12 routes
 
-In a Laravel host app, the new Week 12 prototype is available at:
+Week 12 routes are available at:
 
 - `/week12` — client marketplace
 - `/week12/artworks/neon-wanderer` — client artwork detail
 - `/week12/admin` — admin overview
 - `/week12/admin/artworks` — admin artwork list
 
-The pages use [`resources/views/layouts/week12.blade.php`](resources/views/layouts/week12.blade.php), Bootstrap 5.3, and [`public/css/week12.css`](public/css/week12.css). Route definitions and fictional sample records are in [`routes/web.php`](routes/web.php). This folder does not include a Laravel application scaffold (`artisan`, `composer.json`, or `vendor/`); copy these files into the Week 11 Laravel host project before running `php artisan serve`.
+The pages use [`resources/views/layouts/week12.blade.php`](resources/views/layouts/week12.blade.php), Bootstrap 5.3, and [`public/css/week12.css`](public/css/week12.css). The standalone XAMPP entry point uses the PDO store in [`app/`](app), while `routes/web.php` exposes the same MySQL-backed screens in a Laravel host. SQL setup and fictional starter data are in [`database/setup.sql`](database/setup.sql). The repository itself is a lightweight PHP prototype, not a complete Laravel scaffold; it does not include `artisan`, `composer.json`, or `vendor/`.
 
 See [`WEEK12-SUBMISSION.md`](WEEK12-SUBMISSION.md) for the activity plan, testing checklist, screenshot checklist, and submission items that still require team-provided details.
 

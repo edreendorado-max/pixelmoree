@@ -2,38 +2,11 @@
 
 use Illuminate\Support\Facades\Route;
 
-$week12Artworks = [
-    [
-        'id' => 'neon-wanderer',
-        'title' => 'Neon Wanderer',
-        'creator' => 'pixel.dreams',
-        'category' => 'Space',
-        'price' => '0.86',
-        'image' => 'assets/anime-style-character-space.jpg',
-        'description' => 'A lone traveler drifts through a violet galaxy in this fictional digital-art collectible.',
-        'status' => 'Listed',
-    ],
-    [
-        'id' => 'moonlit-guardian',
-        'title' => 'Moonlit Guardian',
-        'creator' => 'neko.studio',
-        'category' => 'Characters',
-        'price' => '1.24',
-        'image' => 'assets/cute-astronaut-samurai-with-kitsune-mask-katana-sword-cartoon-vector-icon-illustration-science.png',
-        'description' => 'A fantasy guardian watches over a quiet moonlit world. All listing details are sample data.',
-        'status' => 'Listed',
-    ],
-    [
-        'id' => 'starlight-drift',
-        'title' => 'Starlight Drift',
-        'creator' => 'cosmic.art',
-        'category' => 'Space',
-        'price' => '1.52',
-        'image' => 'assets/anime-style-character-space (2).jpg',
-        'description' => 'An imagined journey across a glowing nebula, presented as a non-functional demo listing.',
-        'status' => 'Review',
-    ],
-];
+require_once base_path('app/Week12Helpers.php');
+require_once base_path('app/Database.php');
+require_once base_path('app/ArtworkRepository.php');
+
+$week12ArtworkStore = static fn (): ArtworkRepository => new ArtworkRepository(Database::connection());
 
 Route::view('/', 'home')->name('home');
 Route::get('/guest-copy', function () {
@@ -62,20 +35,66 @@ Route::view('/login', 'login')->name('login');
 Route::view('/register', 'register')->name('register');
 Route::view('/create-account', 'register')->name('create-account');
 
-Route::get('/week12', function () use ($week12Artworks) {
-    return view('week12.client.index', ['artworks' => $week12Artworks]);
+Route::get('/week12', function () use ($week12ArtworkStore) {
+    return view('week12.client.index', [
+        'artworks' => $week12ArtworkStore()->all(),
+        'week12CsrfToken' => csrf_token(),
+    ]);
 })->name('week12.client');
 
-Route::get('/week12/artworks/{id}', function (string $id) use ($week12Artworks) {
-    $artwork = collect($week12Artworks)->firstWhere('id', $id);
+Route::get('/week12/artworks/{id}', function (string $id) use ($week12ArtworkStore) {
+    $artwork = $week12ArtworkStore()->find($id);
     abort_if($artwork === null, 404);
 
-    return view('week12.client.show', ['artwork' => $artwork]);
+    return view('week12.client.show', [
+        'artwork' => $artwork,
+        'week12CsrfToken' => csrf_token(),
+    ]);
 })->where('id', '[a-z0-9-]+')->name('week12.client.artwork');
 
-Route::view('/week12/admin', 'week12.admin.dashboard')
-    ->name('week12.admin');
+Route::get('/week12/admin', function () use ($week12ArtworkStore) {
+    return view('week12.admin.dashboard', [
+        'counts' => $week12ArtworkStore()->counts(),
+        'artworks' => $week12ArtworkStore()->recent(),
+        'week12CsrfToken' => csrf_token(),
+    ]);
+})->name('week12.admin');
 
-Route::get('/week12/admin/artworks', function () use ($week12Artworks) {
-    return view('week12.admin.artworks', ['artworks' => $week12Artworks]);
+Route::get('/week12/admin/artworks', function () use ($week12ArtworkStore) {
+    return view('week12.admin.artworks', [
+        'artworks' => $week12ArtworkStore()->all(),
+        'week12CsrfToken' => csrf_token(),
+    ]);
 })->name('week12.admin.artworks');
+
+Route::post('/week12/admin/artworks', function () use ($week12ArtworkStore) {
+    try {
+        $id = $week12ArtworkStore()->create(request()->all());
+    } catch (InvalidArgumentException $exception) {
+        return back()->withErrors(['listing' => $exception->getMessage()])->withInput();
+    }
+
+    return redirect()->route('week12.client.artwork', ['id' => $id]);
+});
+
+Route::post('/week12/admin/artworks/{id}/status', function (string $id) use ($week12ArtworkStore) {
+    try {
+        $week12ArtworkStore()->updateStatus($id, (string) request()->input('status'));
+    } catch (InvalidArgumentException $exception) {
+        return back()->withErrors(['listing' => $exception->getMessage()]);
+    } catch (OutOfBoundsException) {
+        abort(404);
+    }
+
+    return redirect()->route('week12.admin.artworks');
+})->where('id', '[a-z0-9-]+');
+
+Route::post('/week12/admin/artworks/{id}/delete', function (string $id) use ($week12ArtworkStore) {
+    try {
+        $week12ArtworkStore()->delete($id);
+    } catch (OutOfBoundsException) {
+        abort(404);
+    }
+
+    return redirect()->route('week12.admin.artworks');
+})->where('id', '[a-z0-9-]+');

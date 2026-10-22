@@ -1,7 +1,12 @@
-﻿<?php
-header('Content-Type: text/html; charset=UTF-8');
+<?php
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $requestPath = is_string($requestPath) ? $requestPath : '/';
+$scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/');
+$scriptDirectory = str_replace('\\', '/', dirname($scriptName));
+$basePath = strtolower(basename($scriptName)) === 'index.php' ? rtrim($scriptDirectory, '/') : '';
+if ($basePath !== '' && str_starts_with($requestPath, $basePath . '/')) {
+    $requestPath = substr($requestPath, strlen($basePath));
+}
 $rootPath = realpath(__DIR__);
 $staticPath = realpath(__DIR__ . rawurldecode($requestPath));
 
@@ -11,7 +16,26 @@ if ($rootPath !== false && $staticPath !== false &&
     return false;
 }
 
+header('Content-Type: text/html; charset=UTF-8');
 $routePath = rtrim($requestPath, '/') ?: '/';
+if ($routePath === '/week12' || str_starts_with($routePath, '/week12/')) {
+    require_once __DIR__ . '/app/Week12Helpers.php';
+    require_once __DIR__ . '/app/Database.php';
+    require_once __DIR__ . '/app/ArtworkRepository.php';
+    require_once __DIR__ . '/app/Week12Controller.php';
+
+    try {
+        $controller = new Week12Controller(new ArtworkRepository(Database::connection()));
+        $controller->dispatch($routePath, $_SERVER['REQUEST_METHOD'] ?? 'GET');
+    } catch (PDOException $exception) {
+        error_log('Pixmoree MySQL connection failed: ' . $exception->getMessage());
+        http_response_code(503);
+        echo 'The Pixmoree database is unavailable. Start MySQL in XAMPP, import database/setup.sql, and check the local .env settings.';
+    }
+
+    exit;
+}
+
 if ($routePath === '/guest-copy') {
     $guestCopyPath = __DIR__ . '/guest-copy/index.html';
     if (!is_file($guestCopyPath) || !readfile($guestCopyPath)) {

@@ -45,18 +45,23 @@ For teams with more than four members, add rows and divide bounded tasks. Role a
 | Client marketplace | `/week12` | Browse fictional digital-art listings. |
 | Client artwork detail | `/week12/artworks/{id}` | View listing details and labeled simulated purchase/favorite actions. |
 | Admin overview | `/week12/admin` | View fictional summary metrics and navigate to management. |
-| Admin artwork management | `/week12/admin/artworks` | Review a sample listing table and labeled simulated actions. |
+| Admin artwork management | `/week12/admin/artworks` | Create, approve/unlist, or delete fictional listings stored in MySQL. |
 
-The screens share `resources/views/layouts/week12.blade.php`, use Bootstrap 5.3, and load the Pixmoree logo and existing project artwork assets. Route definitions and sample records are in `routes/web.php`; responsive project styles are in `public/css/week12.css`. No database, authentication, purchase, persistent admin mutation, or real payment processing is implemented.
+The screens share `resources/views/layouts/week12.blade.php`, use Bootstrap 5.3, and load the Pixmoree logo and existing project artwork assets. Week 12 listing records now persist in the local MySQL/MariaDB `artworks` table; create, approve/unlist, and delete actions are database-backed. Import `database/setup.sql` to create the schema and fictional starter records. There is no authentication or real payment processing; purchases and favorites remain simulated.
 
 ### Test results
 
 | Check | Result | Evidence |
 |---|---|---|
-| PHP syntax check for `routes/web.php` | Passed (`php -l`) | Run in the provided workspace on 2026-10-22. |
-| Laravel route/view rendering | Not run: this workspace contains no Laravel host scaffold (`artisan`, `composer.json`, or `vendor/`). | Run these routes in the team's Week 11 Laravel application before submission. |
-| Desktop visual and navigation test | Pending | Add labeled desktop screenshots after launching the Laravel host. |
-| Mobile visual and navigation test | Pending | Add labeled mobile screenshots after launching the Laravel host. |
+| PHP syntax check | Passed (`php -l`) | All PHP and Blade-PHP template files linted with XAMPP PHP 8.2.12 on 2026-10-22. |
+| MySQL setup | Passed | Imported `database/setup.sql` into local XAMPP MariaDB 10.4.32; confirmed three fictional starter records. |
+| Database-backed page rendering | Passed | Local PHP server returned seeded records for the client gallery and detail; admin counters matched the database. |
+| Static assets and existing homepage | Passed | Week 12 stylesheet returned HTTP 200 with `text/css`; the existing homepage continued to return HTTP 200. |
+| Artwork create/status/delete | Passed | Created a temporary listing over HTTP, changed its status, deleted it, confirmed its detail URL returned 404, and verified only the three starter records remained. |
+| CSRF and invalid-input handling | Passed | Missing CSRF token was rejected; invalid price was reported; neither request changed database rows. |
+| Laravel route/view rendering | Not run: this workspace contains no Laravel host scaffold (`artisan`, `composer.json`, or `vendor/`). | Validate the Laravel host integration separately if the team copies it into the Week 11 Laravel app. |
+| Desktop visual and navigation test | Pending | Add labeled desktop screenshots after visual review in a browser. |
+| Mobile visual and navigation test | Pending | Add labeled mobile screenshots after visual review in a browser. |
 | Simulated action labels and behaviors | Pending browser check | Verify the demo toast on listing, favorite, admin, and filter actions. |
 
 ### Screenshots to attach
@@ -79,7 +84,7 @@ Complete together after integration and testing:
 
 ## Submission blockers to clear
 
-- Replace the roster, usernames, dates, reviewers, and repository URL with verified team information.
+- Replace the roster, usernames, dates, and reviewers with verified team information.
 - Provide the Week 12 activity sheet and scoring matrix so the submission can be checked against the exact rubric.
 - Compare the implementation with the actual Week 11 wireframes and update any differences.
 - Run the Laravel app, complete desktop/mobile testing, attach screenshots and test evidence, and push to the team repository.
