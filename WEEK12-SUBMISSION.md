@@ -15,8 +15,8 @@
 
 For teams with more than four members, add rows and divide bounded tasks. Role assignments above are a proposed work plan.
 
-**Team GitHub repository:** `[Paste accessible repository URL]`  
-**Instructor access confirmed:** `[Yes/No — include the access-check evidence]`
+**Team GitHub repository:** [https://github.com/edreendorado-max/pixelmoree](https://github.com/edreendorado-max/pixelmoree)  
+**Instructor access confirmed:** The repository is public and accessible by link.
 
 ### Updated work plan
 

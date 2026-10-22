@@ -42,3 +42,7 @@ In a Laravel host app, the new Week 12 prototype is available at:
 The pages use [`resources/views/layouts/week12.blade.php`](resources/views/layouts/week12.blade.php), Bootstrap 5.3, and [`public/css/week12.css`](public/css/week12.css). Route definitions and fictional sample records are in [`routes/web.php`](routes/web.php). This folder does not include a Laravel application scaffold (`artisan`, `composer.json`, or `vendor/`); copy these files into the Week 11 Laravel host project before running `php artisan serve`.
 
 See [`WEEK12-SUBMISSION.md`](WEEK12-SUBMISSION.md) for the activity plan, testing checklist, screenshot checklist, and submission items that still require team-provided details.
+
+## GitHub
+
+Repository: <https://github.com/edreendorado-max/pixelmoree>
