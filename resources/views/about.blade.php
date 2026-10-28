@@ -164,7 +164,7 @@
         </div>
       </article>
       <article class="about-team-card">
-        <div class="about-team-image"><img src="{{ asset('kinet.jpg') }}" alt="Artwork placeholder for team member four"><span>04</span></div>
+        <div class="about-team-image"><img src="{{ asset('assets/kinet.png') }}" alt="Artwork placeholder for team member four"><span>04</span></div>
         <div class="about-team-details">
           <span class="about-team-role">Content &amp; Visual Designer</span>
           <h3>[Kenneth Begornia]</h3>
