@@ -153,12 +153,12 @@
         <div class="about-team-image"><img src="{{ asset('assets/anime-style-character-space (1).jpg') }}" alt="Artwork placeholder for team member three"><span>03</span></div>
         <div class="about-team-details">
           <span class="about-team-role">Marketplace Developer</span>
-          <h3>[Your Name]</h3>
-          <p class="about-team-course">[Course / Program] <span>·</span> [Year Level]</p>
+          <h3>[Jet De Ramos]</h3>
+          <p class="about-team-course">[BSIT-AMG] <span>·</span> [3rd year]</p>
           <blockquote>“[Add a short quote about your role or what inspired you.]”</blockquote>
           <div class="about-team-contact">
-            <span><i class="bi bi-instagram" aria-hidden="true"></i> @your-handle</span>
-            <span><i class="bi bi-envelope" aria-hidden="true"></i> your.email@example.com</span>
+            <span><i class="bi bi-instagram" aria-hidden="true"></i> @jetdrms</span>
+            <span><i class="bi bi-envelope" aria-hidden="true"></i> jetandrei.deramos@lspu.edu.ph</span>
             <span><i class="bi bi-telephone" aria-hidden="true"></i> +63 XXX XXX XXXX</span>
           </div>
         </div>
