@@ -164,15 +164,15 @@
         </div>
       </article>
       <article class="about-team-card">
-        <div class="about-team-image"><img src="{{ asset('assets/anime-character-using-virtual-reality-glasses-metaverse.jpg') }}" alt="Artwork placeholder for team member four"><span>04</span></div>
+        <div class="about-team-image"><img src="{{ asset('kinet.jpg') }}" alt="Artwork placeholder for team member four"><span>04</span></div>
         <div class="about-team-details">
           <span class="about-team-role">Content &amp; Visual Designer</span>
-          <h3>[Your Name]</h3>
-          <p class="about-team-course">[Course / Program] <span>·</span> [Year Level]</p>
-          <blockquote>“[Add a short quote about your role or what inspired you.]”</blockquote>
+          <h3>[Kenneth Begornia]</h3>
+          <p class="about-team-course">[BSIT-AMG] <span>·</span> [3rd Year]</p>
+          <blockquote>“[art is subjective.]”</blockquote>
           <div class="about-team-contact">
-            <span><i class="bi bi-instagram" aria-hidden="true"></i> @your-handle</span>
-            <span><i class="bi bi-envelope" aria-hidden="true"></i> your.email@example.com</span>
+            <span><i class="bi bi-instagram" aria-hidden="true"></i> @mcwattsc</span>
+            <span><i class="bi bi-envelope" aria-hidden="true"></i> kennethmcdancel.begornia@lspu.edu.ph</span>
             <span><i class="bi bi-telephone" aria-hidden="true"></i> +63 XXX XXX XXXX</span>
           </div>
         </div>
