@@ -32,9 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const isMemberPage = memberPath === '/user' || memberPath.startsWith('/user/');
   const requestedMemberSection = isMemberPage && memberPath !== '/user' ? memberPath.split('/').pop() : 'home';
   const memberSection = requestedMemberSection === 'purchases' ? 'history'
-    : requestedMemberSection === 'nft-management' || requestedMemberSection === 'dashboard' ? 'dashboard'
+    : requestedMemberSection === 'nft-management' || requestedMemberSection === 'dashboard' || requestedMemberSection === 'collection' ? 'me'
       : requestedMemberSection === 'settings' || requestedMemberSection === 'profile-settings' ? 'profile'
-        : requestedMemberSection === 'favorites' ? 'collection'
+        : requestedMemberSection === 'favorites' ? 'me'
       : requestedMemberSection;
   const requestedCollectionTab = requestedMemberSection === 'favorites'
     ? 'favorites'
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.add('member-area');
     if (isMemberAccountPage) document.body.classList.add('member-account-page');
     document.title = isMemberAccountPage
-      ? `${memberSection === 'history' ? 'Purchases' : memberSection === 'earnings' ? 'Earnings Balance' : memberSection === 'payment' ? 'Payment & Transactions' : memberSection === 'pixel-coin' ? 'Pixel Coin Wallet' : memberSection === 'terms' ? 'Terms & Originality' : memberSection === 'collection' ? 'My Collection' : memberSection === 'create' ? 'Create' : memberSection === 'profile' ? 'Profile Settings' : memberSection === 'notifications' ? 'Notifications' : memberSection === 'about' ? 'About Pixmoree' : 'Dashboard'} — Pixmoree`
+      ? `${memberSection === 'me' ? 'Me' : memberSection === 'history' ? 'Purchases' : memberSection === 'earnings' ? 'Earnings Balance' : memberSection === 'payment' ? 'Payment & Transactions' : memberSection === 'pixel-coin' ? 'Pixel Coin Wallet' : memberSection === 'terms' ? 'Terms & Originality' : memberSection === 'create' ? 'Create' : memberSection === 'profile' ? 'Profile Settings' : memberSection === 'notifications' ? 'Notifications' : memberSection === 'about' ? 'About Pixmoree' : 'Dashboard'} — Pixmoree`
       : 'Pixmoree — Your Creative Space';
     document.querySelector('.navbar-brand').href = '/user';
     memberProfile.hidden = false;
@@ -85,10 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const homeLink = document.querySelector('[data-member-nav="home"]');
     homeLink.href = '/user';
     const collectionLink = document.querySelector('[data-member-nav="collection"]');
-    collectionLink.href = '/user/collection';
-    collectionLink.querySelector('span').textContent = 'My Collection';
-    const dashboardLink = document.querySelector('[data-member-nav="dashboard"]');
-    dashboardLink.href = '/user/dashboard';
+    collectionLink.href = '/user/me';
+    collectionLink.querySelector('span').textContent = 'Me';
+    collectionLink.querySelector('i').className = 'bi bi-person-circle';
     document.querySelector('[data-member-nav="pixel-coin"]').href = '/user/pixel-coin';
     document.querySelector('[data-member-nav="profile-settings"]').href = '/user/profile-settings';
     document.querySelector('[data-member-nav="about"]').href = '/user/about';
@@ -356,7 +355,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('memberFavoritePanelCount').textContent = String(favorites.length);
     document.getElementById('memberOwnedCount').textContent = String(collection.length);
     document.getElementById('memberCollectionCount').textContent = String(collection.length);
-    document.getElementById('memberMenuCollectionCount').textContent = String(collection.length);
     document.getElementById('memberPurchaseCount').textContent = String(history.length);
     document.getElementById('memberHomeOwnedCount').textContent = String(collection.length);
     document.getElementById('memberHomePurchaseCount').textContent = String(history.length);
@@ -376,11 +374,6 @@ document.addEventListener('DOMContentLoaded', () => {
     collectionUploads.replaceChildren(...(createdArt.length
       ? createdArt.map(item => makeArtworkTile(item, 'created'))
       : [Object.assign(document.createElement('p'), { className: 'member-empty-state', textContent: 'You have not uploaded any artwork yet. Start creating to add your first upload.' })]));
-    const galleryArt = [...new Map([...collection, ...createdArt].map(item => [item.id, item])).values()];
-    const dashboardGallery = document.getElementById('memberDashboardGallery');
-    dashboardGallery.replaceChildren(...(galleryArt.length
-      ? galleryArt.map(item => makeArtworkTile(item, createdArt.some(created => created.id === item.id) ? 'created' : 'collection'))
-      : [Object.assign(document.createElement('p'), { className: 'member-empty-state', textContent: 'Your gallery is empty. Create or collect artwork to see it here.' })]));
     const recentItems = document.getElementById('memberRecentItems');
     const recentTiles = recent.length
       ? recent.slice(0, 4).map(item => makeArtworkTile(item, 'recent'))
@@ -780,7 +773,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-member-panel]').forEach(button => {
       button.classList.toggle('active', button.dataset.memberPanel === panelName);
     });
-    const activeNav = panelName === 'profile' ? 'profile-settings' : panelName;
+    const activeNav = panelName === 'me' ? 'collection' : panelName === 'profile' ? 'profile-settings' : panelName;
     document.querySelectorAll('[data-member-nav]').forEach(link => {
       link.classList.toggle('active', link.dataset.memberNav === activeNav);
     });
@@ -854,7 +847,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
     document.querySelectorAll('[data-member-nav]').forEach(link => {
-      const activeNav = memberSection === 'profile' ? 'profile-settings' : memberSection;
+      const activeNav = memberSection === 'me' ? 'collection' : memberSection === 'profile' ? 'profile-settings' : memberSection;
       link.classList.toggle('active', link.dataset.memberNav === activeNav);
     });
     showMemberPanel(memberSection, false);
@@ -886,9 +879,9 @@ document.addEventListener('DOMContentLoaded', () => {
       button.addEventListener('click', () => {
         const panel = button.dataset.memberPanelLink;
         const routes = {
-          dashboard: '/user/dashboard',
-          collection: '/user/collection',
-          favorites: '/user/collection?tab=favorites',
+          dashboard: '/user/me',
+          collection: '/user/me?tab=owned',
+          favorites: '/user/me?tab=favorites',
           history: '/user/purchases',
           profile: '/user/profile',
           create: '/user/create'

@@ -24,6 +24,25 @@ class PixmoreePagesTest extends TestCase
         $this->get('/register')->assertOk();
     }
 
+    public function test_me_page_combines_profile_and_collection_sections(): void
+    {
+        $user = User::create([
+            'name' => 'Me Page User',
+            'email' => 'me-page@example.test',
+            'password' => 'secret-password',
+        ]);
+
+        foreach (['/user/me', '/user/dashboard', '/user/collection'] as $path) {
+            $this->actingAs($user)
+                ->get($path)
+                ->assertOk()
+                ->assertSee('data-member-panel-content="me"', false)
+                ->assertSee('data-collection-tab="uploads"', false)
+                ->assertSee('data-collection-tab="owned"', false)
+                ->assertSee('data-collection-tab="favorites"', false);
+        }
+    }
+
     public function test_default_seeding_does_not_create_demo_accounts_or_artwork(): void
     {
         $this->seed();

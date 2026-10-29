@@ -24,7 +24,6 @@
         <a href="#explore" data-member-nav="collection"><i class="bi bi-images"></i><span>Gallery</span></a>
         <a class="guest-only-nav-link" href="#trending" data-member-nav="trending"><i class="bi bi-graph-up-arrow"></i><span>Trending</span></a>
         <a class="guest-only-nav-link" href="/about"><i class="bi bi-info-circle"></i><span>About</span></a>
-        <a href="/user/dashboard" class="member-only-nav-link" data-member-nav="dashboard" hidden><i class="bi bi-grid"></i><span>Dashboard</span></a>
         <a href="/user/purchases" class="member-only-nav-link" data-member-nav="history" hidden><i class="bi bi-receipt"></i><span>Purchases</span></a>
         <a href="/user/earnings" class="member-only-nav-link" data-member-nav="earnings" hidden><i class="bi bi-graph-up-arrow"></i><span>Earnings</span></a>
         <a href="/user/terms" class="member-only-nav-link" data-member-nav="terms" hidden><i class="bi bi-shield-check"></i><span>Terms &amp; Originality</span></a>
@@ -45,8 +44,7 @@
           <div class="member-profile-menu" id="memberProfileMenu" hidden>
             <span class="member-menu-heading">SIGNED IN AS {{ strtoupper($account?->name ?? 'ACCOUNT') }}</span>
             <a href="/user" data-member-action="dashboard"><i class="bi bi-house"></i> Home</a>
-            <a href="/user/collection" data-member-action="collection"><i class="bi bi-images"></i> My Collection <span id="memberMenuCollectionCount">0</span></a>
-            <a href="/user/dashboard" data-member-action="dashboard"><i class="bi bi-grid"></i> Dashboard</a>
+            <a href="/user/me" data-member-action="me"><i class="bi bi-person-circle"></i> Me</a>
             <a href="/user/create" data-member-action="create"><i class="bi bi-plus-circle"></i> Create</a>
             <a href="/user/purchases" data-member-action="history"><i class="bi bi-receipt"></i> Purchases</a>
             <a href="/user/earnings" data-member-action="earnings"><i class="bi bi-graph-up-arrow"></i> Earnings balance</a>
@@ -130,14 +128,14 @@
           <section class="member-dashboard-panel" data-member-panel-content="home">
             <div class="member-home-heading"><div><span class="member-welcome-kicker"><i class="bi bi-stars"></i> YOUR CREATIVE SPACE</span><h1>Make room for imagination.</h1><p>Explore art, track your collection, and share something of your own.</p></div></div>
             <div class="member-stat-grid member-home-stat-grid">
-              <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-images"></i></span><div><small>My Collection</small><strong id="memberHomeOwnedCount">0</strong></div><a href="/user/collection" aria-label="Open My Collection"><i class="bi bi-arrow-up-right"></i></a></article>
+              <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-images"></i></span><div><small>My Collection</small><strong id="memberHomeOwnedCount">0</strong></div><a href="/user/me?tab=owned" aria-label="Open My Collection"><i class="bi bi-arrow-up-right"></i></a></article>
               <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-receipt"></i></span><div><small>Purchases</small><strong id="memberHomePurchaseCount">0</strong></div><a href="/user/purchases" aria-label="Open purchases"><i class="bi bi-arrow-up-right"></i></a></article>
               <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-heart-fill"></i></span><div><small>Favorites</small><strong id="memberHomeFavoriteCount">0</strong></div><a href="/user/favorites" aria-label="Open favorites"><i class="bi bi-arrow-up-right"></i></a></article>
             </div>
             <div class="member-panel-card"><div class="member-panel-heading"><div><h3>Recently viewed</h3><p>Your latest discoveries.</p></div><a href="/user#explore">Explore <i class="bi bi-arrow-up-right"></i></a></div><div class="member-recent-grid" id="memberRecentItems"><p class="member-empty-state">Artwork you view will show up here.</p></div></div>
           </section>
-          <section class="member-dashboard-panel active" data-member-panel-content="dashboard">
-            <div class="member-panel-heading"><div><h3>Dashboard</h3><p>Your account at a glance.</p></div><span class="member-demo-label">YOUR ACCOUNT</span></div>
+          <section class="member-dashboard-panel active" data-member-panel-content="me">
+            <div class="member-panel-heading"><div><h3>Me</h3><p>Your profile, uploads, and collected artwork.</p></div><span class="member-demo-label">YOUR ACCOUNT</span></div>
             <article class="member-dashboard-profile-card">
               @if ($account?->banner_path)
                 <img class="member-dashboard-banner" id="memberDashboardBanner" src="{{ asset($account->banner_path) }}" alt="">
@@ -156,27 +154,23 @@
               <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-images"></i></span><div><small>Owned NFTs</small><strong id="memberOwnedCount">0</strong></div><button type="button" data-member-panel-link="collection" aria-label="Open collection"><i class="bi bi-arrow-up-right"></i></button></article>
               <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-receipt"></i></span><div><small>Purchases</small><strong id="memberPurchaseCount">0</strong></div><button type="button" data-member-panel-link="history" aria-label="Open purchase history"><i class="bi bi-arrow-up-right"></i></button></article>
             </div>
-            <div class="member-panel-card member-dashboard-gallery-card">
-              <div class="member-panel-heading"><div><h3>Gallery</h3><p>Your uploads and collected artwork in one place.</p></div><a href="/user/create" class="member-dashboard-create"><i class="bi bi-plus-lg"></i> Create</a></div>
-              <div class="member-owned-grid" id="memberDashboardGallery"><p class="member-empty-state">Your gallery is empty. Create or collect artwork to see it here.</p></div>
-            </div>
-          </section>
-          <section class="member-dashboard-panel" data-member-panel-content="collection" hidden>
-            <div class="member-panel-heading"><div><h3>My Collection</h3><p>Manage artwork you uploaded, own, or saved as a favorite.</p></div></div>
-            <div class="member-collection-tabs" role="tablist" aria-label="My Collection sections">
-              <button type="button" role="tab" id="memberCollectionTabUploads" data-collection-tab="uploads" aria-controls="memberCollectionUploadsPanel">My Uploads</button>
-              <button type="button" role="tab" id="memberCollectionTabOwned" data-collection-tab="owned" aria-controls="memberCollectionOwnedPanel">Owned <span id="memberCollectionCount">0</span></button>
-              <button type="button" role="tab" id="memberCollectionTabFavorites" data-collection-tab="favorites" aria-controls="memberCollectionFavoritesPanel">My Favorites <span id="memberFavoritePanelCount">0</span></button>
-            </div>
-            <div class="member-collection-tab-panel" id="memberCollectionUploadsPanel" role="tabpanel" aria-labelledby="memberCollectionTabUploads" hidden>
-              <div class="member-owned-grid" id="memberCollectionUploads"><p class="member-empty-state">You have not uploaded any artwork yet. Start creating to add your first upload.</p></div>
-            </div>
-            <div class="member-collection-tab-panel" id="memberCollectionOwnedPanel" role="tabpanel" aria-labelledby="memberCollectionTabOwned" hidden>
-              <div class="member-owned-grid" id="memberCollectionItems"><p class="member-empty-state">Your collection is empty. Explore NFTs and add a demo purchase.</p></div>
-            </div>
-            <div class="member-collection-tab-panel" id="memberCollectionFavoritesPanel" role="tabpanel" aria-labelledby="memberCollectionTabFavorites" hidden>
-              <div class="member-owned-grid" id="memberFavoriteItems"><p class="member-empty-state">No favorites yet. Save artwork with the heart button while exploring.</p></div>
-            </div>
+            <section class="member-panel-card member-collection-card">
+              <div class="member-panel-heading"><div><h3>My work &amp; collection</h3><p>Manage your uploads, owned artwork, and favorites.</p></div><a href="/user/create" class="member-dashboard-create"><i class="bi bi-plus-lg"></i> Create</a></div>
+              <div class="member-collection-tabs" role="tablist" aria-label="Me sections">
+                <button type="button" role="tab" id="memberCollectionTabUploads" data-collection-tab="uploads" aria-controls="memberCollectionUploadsPanel">My Uploads</button>
+                <button type="button" role="tab" id="memberCollectionTabOwned" data-collection-tab="owned" aria-controls="memberCollectionOwnedPanel">Owned <span id="memberCollectionCount">0</span></button>
+                <button type="button" role="tab" id="memberCollectionTabFavorites" data-collection-tab="favorites" aria-controls="memberCollectionFavoritesPanel">My Favorites <span id="memberFavoritePanelCount">0</span></button>
+              </div>
+              <div class="member-collection-tab-panel" id="memberCollectionUploadsPanel" role="tabpanel" aria-labelledby="memberCollectionTabUploads" hidden>
+                <div class="member-owned-grid" id="memberCollectionUploads"><p class="member-empty-state">You have not uploaded any artwork yet. Start creating to add your first upload.</p></div>
+              </div>
+              <div class="member-collection-tab-panel" id="memberCollectionOwnedPanel" role="tabpanel" aria-labelledby="memberCollectionTabOwned" hidden>
+                <div class="member-owned-grid" id="memberCollectionItems"><p class="member-empty-state">Your collection is empty. Explore NFTs and add a demo purchase.</p></div>
+              </div>
+              <div class="member-collection-tab-panel" id="memberCollectionFavoritesPanel" role="tabpanel" aria-labelledby="memberCollectionTabFavorites" hidden>
+                <div class="member-owned-grid" id="memberFavoriteItems"><p class="member-empty-state">No favorites yet. Save artwork with the heart button while exploring.</p></div>
+              </div>
+            </section>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="history" hidden>
             <div class="member-panel-heading"><div><h3>Purchases</h3><p>Demo transaction records; no real payments are processed.</p></div></div>
@@ -460,6 +454,6 @@
 </dialog>
 <script>window.pixmoreeAccount = <?= json_encode($account?->only(['name', 'email', 'phone', 'bio', 'pixel_coin_balance']) ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{{ asset('js/site.js') }}?v=20261029-earnings"></script>
+<script src="{{ asset('js/site.js') }}?v=20261030-me"></script>
 </body>
 </html>

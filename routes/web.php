@@ -27,6 +27,7 @@ Route::post('/logout', [$authController, 'logout'])->middleware('auth')->name('l
 
 Route::middleware('auth')->group(function () use ($profileController, $artworkController, $pixelCoinController, $earningsController): void {
     Route::view('/user', 'home')->name('user');
+    Route::view('/user/me', 'home')->name('user.me');
     Route::view('/user/dashboard', 'home')->name('user.dashboard');
     Route::view('/user/create', 'home')->name('user.create');
     Route::view('/user/notifications', 'home')->name('user.notifications');
