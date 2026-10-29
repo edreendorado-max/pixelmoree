@@ -19,21 +19,18 @@
     <h1 id="auth-title">Welcome back</h1>
     <p class="auth-intro">Log in to pick up where your creativity left off.</p>
 
-    <form class="auth-form" data-auth-form>
+    @if ($errors->any())
+      <div class="auth-feedback" role="alert">{{ $errors->first() }}</div>
+    @endif
+    <form class="auth-form" data-auth-form method="post" action="{{ route('login.store') }}">
+      @csrf
       <label for="login-email">Email address</label>
-      <input id="login-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required>
+      <input id="login-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" value="{{ old('email') }}" required>
       <div class="auth-password-label"><label for="login-password">Password</label><a href="#" data-auth-provider="Password reset">Forgot password?</a></div>
       <input id="login-password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" required>
       <button class="auth-submit" type="submit">Log in <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
       <p class="auth-feedback" role="status" aria-live="polite" hidden></p>
     </form>
-    <aside class="auth-demo-account" aria-label="Demo account credentials">
-      <strong><i class="bi bi-person-badge"></i> Try the demo account</strong>
-      <span>Email: <code>demo@pixmoree.test</code></span>
-      <span>Password: <code>PixmoreeDemo2026!</code></span>
-      <button class="auth-demo-button" type="button" data-demo-login>Continue as demo user</button>
-      <small>Demo access only. No real account or password is created or sent to a server.</small>
-    </aside>
     <div class="auth-divider"><span>or continue with</span></div>
     <div class="auth-socials" aria-label="Social sign-in options">
       <button class="auth-social-button" type="button" data-auth-provider="Google">

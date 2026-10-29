@@ -1,3 +1,4 @@
+@php($account = auth()->user())
 <!doctype html>
 <html lang="en">
 <head>
@@ -37,9 +38,9 @@
         </div>
         <a href="/user/notifications" class="member-notification-button member-only-nav-link" aria-label="Notifications" hidden><i class="bi bi-bell"></i><span id="memberTopNotificationBadge" hidden>0</span></a>
         <div class="member-profile" id="memberProfile" hidden>
-          <button class="member-profile-toggle" id="memberProfileToggle" type="button" aria-expanded="false" aria-controls="memberProfileMenu"><span class="member-avatar" id="memberNavAvatar"><span class="member-avatar-initial">D</span><img id="memberNavAvatarImage" alt="" hidden></span><span id="memberNavName">Demo User</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
+          <button class="member-profile-toggle" id="memberProfileToggle" type="button" aria-expanded="false" aria-controls="memberProfileMenu"><span class="member-avatar" id="memberNavAvatar"><span class="member-avatar-initial">{{ strtoupper(substr($account?->name ?? 'A', 0, 1)) }}</span></span><span id="memberNavName">{{ $account?->name ?? 'Account' }}</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
           <div class="member-profile-menu" id="memberProfileMenu" hidden>
-            <span class="member-menu-heading">SIGNED IN AS A DEMO USER</span>
+            <span class="member-menu-heading">SIGNED IN AS {{ strtoupper($account?->name ?? 'ACCOUNT') }}</span>
             <a href="/user" data-member-action="dashboard"><i class="bi bi-house"></i> Home</a>
             <a href="/user/collection" data-member-action="collection"><i class="bi bi-images"></i> My Collection <span id="memberMenuCollectionCount">0</span></a>
             <a href="/user/dashboard" data-member-action="dashboard"><i class="bi bi-grid"></i> Dashboard</a>
@@ -48,8 +49,14 @@
             <a href="/user/terms" data-member-action="terms"><i class="bi bi-shield-check"></i> Terms &amp; Originality</a>
             <a href="/user/profile-settings" data-member-action="profile-settings"><i class="bi bi-person-gear"></i> Profile Settings</a>
             <a href="/user/about" data-member-action="about"><i class="bi bi-info-circle"></i> About Pixmoree</a>
+            @if ($account?->isAdmin())
+              <a href="/admin" data-member-action="admin"><i class="bi bi-shield-lock"></i> Admin</a>
+            @endif
             <a href="#explore" class="member-menu-explore"><i class="bi bi-shop"></i> Explore NFTs</a>
-            <a href="/" class="member-menu-exit" data-member-action="logout"><i class="bi bi-box-arrow-right"></i> Log out</a>
+            <form method="post" action="{{ route('logout') }}">
+              @csrf
+              <button class="member-menu-exit" type="submit" data-member-action="logout"><i class="bi bi-box-arrow-right"></i> Log out</button>
+            </form>
           </div>
         </div>
       </div>
@@ -108,7 +115,7 @@
 <main class="container-fluid px-3 px-lg-5 py-4">
     <section class="member-dashboard" id="memberWelcome" hidden aria-label="User account pages">
       <header class="member-dashboard-heading">
-        <div><span class="member-welcome-kicker"><i class="bi bi-stars"></i> YOUR PIXMOREE ACCOUNT</span><h2>Welcome back, <span id="memberWelcomeName">Demo</span>!</h2><p>Discover art, keep track of your collection, and manage your account.</p></div>
+        <div><span class="member-welcome-kicker"><i class="bi bi-stars"></i> YOUR PIXMOREE ACCOUNT</span><h2>Welcome back, <span id="memberWelcomeName">{{ $account?->name ?? 'friend' }}</span>!</h2><p>Discover art, keep track of your collection, and manage your account.</p></div>
         <a class="member-explore-link" href="#explore"><i class="bi bi-compass"></i> Explore NFTs</a>
       </header>
       <div class="member-dashboard-layout">
@@ -123,11 +130,11 @@
             <div class="member-panel-card"><div class="member-panel-heading"><div><h3>Recently viewed</h3><p>Your latest discoveries.</p></div><a href="/user#explore">Explore <i class="bi bi-arrow-up-right"></i></a></div><div class="member-recent-grid" id="memberRecentItems"><p class="member-empty-state">Artwork you view will show up here.</p></div></div>
           </section>
           <section class="member-dashboard-panel active" data-member-panel-content="dashboard">
-            <div class="member-panel-heading"><div><h3>Dashboard</h3><p>Your account at a glance.</p></div><span class="member-demo-label">DEMO ACCOUNT</span></div>
+            <div class="member-panel-heading"><div><h3>Dashboard</h3><p>Your account at a glance.</p></div><span class="member-demo-label">YOUR ACCOUNT</span></div>
             <article class="member-dashboard-profile-card">
               <img class="member-dashboard-banner" id="memberDashboardBanner" alt="" hidden>
-              <span class="member-dashboard-avatar" id="memberDashboardAvatar"><span class="member-avatar-initial">D</span><img id="memberDashboardAvatarImage" alt="" hidden></span>
-              <div class="member-dashboard-identity"><small>YOUR PROFILE</small><strong id="memberDashboardProfileName">Demo User</strong><span id="memberDashboardUsername">@demo-user</span></div>
+              <span class="member-dashboard-avatar" id="memberDashboardAvatar"><span class="member-avatar-initial">{{ strtoupper(substr($account?->name ?? 'A', 0, 1)) }}</span><img id="memberDashboardAvatarImage" alt="" hidden></span>
+              <div class="member-dashboard-identity"><small>YOUR PROFILE</small><strong id="memberDashboardProfileName">{{ $account?->name ?? 'Account' }}</strong><span id="memberDashboardUsername">{{ '@'.strtolower(str_replace(' ', '-', $account?->name ?? 'account')) }}</span></div>
               <div class="member-dashboard-profile-stats">
                 <div><small>Profile likes</small><strong id="memberDashboardLikes">0</strong></div>
                 <div><small>Items sold</small><strong id="memberDashboardSold">0</strong></div>
@@ -227,26 +234,8 @@
             </article>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="profile" hidden>
-            <div class="member-panel-heading"><div><h3>Profile Settings</h3><p>Make your Pixmoree profile feel like yours.</p></div><span class="member-demo-label">YOUR PROFILE</span></div>
-            <form class="member-profile-panel-form" id="memberProfileForm">
-              <div class="member-profile-cover" id="memberProfileCover">
-                <img id="memberProfileCoverImage" alt="" hidden>
-                <div class="member-profile-cover-shade"><span><i class="bi bi-image"></i> Profile banner</span><label for="memberProfileBanner"><i class="bi bi-cloud-arrow-up"></i> Customize banner<input id="memberProfileBanner" name="banner" type="file" accept="image/png,image/jpeg,image/webp"></label></div>
-              </div>
-              <small class="member-profile-cover-help">Personalize your profile with a custom PNG, JPG, or WEBP banner (up to 1 MB).</small>
-              <div class="member-profile-avatar" id="memberProfileAvatar"><span class="member-avatar-initial">D</span><img id="memberProfileAvatarImage" alt="Profile image preview" hidden></div>
-              <div class="member-profile-intro"><strong id="memberProfilePreviewName">Demo User</strong><span id="memberProfilePreviewBio">Your creative profile on Pixmoree</span></div>
-              <label class="member-avatar-upload" for="memberProfileImage">Change profile photo<input id="memberProfileImage" name="avatar" type="file" accept="image/png,image/jpeg,image/webp"><small>PNG, JPG, WEBP · up to 1 MB</small></label>
-              <div class="member-profile-field"><label for="memberProfileName">Display name</label><input id="memberProfileName" name="name" type="text" value="Demo User" maxlength="40" required></div>
-              <div class="member-profile-field"><label for="memberProfileEmail">Email address</label><input id="memberProfileEmail" name="email" type="email" value="demo@example.test" required></div>
-              <div class="member-profile-field"><label for="memberProfilePhone">Phone</label><input id="memberProfilePhone" name="phone" type="tel" maxlength="30" placeholder="Add a phone number"></div>
-              <div class="member-profile-field"><label for="memberProfileBio">About you</label><textarea id="memberProfileBio" name="bio" rows="3" maxlength="240" placeholder="Tell the community a little about yourself."></textarea></div>
-              <div class="member-profile-field"><label for="memberProfileSocial">Social link</label><input id="memberProfileSocial" name="social" type="url" maxlength="200" placeholder="https://"></div>
-              <label class="member-setting-option"><span><strong>Email notifications</strong><small>Receive updates about your demo account.</small></span><input id="memberEmailNotifications" type="checkbox" checked></label>
-              <button class="member-profile-save" type="submit">Save profile</button>
-              <p class="member-profile-feedback" id="memberProfileFeedback" role="status" hidden></p>
-              <small>Demo only. Profile details stay in this browser and are not sent to a server.</small>
-            </form>
+            <div class="member-panel-heading"><div><h3>Profile Settings</h3><p>Your account information is saved securely to Pixmoree.</p></div><span class="member-demo-label">YOUR PROFILE</span></div>
+            <a class="member-profile-save" href="/user/profile-settings">Manage profile details</a>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="notifications" hidden>
             <div class="member-panel-heading"><div><h3>Notifications</h3><p>Recent activity from your collection and creator space.</p></div><button id="memberMarkNotificationsRead" class="member-notifications-read" type="button">Mark all as read</button></div>
@@ -508,6 +497,7 @@
     </div>
   </div>
 </dialog>
+<script>window.pixmoreeAccount = <?= json_encode($account?->only(['name', 'email', 'phone', 'bio']) ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ asset('js/site.js') }}?v=20261020-nft-details"></script>
 </body>

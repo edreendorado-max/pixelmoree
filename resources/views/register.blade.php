@@ -31,11 +31,15 @@
     </div>
 
     <div class="auth-divider"><span>or sign up with email</span></div>
-    <form class="auth-form" data-auth-form>
+    @if ($errors->any())
+      <div class="auth-feedback" role="alert">{{ $errors->first() }}</div>
+    @endif
+    <form class="auth-form" data-auth-form method="post" action="{{ route('register.store') }}">
+      @csrf
       <label for="register-name">Display name</label>
-      <input id="register-name" name="name" type="text" placeholder="How should we call you?" autocomplete="name" required>
+      <input id="register-name" name="name" type="text" placeholder="How should we call you?" autocomplete="name" value="{{ old('name') }}" maxlength="120" required>
       <label for="register-email">Email address</label>
-      <input id="register-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required>
+      <input id="register-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" value="{{ old('email') }}" required>
       <label for="register-password">Password</label>
       <input id="register-password" name="password" type="password" placeholder="At least 8 characters" autocomplete="new-password" minlength="8" required>
       <label for="register-password-confirm">Confirm password</label>

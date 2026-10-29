@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Database\Seeders\ArtworkSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -22,9 +23,16 @@ class PixmoreePagesTest extends TestCase
     public function test_week12_marketplace_and_admin_screens_render_seeded_artwork(): void
     {
         $this->seed(ArtworkSeeder::class);
+        $admin = User::create([
+            'name' => 'Beta Admin',
+            'email' => 'admin@example.test',
+            'password' => 'secret-password',
+        ]);
+        $admin->forceFill(['role' => 'admin'])->save();
 
         $this->get('/week12')->assertOk()->assertSee('Neon Wanderer');
         $this->get('/week12/artworks/neon-wanderer')->assertOk()->assertSee('Neon Wanderer');
+        $this->actingAs($admin);
         $this->get('/week12/admin')->assertOk()->assertSee('Dashboard overview');
         $this->get('/week12/admin/artworks')->assertOk()->assertSee('Artwork management');
     }
@@ -32,6 +40,14 @@ class PixmoreePagesTest extends TestCase
     public function test_admin_can_create_update_and_delete_an_artwork(): void
     {
         $this->seed(ArtworkSeeder::class);
+        $admin = User::create([
+            'name' => 'Beta Admin',
+            'email' => 'admin@example.test',
+            'password' => 'secret-password',
+        ]);
+        $admin->forceFill(['role' => 'admin'])->save();
+        $this->actingAs($admin);
+
         $this->post('/week12/admin/artworks', [
             'title' => 'Test Artwork',
             'creator' => 'test.creator',

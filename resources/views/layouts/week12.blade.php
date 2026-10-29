@@ -27,7 +27,9 @@ $week12CsrfToken ??= '';
         <div class="collapse navbar-collapse" id="week12Nav">
             <div class="navbar-nav ms-auto align-items-lg-center gap-lg-2 py-3 py-lg-0">
                 <a class="nav-link <?= $week12Area === 'client' ? 'active' : '' ?>" href="<?= week12_escape(week12_url('/week12')) ?>">Marketplace</a>
-                <a class="nav-link <?= $week12Area === 'admin' ? 'active' : '' ?>" href="<?= week12_escape(week12_url('/week12/admin')) ?>">Admin demo</a>
+                <?php if (auth()->check() && auth()->user()->isAdmin()): ?>
+                    <a class="nav-link <?= $week12Area === 'admin' ? 'active' : '' ?>" href="<?= week12_escape(week12_url('/week12/admin')) ?>">Admin</a>
+                <?php endif; ?>
                 <span class="w12-demo-pill"><i class="bi bi-info-circle"></i> MySQL-backed listings</span>
             </div>
         </div>
@@ -39,7 +41,7 @@ $week12CsrfToken ??= '';
 <footer class="w12-footer">
     <div class="container d-flex flex-column flex-sm-row justify-content-between gap-2">
         <span>Pixmoree · Week 12 interface prototype</span>
-        <span>Fictional demo listings · no real payments or accounts</span>
+        <span>Fictional sample listings · no payments are processed</span>
     </div>
 </footer>
 <div class="toast-container position-fixed bottom-0 end-0 p-3">

@@ -17,8 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const nftPreviewTitle = document.getElementById('nftPreviewTitle');
   const nftPreviewCreator = document.getElementById('nftPreviewCreator');
   const favoritesStorageKey = 'pixmoree.user.favorites.v1';
-  const profileStorageKey = 'pixmoree.user.profile.v1';
-  const demoSessionKey = 'pixmoree.demo.session.v1';
   const collectionStorageKey = 'pixmoree.user.collection.v1';
   const historyStorageKey = 'pixmoree.user.purchase-history.v1';
   const recentStorageKey = 'pixmoree.user.recent.v1';
@@ -250,44 +248,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateMemberProfile(profile) {
-    const name = typeof profile.name === 'string' && profile.name.trim() ? profile.name.trim() : 'Demo User';
+    const name = typeof profile.name === 'string' && profile.name.trim() ? profile.name.trim() : 'Account';
     document.getElementById('memberNavName').textContent = name;
     document.querySelector('#memberNavAvatar .member-avatar-initial').textContent = name.charAt(0).toUpperCase();
     document.getElementById('memberWelcomeName').textContent = name.split(/\s+/)[0];
     document.getElementById('memberDashboardProfileName').textContent = name;
     document.getElementById('memberDashboardUsername').textContent = `@${name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g) || 'pixmoree-user'}`;
-    document.getElementById('memberProfileName').value = name;
-    document.getElementById('memberProfilePreviewName').textContent = name;
-    document.getElementById('memberProfileEmail').value = typeof profile.email === 'string' ? profile.email : 'demo@example.test';
-    document.getElementById('memberProfilePhone').value = typeof profile.phone === 'string' ? profile.phone : '';
-    document.getElementById('memberProfileBio').value = typeof profile.bio === 'string' ? profile.bio : '';
-    document.getElementById('memberProfilePreviewBio').textContent = typeof profile.bio === 'string' && profile.bio.trim()
-      ? profile.bio.trim()
-      : 'Your creative profile on Pixmoree';
-    document.getElementById('memberProfileSocial').value = typeof profile.social === 'string' ? profile.social : '';
-    document.getElementById('memberEmailNotifications').checked = profile.emailNotifications !== false;
-    const avatar = typeof profile.avatar === 'string' ? profile.avatar : '';
-    const banner = typeof profile.banner === 'string' ? profile.banner : '';
-    const navAvatarImage = document.getElementById('memberNavAvatarImage');
-    const profileAvatarImage = document.getElementById('memberProfileAvatarImage');
-    const dashboardAvatarImage = document.getElementById('memberDashboardAvatarImage');
-    const dashboardBannerImage = document.getElementById('memberDashboardBanner');
-    const profileCoverImage = document.getElementById('memberProfileCoverImage');
-    navAvatarImage.src = avatar;
-    profileAvatarImage.src = avatar;
-    dashboardAvatarImage.src = avatar;
-    dashboardBannerImage.src = banner;
-    profileCoverImage.src = banner;
-    navAvatarImage.hidden = !avatar;
-    profileAvatarImage.hidden = !avatar;
-    dashboardAvatarImage.hidden = !avatar;
-    dashboardBannerImage.hidden = !banner;
-    profileCoverImage.hidden = !banner;
-    document.querySelector('#memberNavAvatar .member-avatar-initial').hidden = Boolean(avatar);
-    document.querySelector('#memberProfileAvatar .member-avatar-initial').textContent = name.charAt(0).toUpperCase();
-    document.querySelector('#memberProfileAvatar .member-avatar-initial').hidden = Boolean(avatar);
     document.querySelector('#memberDashboardAvatar .member-avatar-initial').textContent = name.charAt(0).toUpperCase();
-    document.querySelector('#memberDashboardAvatar .member-avatar-initial').hidden = Boolean(avatar);
   }
 
   const defaultDemoCollection = [
@@ -774,74 +741,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (isMemberPage) {
     const profileToggle = document.getElementById('memberProfileToggle');
     const profileMenu = document.getElementById('memberProfileMenu');
-    const profileDialogForm = document.getElementById('memberProfileForm');
-    const savedProfile = (() => {
-      try {
-        const raw = window.localStorage.getItem(profileStorageKey);
-        if (!raw) return {};
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new TypeError('Expected a profile object.');
-        return parsed;
-      } catch (error) {
-        console.error('Could not read the Pixmoree demo profile from this browser.', error);
-        return {};
-      }
-    })();
-    updateMemberProfile(savedProfile);
-    let selectedProfileAvatar = typeof savedProfile.avatar === 'string' ? savedProfile.avatar : '';
-    let selectedProfileBanner = typeof savedProfile.banner === 'string' ? savedProfile.banner : '';
-    const profileImageInput = document.getElementById('memberProfileImage');
-    profileImageInput.addEventListener('change', () => {
-      const file = profileImageInput.files?.[0];
-      if (!file) return;
-      const feedback = document.getElementById('memberProfileFeedback');
-      if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 1024 * 1024) {
-        feedback.textContent = 'Choose a PNG, JPG, or WEBP profile image up to 1 MB.';
-        feedback.hidden = false;
-        profileImageInput.value = '';
-        return;
-      }
-      const reader = new FileReader();
-      reader.addEventListener('load', () => {
-        if (typeof reader.result !== 'string') return;
-        selectedProfileAvatar = reader.result;
-        document.getElementById('memberProfileAvatarImage').src = selectedProfileAvatar;
-        document.getElementById('memberProfileAvatarImage').hidden = false;
-        document.querySelector('#memberProfileAvatar .member-avatar-initial').hidden = true;
-        feedback.hidden = true;
-      });
-      reader.addEventListener('error', () => {
-        feedback.textContent = 'Could not read this profile image. Please choose another file.';
-        feedback.hidden = false;
-      });
-      reader.readAsDataURL(file);
-    });
-    const profileBannerInput = document.getElementById('memberProfileBanner');
-    profileBannerInput.addEventListener('change', () => {
-      const file = profileBannerInput.files?.[0];
-      if (!file) return;
-      const feedback = document.getElementById('memberProfileFeedback');
-      if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 1024 * 1024) {
-        feedback.textContent = 'Choose a PNG, JPG, or WEBP profile banner up to 1 MB.';
-        feedback.hidden = false;
-        profileBannerInput.value = '';
-        return;
-      }
-      const reader = new FileReader();
-      reader.addEventListener('load', () => {
-        if (typeof reader.result !== 'string') return;
-        selectedProfileBanner = reader.result;
-        const bannerPreview = document.getElementById('memberProfileCoverImage');
-        bannerPreview.src = selectedProfileBanner;
-        bannerPreview.hidden = false;
-        feedback.hidden = true;
-      });
-      reader.addEventListener('error', () => {
-        feedback.textContent = 'Could not read this profile banner. Please choose another file.';
-        feedback.hidden = false;
-      });
-      reader.readAsDataURL(file);
-    });
+    updateMemberProfile(window.pixmoreeAccount ?? {});
     try {
       if (window.localStorage.getItem(collectionStorageKey) === null) {
         writeStoredList(collectionStorageKey, defaultDemoCollection, 'collection');
@@ -916,13 +816,6 @@ document.addEventListener('DOMContentLoaded', () => {
       link.addEventListener('click', () => {
         profileMenu.hidden = true;
         profileToggle.setAttribute('aria-expanded', 'false');
-        if (link.dataset.memberAction === 'logout') {
-          try {
-            window.localStorage.removeItem(demoSessionKey);
-          } catch (error) {
-            console.error('Could not clear the Pixmoree demo session from this browser.', error);
-          }
-        }
       });
     });
     document.querySelectorAll('[data-member-panel-link]').forEach(button => {
@@ -966,28 +859,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const item = [...readSavedFavorites(), ...readStoredList(collectionStorageKey, 'collection'), ...readStoredList(recentStorageKey, 'recently viewed artwork'), ...readStoredList(createdArtStorageKey, 'created artwork')].find(artwork => artwork.id === id);
       if (item) openStoredArtworkPreview(item);
-    });
-    document.getElementById('memberProfileForm').addEventListener('submit', event => {
-      event.preventDefault();
-      if (!profileDialogForm.reportValidity()) return;
-      const profile = {
-        name: document.getElementById('memberProfileName').value.trim(),
-        email: document.getElementById('memberProfileEmail').value.trim(),
-        phone: document.getElementById('memberProfilePhone').value.trim(),
-        bio: document.getElementById('memberProfileBio').value.trim(),
-        social: document.getElementById('memberProfileSocial').value.trim(),
-        emailNotifications: document.getElementById('memberEmailNotifications').checked,
-        avatar: selectedProfileAvatar,
-        banner: selectedProfileBanner
-      };
-      const feedback = document.getElementById('memberProfileFeedback');
-      if (writeStoredList(profileStorageKey, profile, 'profile details')) {
-        updateMemberProfile(profile);
-        feedback.textContent = 'Profile saved in this browser only.';
-      } else {
-        feedback.textContent = 'Could not save the profile. Check browser storage settings.';
-      }
-      feedback.hidden = false;
     });
     document.getElementById('memberMarkNotificationsRead').addEventListener('click', () => {
       const ids = [...document.querySelectorAll('.member-notification-mark')].map(button => button.dataset.notificationId);
