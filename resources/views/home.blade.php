@@ -137,7 +137,11 @@
           <section class="member-dashboard-panel active" data-member-panel-content="dashboard">
             <div class="member-panel-heading"><div><h3>Dashboard</h3><p>Your account at a glance.</p></div><span class="member-demo-label">YOUR ACCOUNT</span></div>
             <article class="member-dashboard-profile-card">
-              <img class="member-dashboard-banner" id="memberDashboardBanner" alt="" hidden>
+              @if ($account?->banner_path)
+                <img class="member-dashboard-banner" id="memberDashboardBanner" src="{{ asset($account->banner_path) }}" alt="">
+              @else
+                <img class="member-dashboard-banner" id="memberDashboardBanner" alt="" hidden>
+              @endif
               <span class="member-dashboard-avatar" id="memberDashboardAvatar"><span class="member-avatar-initial">{{ strtoupper(substr($account?->name ?? 'A', 0, 1)) }}</span><img id="memberDashboardAvatarImage" alt="" hidden></span>
               <div class="member-dashboard-identity"><small>YOUR PROFILE</small><strong id="memberDashboardProfileName">{{ $account?->name ?? 'Account' }}</strong><span id="memberDashboardUsername">{{ '@'.strtolower(str_replace(' ', '-', $account?->name ?? 'account')) }}</span></div>
               <div class="member-dashboard-profile-stats">

@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `phone` VARCHAR(30) NULL,
     `bio` TEXT NULL,
     `avatar_path` VARCHAR(255) NULL,
+    `banner_path` VARCHAR(255) NULL,
     `pixel_coin_balance` BIGINT UNSIGNED NOT NULL DEFAULT 0,
     `remember_token` VARCHAR(100) NULL,
     `created_at` TIMESTAMP NULL DEFAULT NULL,
@@ -53,6 +54,21 @@ SET @add_user_avatar = IF(
 PREPARE `add_user_avatar` FROM @add_user_avatar;
 EXECUTE `add_user_avatar`;
 DEALLOCATE PREPARE `add_user_avatar`;
+
+SET @add_user_banner = IF(
+    EXISTS (
+        SELECT 1
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'pixmoreedb'
+          AND TABLE_NAME = 'users'
+          AND COLUMN_NAME = 'banner_path'
+    ),
+    'SELECT 1',
+    'ALTER TABLE `pixmoreedb`.`users` ADD COLUMN `banner_path` VARCHAR(255) NULL AFTER `avatar_path`'
+);
+PREPARE `add_user_banner` FROM @add_user_banner;
+EXECUTE `add_user_banner`;
+DEALLOCATE PREPARE `add_user_banner`;
 
 SET @add_user_pixel_coin_balance = IF(
     EXISTS (

@@ -65,6 +65,50 @@ class AccountAndImageCrudTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_a_user_can_upload_and_replace_their_profile_banner(): void
+    {
+        Storage::fake('public');
+        $user = User::create([
+            'name' => 'Banner Artist',
+            'email' => 'banner@example.test',
+            'password' => Hash::make('secret-password'),
+        ]);
+        $imageContent = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lFwAAAAASUVORK5CYII=');
+        $this->assertNotFalse($imageContent);
+
+        $this->actingAs($user)
+            ->post('/user/profile', [
+                'name' => $user->name,
+                'email' => $user->email,
+                'banner' => UploadedFile::fake()->createWithContent('first-banner.png', $imageContent),
+            ])
+            ->assertRedirect('/user/profile-settings');
+
+        $firstBannerPath = substr($user->fresh()->banner_path, strlen('storage/'));
+        Storage::disk('public')->assertExists($firstBannerPath);
+        $this->get('/user/profile-settings')
+            ->assertOk()
+            ->assertSee('profile-settings-banner-preview')
+            ->assertDontSee('Your image library', false)
+            ->assertDontSee('Upload an image', false);
+        $this->get('/user')
+            ->assertOk()
+            ->assertSee($user->fresh()->banner_path);
+
+        $this->actingAs($user)
+            ->post('/user/profile', [
+                'name' => $user->name,
+                'email' => $user->email,
+                'banner' => UploadedFile::fake()->createWithContent('second-banner.png', $imageContent),
+            ])
+            ->assertRedirect('/user/profile-settings');
+
+        $secondBannerPath = substr($user->fresh()->banner_path, strlen('storage/'));
+        $this->assertNotSame($firstBannerPath, $secondBannerPath);
+        Storage::disk('public')->assertMissing($firstBannerPath);
+        Storage::disk('public')->assertExists($secondBannerPath);
+    }
+
     public function test_a_user_can_change_password_after_verifying_the_current_password(): void
     {
         $user = User::create([
@@ -130,7 +174,10 @@ class AccountAndImageCrudTest extends TestCase
 
         $image = Image::where('user_id', $user->id)->firstOrFail();
         Storage::disk('public')->assertExists($image->path);
-        $this->get('/user/profile-settings')->assertOk()->assertSee('Original description');
+        $this->get('/user/profile-settings')
+            ->assertOk()
+            ->assertDontSee('Your image library', false)
+            ->assertDontSee('Upload an image', false);
 
         $this->post("/user/images/{$image->id}/update", [
             'alt_text' => 'Updated description',

@@ -17,7 +17,6 @@ class UserProfileController extends Controller
     {
         return view('user.profile-settings', [
             'user' => $request->user(),
-            'images' => $request->user()->images()->latest()->get(),
         ]);
     }
 
@@ -30,38 +29,61 @@ class UserProfileController extends Controller
             'phone' => ['nullable', 'string', 'max:30'],
             'bio' => ['nullable', 'string', 'max:2000'],
             'avatar' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
+            'banner' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:10240'],
         ]);
         $avatar = $validated['avatar'] ?? null;
-        unset($validated['avatar']);
+        $banner = $validated['banner'] ?? null;
+        unset($validated['avatar'], $validated['banner']);
 
         if ($user->email !== $validated['email']) {
             $user->email_verified_at = null;
         }
 
-        $newAvatarPath = $avatar?->storePublicly('avatars', 'public');
-        $previousAvatarPath = $user->avatar_path;
+        $previousPaths = [
+            'avatar_path' => $user->avatar_path,
+            'banner_path' => $user->banner_path,
+        ];
+        $uploadDirectories = [
+            'avatar_path' => 'avatars',
+            'banner_path' => 'banners',
+        ];
+        $newPaths = [];
 
         try {
             $user->fill($validated);
-            if ($newAvatarPath !== null) {
-                $user->avatar_path = 'storage/' . $newAvatarPath;
+            foreach ([
+                'avatar_path' => $avatar,
+                'banner_path' => $banner,
+            ] as $attribute => $file) {
+                if ($file === null) {
+                    continue;
+                }
+
+                $path = $file->storePublicly($uploadDirectories[$attribute], 'public');
+                if (! is_string($path)) {
+                    throw new RuntimeException('The profile image could not be stored.');
+                }
+
+                $newPaths[$attribute] = $path;
+                $user->setAttribute($attribute, 'storage/' . $path);
             }
             $user->save();
         } catch (Throwable $exception) {
-            if ($newAvatarPath !== null) {
-                Storage::disk('public')->delete($newAvatarPath);
+            foreach ($newPaths as $path) {
+                Storage::disk('public')->delete($path);
             }
             throw $exception;
         }
 
-        if (
-            $newAvatarPath !== null
-            && is_string($previousAvatarPath)
-            && str_starts_with($previousAvatarPath, 'storage/avatars/')
-        ) {
-            $oldAvatarPath = substr($previousAvatarPath, strlen('storage/'));
-            if (Storage::disk('public')->exists($oldAvatarPath) && ! Storage::disk('public')->delete($oldAvatarPath)) {
-                throw new RuntimeException('The previous profile image could not be removed.');
+        foreach ($newPaths as $attribute => $path) {
+            $previousPath = $previousPaths[$attribute];
+            $storagePrefix = 'storage/' . $uploadDirectories[$attribute] . '/';
+
+            if (is_string($previousPath) && str_starts_with($previousPath, $storagePrefix)) {
+                $oldPath = substr($previousPath, strlen('storage/'));
+                if (Storage::disk('public')->exists($oldPath) && ! Storage::disk('public')->delete($oldPath)) {
+                    throw new RuntimeException('The previous profile image could not be removed.');
+                }
             }
         }
 
