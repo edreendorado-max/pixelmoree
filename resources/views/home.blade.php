@@ -10,7 +10,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/site.css') }}?v=20261029-market-value" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}?v=20261029-earnings" rel="stylesheet">
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark site-nav guest-nav">
@@ -26,6 +26,7 @@
         <a class="guest-only-nav-link" href="/about"><i class="bi bi-info-circle"></i><span>About</span></a>
         <a href="/user/dashboard" class="member-only-nav-link" data-member-nav="dashboard" hidden><i class="bi bi-grid"></i><span>Dashboard</span></a>
         <a href="/user/purchases" class="member-only-nav-link" data-member-nav="history" hidden><i class="bi bi-receipt"></i><span>Purchases</span></a>
+        <a href="/user/earnings" class="member-only-nav-link" data-member-nav="earnings" hidden><i class="bi bi-graph-up-arrow"></i><span>Earnings</span></a>
         <a href="/user/terms" class="member-only-nav-link" data-member-nav="terms" hidden><i class="bi bi-shield-check"></i><span>Terms &amp; Originality</span></a>
         <a href="/user/notifications" class="member-only-nav-link" data-member-nav="notifications" hidden><i class="bi bi-bell"></i><span>Notifications <small class="member-nav-badge" id="memberNotificationBadge" hidden>0</small></span></a>
         <a href="/user/profile-settings" class="member-only-nav-link" data-member-nav="profile-settings" hidden><i class="bi bi-person-gear"></i><span>Profile Settings</span></a>
@@ -48,6 +49,7 @@
             <a href="/user/dashboard" data-member-action="dashboard"><i class="bi bi-grid"></i> Dashboard</a>
             <a href="/user/create" data-member-action="create"><i class="bi bi-plus-circle"></i> Create</a>
             <a href="/user/purchases" data-member-action="history"><i class="bi bi-receipt"></i> Purchases</a>
+            <a href="/user/earnings" data-member-action="earnings"><i class="bi bi-graph-up-arrow"></i> Earnings balance</a>
             <a href="/user/pixel-coin" data-member-action="pixel-coin"><i class="bi bi-coin"></i> Pixel Coin wallet</a>
             <a href="/user/terms" data-member-action="terms"><i class="bi bi-shield-check"></i> Terms &amp; Originality</a>
             <a href="/user/profile-settings" data-member-action="profile-settings"><i class="bi bi-person-gear"></i> Profile Settings</a>
@@ -179,6 +181,32 @@
           <section class="member-dashboard-panel" data-member-panel-content="history" hidden>
             <div class="member-panel-heading"><div><h3>Purchases</h3><p>Demo transaction records; no real payments are processed.</p></div></div>
             <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Artwork</th><th>Price paid</th><th>Date</th><th>Status</th></tr></thead><tbody id="memberHistoryItems"><tr><td colspan="4" class="member-empty-state">No demo purchases yet.</td></tr></tbody></table></div>
+          </section>
+          <section class="member-dashboard-panel" data-member-panel-content="earnings" hidden>
+            <div class="member-panel-heading"><div><h3>Earnings balance</h3><p>Track demo Pixel Coin purchases of your artwork.</p></div><span class="member-demo-label"><i class="bi bi-info-circle"></i> DEMO SUMMARY</span></div>
+            <article class="member-panel-card member-earnings-hero" data-earnings-total="{{ $creatorEarnings['totalPixelCoins'] ?? 0 }}">
+              <span class="member-earnings-icon"><i class="bi bi-stars"></i></span>
+              <div>
+                <small>ESTIMATED DEMO EARNINGS</small>
+                <strong>{{ number_format($creatorEarnings['totalPixelCoins'] ?? 0) }} <span>PIXEL COIN</span></strong>
+                <p>Purchase value recorded for artwork you created.</p>
+              </div>
+            </article>
+            <div class="member-stat-grid member-earnings-stats">
+              <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-bag-check"></i></span><div><small>Completed demo sales</small><strong>{{ number_format($creatorEarnings['salesCount'] ?? 0) }}</strong></div></article>
+              <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-calendar-check"></i></span><div><small>Demo sales, last 30 days</small><strong>{{ number_format($creatorEarnings['last30DaysPixelCoins'] ?? 0) }} <small>PIXEL</small></strong></div></article>
+            </div>
+            <div class="member-earnings-notice"><i class="bi bi-shield-check" aria-hidden="true"></i><p><strong>Demo tracking only</strong> This total is calculated from recorded Pixel Coin purchases. It is not credited to your wallet, has no cash value, and cannot be withdrawn. No real payments are processed.</p><a href="/user/pixel-coin">View wallet <i class="bi bi-arrow-up-right"></i></a></div>
+            <section class="member-panel-card member-transactions-card">
+              <div class="member-panel-heading"><div><h4>Recent artwork sales</h4><p>Latest recorded demo purchases of your artwork.</p></div></div>
+              <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Artwork</th><th>Demo sale value</th><th>Date</th></tr></thead><tbody>
+                @forelse (($creatorEarnings['recentSales'] ?? []) as $sale)
+                  <tr><td>{{ $sale->title }}</td><td class="member-earnings-sale-amount">+{{ number_format((int) $sale->amount) }} PIXEL</td><td>{{ \Illuminate\Support\Carbon::parse($sale->created_at)->format('M j, Y') }}</td></tr>
+                @empty
+                  <tr><td colspan="3" class="member-empty-state">No demo sales for your artwork yet. When a signed-in user records a Pixel Coin demo purchase, it will appear here.</td></tr>
+                @endforelse
+              </tbody></table></div>
+            </section>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="pixel-coin" hidden>
             <div class="member-panel-heading"><div><h3>Pixel Coin wallet</h3><p>Your demo balance and recent account activity are saved to Pixmoree.</p></div><span class="member-demo-label"><i class="bi bi-info-circle"></i> DEMO CREDITS ONLY</span></div>
@@ -432,6 +460,6 @@
 </dialog>
 <script>window.pixmoreeAccount = <?= json_encode($account?->only(['name', 'email', 'phone', 'bio', 'pixel_coin_balance']) ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{{ asset('js/site.js') }}?v=20261029-market-value"></script>
+<script src="{{ asset('js/site.js') }}?v=20261029-earnings"></script>
 </body>
 </html>

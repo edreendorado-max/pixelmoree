@@ -73,6 +73,77 @@ class PixmoreePagesTest extends TestCase
         $this->assertDatabaseCount('pixel_coin_transactions', 1);
     }
 
+    public function test_earnings_page_summarizes_only_recorded_purchases_of_the_signed_in_users_artwork(): void
+    {
+        $this->get('/user/earnings')->assertRedirect('/login');
+
+        $seller = User::create([
+            'name' => 'Earnings Seller',
+            'email' => 'seller@example.test',
+            'password' => 'secret-password',
+        ]);
+        $otherSeller = User::create([
+            'name' => 'Other Seller',
+            'email' => 'other-seller@example.test',
+            'password' => 'secret-password',
+        ]);
+        $buyer = User::create([
+            'name' => 'Earnings Buyer',
+            'email' => 'earnings-buyer@example.test',
+            'password' => 'secret-password',
+        ]);
+        $now = now();
+
+        foreach ([
+            ['id' => 'seller-artwork', 'title' => 'Seller Artwork', 'user_id' => $seller->id],
+            ['id' => 'other-artwork', 'title' => 'Other Artwork', 'user_id' => $otherSeller->id],
+        ] as $artwork) {
+            DB::table('artworks')->insert($artwork + [
+                'creator' => 'Creator',
+                'category' => 'Digital Art',
+                'price' => 1,
+                'image' => $artwork['id'] . '.png',
+                'description' => 'Test artwork',
+                'status' => 'Listed',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+
+        DB::table('pixel_coin_transactions')->insert([
+            [
+                'user_id' => $buyer->id,
+                'artwork_id' => 'seller-artwork',
+                'type' => 'purchase',
+                'amount' => 1000,
+                'balance_after' => 0,
+                'description' => 'Demo purchase: Seller Artwork',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'user_id' => $buyer->id,
+                'artwork_id' => 'other-artwork',
+                'type' => 'purchase',
+                'amount' => 2500,
+                'balance_after' => 0,
+                'description' => 'Demo purchase: Other Artwork',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        ]);
+
+        $this->actingAs($seller)
+            ->get('/user/earnings')
+            ->assertOk()
+            ->assertSee('Earnings balance')
+            ->assertSee('1,000 PIXEL COIN')
+            ->assertSee('Seller Artwork')
+            ->assertDontSee('Other Artwork</td>')
+            ->assertSee('data-earnings-total="1000"', false)
+            ->assertSee('It is not credited to your wallet');
+    }
+
     public function test_pixel_coin_purchases_use_server_artwork_prices_and_prevent_duplicate_charges(): void
     {
         $this->seed(ArtworkFixtureSeeder::class);

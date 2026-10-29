@@ -9,6 +9,7 @@ require_once base_path('app/ArtworkRepository.php');
 
 $authController = \App\Http\Controllers\AuthController::class;
 $artworkController = \App\Http\Controllers\ArtworkController::class;
+$earningsController = \App\Http\Controllers\UserEarningsController::class;
 $profileController = \App\Http\Controllers\UserProfileController::class;
 $pixelCoinController = \App\Http\Controllers\PixelCoinController::class;
 $sitePageContentController = \App\Http\Controllers\SitePageContentController::class;
@@ -24,7 +25,7 @@ Route::post('/register', [$authController, 'store'])->name('register.store');
 Route::get('/create-account', [$authController, 'create'])->name('create-account');
 Route::post('/logout', [$authController, 'logout'])->middleware('auth')->name('logout');
 
-Route::middleware('auth')->group(function () use ($profileController, $artworkController, $pixelCoinController): void {
+Route::middleware('auth')->group(function () use ($profileController, $artworkController, $pixelCoinController, $earningsController): void {
     Route::view('/user', 'home')->name('user');
     Route::view('/user/dashboard', 'home')->name('user.dashboard');
     Route::view('/user/create', 'home')->name('user.create');
@@ -35,6 +36,7 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
     Route::view('/user/collection', 'home')->name('user.collection');
     Route::view('/user/favorites', 'home')->name('user.favorites');
     Route::view('/user/history', 'home')->name('user.history');
+    Route::get('/user/earnings', $earningsController)->name('user.earnings');
     Route::redirect('/user/settings', '/user/profile-settings')->name('user.settings');
     Route::redirect('/user/profile', '/user/profile-settings')->name('user.profile');
     Route::view('/user/payment', 'home')->name('user.payment');

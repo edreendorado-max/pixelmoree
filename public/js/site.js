@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.add('member-area');
     if (isMemberAccountPage) document.body.classList.add('member-account-page');
     document.title = isMemberAccountPage
-      ? `${memberSection === 'history' ? 'Purchases' : memberSection === 'payment' ? 'Payment & Transactions' : memberSection === 'pixel-coin' ? 'Pixel Coin Wallet' : memberSection === 'terms' ? 'Terms & Originality' : memberSection === 'collection' ? 'My Collection' : memberSection === 'create' ? 'Create' : memberSection === 'profile' ? 'Profile Settings' : memberSection === 'notifications' ? 'Notifications' : memberSection === 'about' ? 'About Pixmoree' : 'Dashboard'} — Pixmoree`
+      ? `${memberSection === 'history' ? 'Purchases' : memberSection === 'earnings' ? 'Earnings Balance' : memberSection === 'payment' ? 'Payment & Transactions' : memberSection === 'pixel-coin' ? 'Pixel Coin Wallet' : memberSection === 'terms' ? 'Terms & Originality' : memberSection === 'collection' ? 'My Collection' : memberSection === 'create' ? 'Create' : memberSection === 'profile' ? 'Profile Settings' : memberSection === 'notifications' ? 'Notifications' : memberSection === 'about' ? 'About Pixmoree' : 'Dashboard'} — Pixmoree`
       : 'Pixmoree — Your Creative Space';
     document.querySelector('.navbar-brand').href = '/user';
     memberProfile.hidden = false;
