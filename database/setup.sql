@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `phone` VARCHAR(30) NULL,
     `bio` TEXT NULL,
     `avatar_path` VARCHAR(255) NULL,
+    `pixel_coin_balance` BIGINT UNSIGNED NOT NULL DEFAULT 0,
     `remember_token` VARCHAR(100) NULL,
     `created_at` TIMESTAMP NULL DEFAULT NULL,
     `updated_at` TIMESTAMP NULL DEFAULT NULL,
@@ -52,6 +53,21 @@ SET @add_user_avatar = IF(
 PREPARE `add_user_avatar` FROM @add_user_avatar;
 EXECUTE `add_user_avatar`;
 DEALLOCATE PREPARE `add_user_avatar`;
+
+SET @add_user_pixel_coin_balance = IF(
+    EXISTS (
+        SELECT 1
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'pixmoreedb'
+          AND TABLE_NAME = 'users'
+          AND COLUMN_NAME = 'pixel_coin_balance'
+    ),
+    'SELECT 1',
+    'ALTER TABLE `pixmoreedb`.`users` ADD COLUMN `pixel_coin_balance` BIGINT UNSIGNED NOT NULL DEFAULT 0 AFTER `avatar_path`'
+);
+PREPARE `add_user_pixel_coin_balance` FROM @add_user_pixel_coin_balance;
+EXECUTE `add_user_pixel_coin_balance`;
+DEALLOCATE PREPARE `add_user_pixel_coin_balance`;
 
 CREATE TABLE IF NOT EXISTS `artworks` (
     `id` VARCHAR(140) NOT NULL,
@@ -157,46 +173,23 @@ CREATE TABLE IF NOT EXISTS `site_pages` (
   DEFAULT CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-INSERT INTO `artworks` (`id`, `title`, `creator`, `category`, `price`, `image`, `description`, `status`)
-VALUES
-    ('neon-wanderer', 'Ethereal Life', 'Pixmoree Studio', 'Digital Art', 0.86, 'nfts/ethereal-life.png', 'A supplied digital artwork featured as a sample listing.', 'Listed'),
-    ('moonlit-guardian', 'Rather Lie', 'Pixmoree Studio', 'Illustration', 1.24, 'nfts/rather-lie.png', 'A supplied character artwork featured as a sample listing.', 'Listed'),
-    ('starlight-drift', 'Sneaker Study', 'Pixmoree Studio', 'Digital Art', 1.52, 'nfts/sneaker-study.jpg', 'A supplied sneaker poster featured as a sample listing.', 'Listed'),
-    ('neon-character', 'Neon Character', 'Pixmoree Studio', 'Illustration', 1.15, 'nfts/neon-character.png', 'A supplied character artwork featured as a sample listing.', 'Listed'),
-    ('team-poster', 'Team Poster', 'Pixmoree Studio', 'Poster', 0.95, 'nfts/team-poster.png', 'A supplied team poster featured as a sample listing.', 'Listed'),
-    ('music-analytics', 'Music Analytics', 'Pixmoree Studio', 'Poster', 1.08, 'nfts/music-analytics.png', 'A supplied music poster featured as a sample listing.', 'Listed'),
-    ('monochrome-study', 'Monochrome Study', 'Pixmoree Studio', 'Illustration', 1.32, 'nfts/monochrome-study.png', 'A supplied monochrome artwork featured as a sample listing.', 'Listed')
-ON DUPLICATE KEY UPDATE
-    `title` = VALUES(`title`),
-    `creator` = VALUES(`creator`),
-    `category` = VALUES(`category`),
-    `price` = VALUES(`price`),
-    `image` = VALUES(`image`),
-    `description` = VALUES(`description`),
-    `status` = VALUES(`status`);
-
-SET @legacy_artworks_copy = IF(
-    EXISTS (
-        SELECT 1
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = 'pixelmoree'
-          AND TABLE_NAME = 'artworks'
-    ),
-    'INSERT INTO `pixmoreedb`.`artworks` (`id`, `title`, `creator`, `category`, `price`, `image`, `description`, `status`, `created_at`, `updated_at`)
-     SELECT `id`, `title`, `creator`, `category`, `price`, `image`, `description`, `status`, `created_at`, `updated_at`
-     FROM `pixelmoree`.`artworks`
-     ON DUPLICATE KEY UPDATE
-        `title` = VALUES(`title`),
-        `creator` = VALUES(`creator`),
-        `category` = VALUES(`category`),
-        `price` = VALUES(`price`),
-        `image` = VALUES(`image`),
-        `description` = VALUES(`description`),
-        `status` = VALUES(`status`),
-        `created_at` = VALUES(`created_at`),
-        `updated_at` = VALUES(`updated_at`)',
-    'SELECT 1'
-);
-PREPARE `copy_legacy_artworks` FROM @legacy_artworks_copy;
-EXECUTE `copy_legacy_artworks`;
-DEALLOCATE PREPARE `copy_legacy_artworks`;
+CREATE TABLE IF NOT EXISTS `pixel_coin_transactions` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id` BIGINT UNSIGNED NOT NULL,
+    `artwork_id` VARCHAR(140) NULL,
+    `type` VARCHAR(24) NOT NULL,
+    `amount` BIGINT UNSIGNED NOT NULL,
+    `balance_after` BIGINT UNSIGNED NOT NULL,
+    `description` VARCHAR(255) NOT NULL,
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `pixel_coin_transactions_purchase_unique` (`user_id`, `type`, `artwork_id`),
+    KEY `pixel_coin_transactions_user_created_index` (`user_id`, `created_at`),
+    CONSTRAINT `pixel_coin_transactions_user_id_foreign`
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `pixel_coin_transactions_artwork_id_foreign`
+        FOREIGN KEY (`artwork_id`) REFERENCES `artworks` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB
+  DEFAULT CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;

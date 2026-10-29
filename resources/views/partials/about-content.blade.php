@@ -23,7 +23,7 @@
         <h2>{{ $story['heading'] }}</h2>
         <p>{{ $story['body'] }}</p>
         @if ($index === 2)
-          <a class="about-inline-link" href="{{ $galleryUrl }}">Browse the gallery <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+          <a class="about-inline-link" href="{{ $galleryUrl }}">{{ $story['link_label'] }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
         @endif
       </div>
     </article>
@@ -40,11 +40,11 @@
     <h2>{{ $aboutContent['project']['heading'] }}</h2>
     <p>{{ $aboutContent['project']['body'] }}</p>
     @if ($aboutContent['project']['started_at'] !== '')
-      <p class="about-project-started"><i class="bi bi-calendar3" aria-hidden="true"></i> Project started <time datetime="{{ $aboutContent['project']['started_at'] }}">{{ \Illuminate\Support\Carbon::parse($aboutContent['project']['started_at'])->format('F j, Y') }}</time></p>
+      <p class="about-project-started"><i class="bi bi-calendar3" aria-hidden="true"></i> {{ $aboutContent['project']['started_label'] }} <time datetime="{{ $aboutContent['project']['started_at'] }}">{{ \Illuminate\Support\Carbon::parse($aboutContent['project']['started_at'])->format('F j, Y') }}</time></p>
     @endif
     <div class="about-project-note"><i class="bi bi-lightbulb" aria-hidden="true"></i><span>{{ $aboutContent['project']['note'] }}</span></div>
     <div class="about-tools">
-      <span class="about-tools-label">Apps used</span>
+      <span class="about-tools-label">{{ $aboutContent['project']['tools_label'] }}</span>
       <div class="about-tool-list">
         <span class="about-tool"><span class="about-tool-logo about-tool-ae" aria-hidden="true">Ae</span><span>After Effects</span></span>
         <span class="about-tool"><span class="about-tool-logo about-tool-ps" aria-hidden="true">Ps</span><span>Photoshop</span></span>
@@ -83,24 +83,36 @@
     <p>{{ $aboutContent['team']['intro'] }}</p>
   </div>
   <div class="about-team-grid">
-    @foreach ($teamCreators as $member)
+    @foreach ($aboutContent['team']['members'] as $member)
       <article class="about-team-card">
         <div class="about-team-image">
-          <img src="{{ asset($member->avatar_path) }}" alt="{{ $member->name }}">
+          <img src="{{ asset($member['image']) }}" alt="{{ $member['name'] }}">
           <span>{{ sprintf('%02d', $loop->iteration) }}</span>
         </div>
         <div class="about-team-details">
-          <span class="about-team-role">PIXMOREE CREATOR</span>
-          <h3>{{ $member->name }}</h3>
-          <p class="about-team-course">{{ $member->artworks_count }} {{ \Illuminate\Support\Str::plural('artwork', $member->artworks_count) }} in the gallery</p>
-          @if ($member->bio)
-            <blockquote>{{ $member->bio }}</blockquote>
+          <span class="about-team-role">{{ $member['role'] }}</span>
+          <h3>{{ $member['name'] }}</h3>
+          @if (($member['section'] ?? '') !== '')
+            <p class="about-team-section">{{ $member['section'] }}</p>
           @endif
+          @if ($member['bio'] !== '')
+            <p class="about-team-bio">{{ $member['bio'] }}</p>
+          @endif
+          @if (($member['quote'] ?? '') !== '')
+            <blockquote class="about-team-quote">{{ $member['quote'] }}</blockquote>
+          @endif
+          <div class="about-team-socials" aria-label="{{ $member['name'] }} social links">
+            @foreach (['instagram' => ['Instagram', 'bi-instagram'], 'facebook' => ['Facebook', 'bi-facebook'], 'github' => ['GitHub', 'bi-github'], 'linkedin' => ['LinkedIn', 'bi-linkedin']] as $platform => [$label, $icon])
+              @if (($member['socials'][$platform] ?? '') !== '')
+                <a href="{{ $member['socials'][$platform] }}" target="_blank" rel="noopener noreferrer" aria-label="{{ $member['name'] }} on {{ $label }}"><i class="bi {{ $icon }}" aria-hidden="true"></i></a>
+              @endif
+            @endforeach
+          </div>
         </div>
       </article>
     @endforeach
   </div>
-  <p class="about-team-privacy"><i class="bi bi-shield-check" aria-hidden="true"></i> Creator photos and artwork counts are connected to the Pixmoree database.</p>
+  <p class="about-team-privacy"><i class="bi bi-code-slash" aria-hidden="true"></i> {{ $aboutContent['team']['privacy_note'] }}</p>
 </section>
 
 <section class="about-contact">
@@ -110,5 +122,5 @@
     <h2>{{ $aboutContent['contact']['heading'] }}</h2>
     <p>{{ $aboutContent['contact']['body'] }}</p>
   </div>
-  <a href="{{ $galleryUrl }}" class="about-contact-link">Back to home <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+  <a href="{{ $galleryUrl }}" class="about-contact-link">{{ $aboutContent['contact']['link_label'] }} <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
 </section>

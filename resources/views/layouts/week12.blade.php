@@ -2,13 +2,18 @@
 $week12Title ??= 'Pixmoree';
 $week12Area ??= '';
 $week12CsrfToken ??= '';
+$week12Description ??= $marketplaceContent['meta_description'] ?? 'Pixmoree marketplace.';
+if ($week12Area === 'admin') {
+    require week12_view_path('layouts/admin.blade.php');
+    return;
+}
 ?>
 <!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="<?= week12_escape($week12Description ?? 'Pixmoree Week 12 marketplace database demonstration.') ?>">
+    <meta name="description" content="<?= week12_escape($week12Description) ?>">
     <title><?= week12_escape($week12Title) ?> · Pixmoree</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -41,8 +46,8 @@ $week12CsrfToken ??= '';
 </main>
 <footer class="w12-footer">
     <div class="container d-flex flex-column flex-sm-row justify-content-between gap-2">
-        <span>Pixmoree · Week 12 interface prototype</span>
-        <span>Fictional sample listings · no payments are processed</span>
+        <span><?= week12_escape($marketplaceContent['footer']['tagline'] ?? 'Pixmoree Marketplace') ?></span>
+        <span><?= week12_escape($marketplaceContent['footer']['disclaimer'] ?? 'Sample artwork listings. No payments are processed.') ?></span>
     </div>
 </footer>
 <div class="toast-container position-fixed bottom-0 end-0 p-3">

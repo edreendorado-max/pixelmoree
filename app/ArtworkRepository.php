@@ -1,5 +1,8 @@
 <?php
 
+use App\Support\ArtworkMarketValue;
+use Carbon\CarbonImmutable;
+
 final class ArtworkRepository
 {
     public function __construct(private readonly PDO $pdo)
@@ -12,13 +15,13 @@ final class ArtworkRepository
             'SELECT artworks.id, artworks.user_id, artworks.title,
                     COALESCE(users.name, artworks.creator) AS creator,
                     artworks.category, artworks.price, artworks.image,
-                    artworks.image_hash, artworks.description, artworks.status
+                    artworks.image_hash, artworks.description, artworks.status, artworks.created_at
              FROM artworks
              LEFT JOIN users ON users.id = artworks.user_id
              ORDER BY artworks.created_at DESC, artworks.title ASC'
         );
 
-        return $statement->fetchAll();
+        return $this->addMarketEstimates($statement->fetchAll());
     }
 
     public function listed(): array
@@ -27,14 +30,14 @@ final class ArtworkRepository
             "SELECT artworks.id, artworks.user_id, artworks.title,
                     COALESCE(users.name, artworks.creator) AS creator,
                     artworks.category, artworks.price, artworks.image,
-                    artworks.image_hash, artworks.description, artworks.status
+                    artworks.image_hash, artworks.description, artworks.status, artworks.created_at
              FROM artworks
              LEFT JOIN users ON users.id = artworks.user_id
              WHERE artworks.status = 'Listed'
              ORDER BY artworks.created_at DESC, artworks.title ASC"
         );
 
-        return $statement->fetchAll();
+        return $this->addMarketEstimates($statement->fetchAll());
     }
 
     public function recent(int $limit = 5): array
@@ -44,14 +47,14 @@ final class ArtworkRepository
             'SELECT artworks.id, artworks.user_id, artworks.title,
                     COALESCE(users.name, artworks.creator) AS creator,
                     artworks.category, artworks.price, artworks.image,
-                    artworks.image_hash, artworks.description, artworks.status
+                    artworks.image_hash, artworks.description, artworks.status, artworks.created_at
              FROM artworks
              LEFT JOIN users ON users.id = artworks.user_id
              ORDER BY artworks.created_at DESC, artworks.title ASC
              LIMIT ' . $limit
         );
 
-        return $statement->fetchAll();
+        return $this->addMarketEstimates($statement->fetchAll());
     }
 
     public function find(string $id): ?array
@@ -60,7 +63,7 @@ final class ArtworkRepository
             'SELECT artworks.id, artworks.user_id, artworks.title,
                     COALESCE(users.name, artworks.creator) AS creator,
                     artworks.category, artworks.price, artworks.image,
-                    artworks.image_hash, artworks.description, artworks.status
+                    artworks.image_hash, artworks.description, artworks.status, artworks.created_at
              FROM artworks
              LEFT JOIN users ON users.id = artworks.user_id
              WHERE artworks.id = :id'
@@ -68,7 +71,52 @@ final class ArtworkRepository
         $statement->execute(['id' => $id]);
         $artwork = $statement->fetch();
 
-        return $artwork === false ? null : $artwork;
+        if ($artwork === false) {
+            return null;
+        }
+
+        return $this->addMarketEstimates([$artwork])[0];
+    }
+
+    private function addMarketEstimates(array $artworks): array
+    {
+        if ($artworks === []) {
+            return [];
+        }
+
+        $ids = array_column($artworks, 'id');
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $statement = $this->pdo->prepare(
+            "SELECT artwork_id,
+                    SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) AS recent_sales,
+                    MAX(created_at) AS last_sale_at
+             FROM pixel_coin_transactions
+             WHERE type = 'purchase' AND artwork_id IN ($placeholders)
+             GROUP BY artwork_id"
+        );
+        $now = CarbonImmutable::now();
+        $statement->execute([$now->subDays(30)->toDateTimeString(), ...$ids]);
+        $salesByArtwork = [];
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $saleData) {
+            $salesByArtwork[$saleData['artwork_id']] = $saleData;
+        }
+
+        foreach ($artworks as &$artwork) {
+            $sales = $salesByArtwork[$artwork['id']] ?? [];
+            $estimate = ArtworkMarketValue::estimate(
+                (float) $artwork['price'],
+                $artwork['created_at'],
+                (int) ($sales['recent_sales'] ?? 0),
+                $sales['last_sale_at'] ?? null,
+                $now,
+            );
+            $artwork['estimated_market_value'] = $estimate['value'];
+            $artwork['market_change_percent'] = $estimate['change_percent'];
+            $artwork['recent_market_sales'] = $estimate['recent_sales'];
+        }
+        unset($artwork);
+
+        return $artworks;
     }
 
     public function counts(): array

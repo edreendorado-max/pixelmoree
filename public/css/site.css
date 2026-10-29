@@ -178,6 +178,13 @@ body{font-family:'Pixelify Sans',Inter,system-ui,sans-serif}
 .about-team-course{margin:0;color:#aaa8bd;font-family:Inter,system-ui,sans-serif;font-size:11px}
 .about-team-course span{padding:0 4px;color:#df55e7}
 .about-team-details blockquote{min-height:58px;margin:17px 0;padding-left:12px;border-left:2px solid #9e46ad;color:#d7c9e0;font-size:12px;font-style:italic;line-height:1.6}
+.about-team-section{margin:0;color:#aaa8bd;font-family:Inter,system-ui,sans-serif;font-size:11px}
+.about-team-details .about-team-bio{margin:11px 0 0;color:#c1bed0;font-family:Inter,system-ui,sans-serif;font-size:11px;line-height:1.7}
+.about-team-details .about-team-quote{min-height:0;margin:13px 0 0}
+.about-team-socials{display:flex;gap:8px;margin-top:14px}
+.about-team-socials:empty{display:none}
+.about-team-socials a{display:grid;width:30px;height:30px;place-items:center;border:1px solid #ffffff20;border-radius:8px;background:#ffffff08;color:#e0a0eb;text-decoration:none}
+.about-team-socials a:hover{border-color:#d97be8;color:#fff}
 .about-team-contact{display:grid;gap:8px;padding-top:14px;border-top:1px solid var(--line)}
 .about-team-contact span{display:flex;align-items:center;gap:9px;min-width:0;color:#c1bed0;font-family:Inter,system-ui,sans-serif;font-size:10px;overflow-wrap:anywhere}
 .about-team-contact i{width:14px;flex:0 0 14px;color:#e36dec;font-size:12px}
@@ -762,6 +769,7 @@ body{font-family:'Pixelify Sans',Inter,system-ui,sans-serif}
 .art-price{align-items:flex-start;gap:2px;text-align:left}
 .art-stats .art-price small,.art-items small{font-size:8px}
 .art-stats .art-price strong,.art-items strong{font-size:10px;color:#f3f1f7}
+.art-stats .art-price .art-market-estimate{display:block;color:#9be7d0;font-size:8px;line-height:1.35}
 .art-items{min-width:38px;padding-left:8px;border-left:1px solid #ffffff1a;text-align:right;display:flex;flex-direction:column;gap:3px}
 .load-more-wrap{display:flex;justify-content:center;margin:22px auto 4px}
 .load-more-wrap[hidden]{display:none}
@@ -961,6 +969,11 @@ body{font-family:'Pixelify Sans',Inter,system-ui,sans-serif}
 .member-area .guest-nav .nav-actions>.guest-search.is-open{flex-basis:220px;width:220px}
 .member-area .guest-nav .nav-actions>.guest-search.is-open .search-input{width:182px}
 .member-area .guest-nav .nav-actions>.member-notification-button{position:relative;display:grid;width:38px;height:38px;place-items:center;border:1px solid #ffffff20;border-radius:8px;background:#15151a;color:#eae6ef;font-size:16px;text-decoration:none}
+.member-area .guest-nav .nav-actions>.member-pixel-coin-link{position:relative;display:flex;min-height:38px;align-items:center;gap:5px;padding:0 10px;border:1px solid #e6c76755;border-radius:9px;background:#15151a;color:#f2d46e;font-size:11px;font-weight:750;text-decoration:none}
+.member-area .guest-nav .nav-actions>.member-pixel-coin-link small{color:#d8c483;font-size:8px;letter-spacing:.04em}
+.member-area .member-pixel-coin-link[hidden]{display:none}
+.member-pixel-coin-status{position:absolute;top:-5px;right:-5px;display:grid;width:17px;height:17px;place-items:center;border:2px solid #15151a;border-radius:50%;background:#c64654;color:#fff;font-size:9px}
+.member-pixel-coin-status[hidden]{display:none}
 .member-area .guest-nav .nav-actions>.member-notification-button[hidden]{display:none}
 .member-area .member-notification-button>span{position:absolute;top:-5px;right:-5px;display:grid;min-width:17px;height:17px;place-items:center;padding:0 4px;border:2px solid #15151a;border-radius:99px;background:#ed4dbb;color:#fff;font-family:Inter,sans-serif;font-size:9px;font-weight:700}
 .member-area .member-notification-button>span[hidden]{display:none}
@@ -1148,6 +1161,10 @@ body.nft-detail-page-active #nftPreview{display:none!important}
 .nft-detail-price small{color:#aaa3b5;font-size:10px}
 .nft-detail-price small span{color:#d978e7}
 .nft-detail-price strong{color:#fff;font-size:23px}
+.nft-detail-estimate{display:grid;gap:6px;margin:-7px 0 16px;padding:12px 17px;border:1px solid #ffffff15;border-radius:11px;background:#111018}
+.nft-detail-estimate small{color:#aaa3b5;font-size:10px}
+.nft-detail-estimate small span{color:#d978e7}
+.nft-detail-estimate strong{color:#9be7d0;font-size:18px}
 .nft-detail-actions{display:flex;flex-wrap:wrap;gap:9px}
 .nft-detail-actions button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:10px 16px;border:1px solid #ffffff26;border-radius:8px;background:#ffffff0b;color:#fff;font-size:11px;font-weight:650}
 .nft-detail-actions .nft-detail-buy{border-color:#d952d7;background:linear-gradient(100deg,#9134a4,#315da5)}
@@ -1197,6 +1214,9 @@ body.nft-detail-page-active #nftPreview{display:none!important}
 .member-wallet-topup-options button:hover{border-color:#d7bd5d88;background:#d7bd5d12}
 .member-wallet-topup-options button small{color:#aaa3b5;font-size:7px;font-weight:600}
 .member-wallet-topups>small{color:#9991a5;font-size:8px;line-height:1.5}
+.member-wallet-topup-options button:disabled{cursor:wait;opacity:.55}
+.member-wallet-topup-link{display:inline-flex;align-items:center;gap:7px;justify-self:start;color:#e4c96e;font-size:10px;font-weight:650;text-decoration:none}
+.member-wallet-topup-link:hover{color:#fff}
 .member-wallet-feedback{margin:0;color:#a9eccb;font-size:9px}
 .member-wallet-feedback[hidden]{display:none}
 .member-wallet-activity:empty{display:none}

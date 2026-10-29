@@ -13,8 +13,13 @@
             <p class="text-secondary">Created by <strong class="text-light"><?= week12_escape($artwork['creator']) ?></strong></p>
             <p class="w12-detail-copy"><?= week12_escape($artwork['description']) ?></p>
             <div class="w12-price-panel">
-                <span>Demo asking price</span>
+                <span>Creator's demo asking price</span>
                 <strong><?= week12_escape($artwork['price']) ?> ETH</strong>
+            </div>
+            <div class="w12-price-panel mt-3">
+                <span>Estimated market value (demo only)</span>
+                <strong><?= number_format((float) $artwork['estimated_market_value'], 2) ?> ETH</strong>
+                <span><?= $artwork['market_change_percent'] >= 0 ? '+' : '' ?><?= number_format((float) $artwork['market_change_percent'], 1) ?>% vs. asking price</span>
             </div>
             <div class="d-grid d-sm-flex gap-2 mt-3">
                 <button type="button" class="btn w12-btn-primary" data-demo-action="Purchase is simulated. No payment or transaction was made.">
@@ -24,7 +29,7 @@
                     <i class="bi bi-heart"></i> Add to favorites (demo)
                 </button>
             </div>
-            <p class="w12-simulated-note mt-3"><i class="bi bi-shield-check"></i> Artwork and creator accounts are stored in MySQL. Purchases and blockchain transactions are not enabled.</p>
+            <p class="w12-simulated-note mt-3"><i class="bi bi-shield-check"></i> Artwork and creator accounts are stored in MySQL. Value estimates use demo purchase activity and are not financial valuations. Purchases and blockchain transactions are not enabled.</p>
             <div class="w12-info-panel mt-4">
                 <h2 class="h6 mb-3">Listing information</h2>
                 <dl class="row mb-0">

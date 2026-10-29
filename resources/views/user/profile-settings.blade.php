@@ -72,6 +72,30 @@
 
     <section class="card shadow-sm mb-4">
         <div class="card-body p-4">
+            <h2 class="h4 mb-2">Change password</h2>
+            <p class="text-secondary">Use a password that is easy for you to remember, at least 8 characters long.</p>
+            <form method="post" action="{{ route('user.password.update') }}">
+                @csrf
+                @method('PUT')
+                <div class="mb-3">
+                    <label class="form-label" for="current-password">Current password</label>
+                    <input class="form-control" id="current-password" name="current_password" type="password" autocomplete="current-password" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="new-password">New password</label>
+                    <input class="form-control" id="new-password" name="new_password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="new-password-confirmation">Confirm new password</label>
+                    <input class="form-control" id="new-password-confirmation" name="new_password_confirmation" type="password" minlength="8" maxlength="128" autocomplete="new-password" required>
+                </div>
+                <button class="btn btn-primary" type="submit">Update password</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="card shadow-sm mb-4">
+        <div class="card-body p-4">
             <h2 class="h4 mb-3">Upload an image</h2>
             <p class="text-secondary">JPG, PNG, GIF or WebP; maximum file size 5 MB.</p>
             <form method="post" action="{{ route('user.images.store') }}" enctype="multipart/form-data">

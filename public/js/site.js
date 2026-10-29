@@ -23,11 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const createdArtStorageKey = 'pixmoree.user.created-art.v1';
   const nftDetailStoragePrefix = 'pixmoree.nft.detail.v1.';
   const pendingCheckoutStorageKey = 'pixmoree.user.pending-checkout.v1';
-  const pixelCoinBalanceStorageKey = 'pixmoree.user.pixel-coin-balance.v1';
-  const pixelCoinActivityStorageKey = 'pixmoree.user.pixel-coin-activity.v1';
-  const initialPixelCoinBalance = 2500;
   const demoPixelCoinPerEth = 1000;
   const notificationReadStorageKey = 'pixmoree.user.notifications-read.v1';
+  const resetDemoStorageKey = 'pixmoree.user.demo-data-reset.v1';
   const memberPath = window.location.pathname.replace(/\/+$/, '');
   const nftDetailMatch = window.location.pathname.match(/^\/(?:user\/)?nft\/([a-z0-9][a-z0-9-]*)\/?$/i);
   const isNftDetailPage = Boolean(nftDetailMatch);
@@ -50,6 +48,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeTrendingSlide = 0;
   let visibleGalleryLimit = 8;
   let trendingAutoplayTimer;
+  const accountPixelCoinBalance = Number(window.pixmoreeAccount?.pixel_coin_balance ?? 0);
+  let pixelCoinBalance = Number.isSafeInteger(accountPixelCoinBalance) && accountPixelCoinBalance >= 0
+    ? accountPixelCoinBalance
+    : 0;
+  let pixelCoinWalletLoaded = false;
+  let pixelCoinTransactions = [];
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   if (memberPath === '/user/payment') {
@@ -69,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.add('member-area');
     if (isMemberAccountPage) document.body.classList.add('member-account-page');
     document.title = isMemberAccountPage
-      ? `${memberSection === 'history' ? 'Purchases' : memberSection === 'payment' ? 'Payment & Transactions' : memberSection === 'terms' ? 'Terms & Originality' : memberSection === 'collection' ? 'My Collection' : memberSection === 'create' ? 'Create' : memberSection === 'profile' ? 'Profile Settings' : memberSection === 'notifications' ? 'Notifications' : memberSection === 'about' ? 'About Pixmoree' : 'Dashboard'} — Pixmoree`
+      ? `${memberSection === 'history' ? 'Purchases' : memberSection === 'payment' ? 'Payment & Transactions' : memberSection === 'pixel-coin' ? 'Pixel Coin Wallet' : memberSection === 'terms' ? 'Terms & Originality' : memberSection === 'collection' ? 'My Collection' : memberSection === 'create' ? 'Create' : memberSection === 'profile' ? 'Profile Settings' : memberSection === 'notifications' ? 'Notifications' : memberSection === 'about' ? 'About Pixmoree' : 'Dashboard'} — Pixmoree`
       : 'Pixmoree — Your Creative Space';
     document.querySelector('.navbar-brand').href = '/user';
     memberProfile.hidden = false;
@@ -85,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     collectionLink.querySelector('span').textContent = 'My Collection';
     const dashboardLink = document.querySelector('[data-member-nav="dashboard"]');
     dashboardLink.href = '/user/dashboard';
+    document.querySelector('[data-member-nav="pixel-coin"]').href = '/user/pixel-coin';
     document.querySelector('[data-member-nav="profile-settings"]').href = '/user/profile-settings';
     document.querySelector('[data-member-nav="about"]').href = '/user/about';
     document.querySelector('[data-member-nav="terms"]').href = '/user/terms';
@@ -256,11 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('memberDashboardUsername').textContent = `@${name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g) || 'pixmoree-user'}`;
     document.querySelector('#memberDashboardAvatar .member-avatar-initial').textContent = name.charAt(0).toUpperCase();
   }
-
-  const defaultDemoCollection = [
-    { id: 'demo-samurai', title: 'SAMURAI #8423', creator: 'cosmic.art', image: '/public/assets/anime-style-character-space (1).jpg', alt: 'Samurai in a dreamlike landscape', price: '1.85 ETH', date: '2026-10-03', status: 'Completed' },
-    { id: 'demo-astro', title: 'GOJO SATORU #083', creator: 'cosmic.art', image: '/public/assets/anime-character-using-virtual-reality-glasses-metaverse.jpg', alt: 'Anime character portrait', price: '1.60 ETH', date: '2026-09-28', status: 'Completed' }
-  ];
 
   function readStoredList(key, label) {
     try {
@@ -512,20 +512,78 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getPixelCoinBalance() {
-    try {
-      const stored = window.localStorage.getItem(pixelCoinBalanceStorageKey);
-      if (stored === null) return initialPixelCoinBalance;
-      const balance = Number(stored);
-      return Number.isSafeInteger(balance) && balance >= 0 ? balance : initialPixelCoinBalance;
-    } catch (error) {
-      console.error('Could not read the Pixmoree Pixel Coin balance in this browser.', error);
-      return 0;
-    }
+    return pixelCoinBalance;
   }
 
   function updatePixelCoinBalance() {
-    const balance = document.getElementById('memberPixelCoinBalance');
-    if (balance) balance.textContent = getPixelCoinBalance().toLocaleString();
+    document.querySelectorAll('[data-pixelcoin-balance]').forEach(balance => {
+      balance.textContent = getPixelCoinBalance().toLocaleString();
+    });
+    document.querySelectorAll('[data-pixel-topup]').forEach(button => {
+      button.disabled = !pixelCoinWalletLoaded;
+    });
+  }
+
+  async function requestPixelCoinApi(path, method = 'GET', body = null) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    if (!csrfToken) throw new Error('The secure wallet request token is missing. Refresh the page and try again.');
+    const response = await fetch(path, {
+      method,
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken
+      },
+      ...(body === null ? {} : { body: JSON.stringify(body) })
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(payload?.message || `Wallet request failed with status ${response.status}.`);
+    }
+    if (!payload || !Number.isSafeInteger(payload.balance) || payload.balance < 0) {
+      throw new Error('The wallet API returned an invalid balance. Refresh the page and try again.');
+    }
+    return payload;
+  }
+
+  function applyPixelCoinWallet(payload) {
+    pixelCoinBalance = payload.balance;
+    pixelCoinWalletLoaded = true;
+    if (Array.isArray(payload.transactions)) pixelCoinTransactions = payload.transactions;
+    else if (payload.transaction) pixelCoinTransactions = [payload.transaction, ...pixelCoinTransactions].slice(0, 20);
+    const navStatus = document.getElementById('memberPixelCoinNavStatus');
+    if (navStatus) navStatus.hidden = true;
+    const walletLink = document.querySelector('.member-pixel-coin-link');
+    if (walletLink) {
+      walletLink.removeAttribute('title');
+      walletLink.setAttribute('aria-label', 'Pixel Coin wallet');
+    }
+    updatePixelCoinBalance();
+    renderPixelCoinActivity();
+    renderPaymentPanel();
+  }
+
+  async function refreshPixelCoinWallet() {
+    applyPixelCoinWallet(await requestPixelCoinApi('/api/pixel-coins'));
+  }
+
+  function showPixelCoinWalletError(error, fallback) {
+    console.error(fallback, error);
+    const message = error instanceof Error ? error.message : fallback;
+    const feedback = document.getElementById('memberPixelWalletFeedback') ||
+      document.getElementById('memberPaymentFeedback');
+    if (feedback) {
+      feedback.textContent = message;
+      feedback.hidden = false;
+    }
+    const navStatus = document.getElementById('memberPixelCoinNavStatus');
+    const walletLink = document.querySelector('.member-pixel-coin-link');
+    if (navStatus) navStatus.hidden = false;
+    if (walletLink) {
+      walletLink.title = message;
+      walletLink.setAttribute('aria-label', `Pixel Coin balance unavailable: ${message}`);
+    }
   }
 
   function updatePixelCoinCheckout(artwork, alreadyOwned, termsAccepted) {
@@ -543,6 +601,13 @@ document.addEventListener('DOMContentLoaded', () => {
     total.textContent = isPixelCoin
       ? coinCost === null ? 'Unavailable' : `${coinCost.toLocaleString()} PIXEL COIN`
       : artwork.price || 'Price unavailable';
+    if (isPixelCoin && !pixelCoinWalletLoaded) {
+      submit.disabled = true;
+      submit.innerHTML = '<i class="bi bi-arrow-repeat"></i> Checking Pixel Coin balance';
+      insufficient.textContent = 'Your account wallet balance is loading.';
+      insufficient.hidden = false;
+      return;
+    }
     if (alreadyOwned) {
       submit.disabled = true;
       submit.innerHTML = '<i class="bi bi-check-circle"></i> Already in My Collection';
@@ -564,73 +629,57 @@ document.addEventListener('DOMContentLoaded', () => {
     if (feedback.textContent.includes('Top up')) feedback.hidden = true;
   }
 
-  function readPixelCoinActivity() {
-    return readStoredList(pixelCoinActivityStorageKey, 'Pixel Coin activity');
-  }
-
   function renderPixelCoinActivity() {
     const target = document.getElementById('memberPixelCoinActivity');
     if (!target) return;
-    const activity = readPixelCoinActivity().slice(0, 4);
-    if (!activity.length) {
-      target.replaceChildren();
+    if (!pixelCoinTransactions.length) {
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      cell.colSpan = 4;
+      cell.className = 'member-empty-state';
+      cell.textContent = pixelCoinWalletLoaded ? 'No wallet activity yet.' : 'Loading wallet activity…';
+      row.append(cell);
+      target.replaceChildren(row);
       return;
     }
-    const heading = document.createElement('strong');
-    heading.textContent = 'Recent demo top-ups';
-    const list = document.createElement('ul');
-    activity.forEach(item => {
-      const row = document.createElement('li');
-      const amount = document.createElement('span');
-      amount.textContent = `+${Number(item.amount).toLocaleString()} PIXEL COIN`;
-      const date = document.createElement('small');
-      date.textContent = formatMemberDate(item.date);
-      row.append(amount, date);
-      list.append(row);
-    });
-    target.replaceChildren(heading, list);
+    target.replaceChildren(...pixelCoinTransactions.map(item => {
+      const row = document.createElement('tr');
+      const label = document.createElement('td');
+      label.textContent = item.description || (item.type === 'demo_top_up' ? 'Demo credit' : 'Pixel Coin purchase');
+      const amount = document.createElement('td');
+      const isCredit = item.type === 'demo_top_up';
+      amount.textContent = `${isCredit ? '+' : '−'}${Number(item.amount).toLocaleString()} PIXEL COIN`;
+      const balance = document.createElement('td');
+      balance.textContent = `${Number(item.balance_after).toLocaleString()} PIXEL COIN`;
+      const date = document.createElement('td');
+      date.textContent = formatMemberDate(item.created_at);
+      row.append(label, amount, balance, date);
+      return row;
+    }));
   }
 
   document.querySelectorAll('[data-pixel-topup]').forEach(button => {
-    button.addEventListener('click', () => {
+    button.addEventListener('click', async () => {
       const amount = Number(button.dataset.pixelTopup);
       if (!Number.isSafeInteger(amount) || amount <= 0) {
         console.error('Ignored an invalid Pixel Coin demo top-up amount.');
         return;
       }
-      const currentBalance = getPixelCoinBalance();
-      const nextBalance = currentBalance + amount;
       const message = document.getElementById('memberPixelWalletFeedback');
-      if (!Number.isSafeInteger(nextBalance)) {
-        message.textContent = 'The demo balance limit has been reached.';
-        message.hidden = false;
-        return;
-      }
-      const activity = readPixelCoinActivity();
-      const topUp = {
-        id: `pixel-topup-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        amount,
-        date: new Date().toISOString().slice(0, 10)
-      };
+      button.disabled = true;
+      if (message) message.hidden = true;
       try {
-        window.localStorage.setItem(pixelCoinBalanceStorageKey, String(nextBalance));
-        window.localStorage.setItem(pixelCoinActivityStorageKey, JSON.stringify([topUp, ...activity].slice(0, 20)));
-      } catch (error) {
-        console.error('Could not save Pixmoree Pixel Coin demo top-up.', error);
-        try {
-          window.localStorage.setItem(pixelCoinBalanceStorageKey, String(currentBalance));
-        } catch (restoreError) {
-          console.error('Could not restore the Pixmoree Pixel Coin balance after an incomplete demo top-up.', restoreError);
+        const result = await requestPixelCoinApi('/api/pixel-coins/top-ups', 'POST', { amount });
+        applyPixelCoinWallet(result);
+        if (message) {
+          message.textContent = `${amount.toLocaleString()} free demo PIXEL COIN added. No payment was made.`;
+          message.hidden = false;
         }
-        message.textContent = 'Could not save this demo top-up. Check browser storage settings and try again.';
-        message.hidden = false;
-        return;
+      } catch (error) {
+        showPixelCoinWalletError(error, 'Could not add demo credits. Please try again.');
+      } finally {
+        button.disabled = !pixelCoinWalletLoaded;
       }
-      message.textContent = `${amount.toLocaleString()} demo PIXEL COIN added. No payment was made.`;
-      message.hidden = false;
-      updatePixelCoinBalance();
-      renderPixelCoinActivity();
-      renderPaymentPanel();
     });
   });
 
@@ -743,21 +792,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileMenu = document.getElementById('memberProfileMenu');
     updateMemberProfile(window.pixmoreeAccount ?? {});
     try {
-      if (window.localStorage.getItem(collectionStorageKey) === null) {
-        writeStoredList(collectionStorageKey, defaultDemoCollection, 'collection');
-      }
-      if (window.localStorage.getItem(historyStorageKey) === null) {
-        const initialCollection = readStoredList(collectionStorageKey, 'collection');
-        writeStoredList(historyStorageKey, initialCollection.map(item => ({ ...item })), 'purchase history');
-      }
-      if (window.localStorage.getItem(pixelCoinBalanceStorageKey) === null) {
-        window.localStorage.setItem(pixelCoinBalanceStorageKey, String(initialPixelCoinBalance));
+      if (window.localStorage.getItem(resetDemoStorageKey) !== '1') {
+        [
+          favoritesStorageKey,
+          collectionStorageKey,
+          historyStorageKey,
+          recentStorageKey,
+          createdArtStorageKey,
+          pendingCheckoutStorageKey,
+          notificationReadStorageKey,
+          'pixmoree.user.pixel-coin-balance.v1',
+          'pixmoree.user.pixel-coin-activity.v1'
+        ].forEach(key => window.localStorage.removeItem(key));
+        Object.keys(window.localStorage)
+          .filter(key => key.startsWith(nftDetailStoragePrefix))
+          .forEach(key => window.localStorage.removeItem(key));
+        window.localStorage.setItem(resetDemoStorageKey, '1');
       }
     } catch (error) {
-      console.error('Could not initialize Pixmoree demo collection data in this browser.', error);
+      console.error('Could not clear previous Pixmoree browser demo data.', error);
     }
     renderMemberDashboard();
     updatePixelCoinBalance();
+    refreshPixelCoinWallet().catch(error => {
+      showPixelCoinWalletError(error, 'Could not load your Pixel Coin wallet.');
+    });
+    window.addEventListener('focus', () => {
+      refreshPixelCoinWallet().catch(error => {
+        showPixelCoinWalletError(error, 'Could not refresh your Pixel Coin wallet.');
+      });
+    });
     if (!isMemberAccountPage) {
       document.querySelectorAll('.art-column').forEach(card => {
         const artwork = getFavoriteFromButton(card.querySelector('.heart-button'));
@@ -887,7 +951,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       renderMemberNotifications();
     });
-    document.getElementById('memberPaymentForm').addEventListener('submit', event => {
+    document.getElementById('memberPaymentForm').addEventListener('submit', async event => {
       event.preventDefault();
       const form = event.currentTarget;
       if (!form.reportValidity()) return;
@@ -899,7 +963,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       const paymentMethod = document.getElementById('memberPaymentMethod').value;
-      const completed = purchaseArtwork(artwork, feedback, paymentMethod);
+      const completed = await purchaseArtwork(artwork, feedback, paymentMethod);
       if (!completed) return;
       document.getElementById('memberPaymentTerms').checked = false;
       renderPaymentPanel();
@@ -940,7 +1004,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const title = card.querySelector('.artwork-title')?.textContent.trim() || image.alt || 'Untitled artwork';
     const imagePath = image.getAttribute('src');
     return {
-      id: `${imagePath}|${title}`,
+      id: card.dataset.artworkId || `${imagePath}|${title}`,
       title,
       creator: card.querySelector('.art-creator span')?.textContent.trim() || 'Pixmoree creator',
       image: imagePath,
@@ -955,7 +1019,7 @@ document.addEventListener('DOMContentLoaded', () => {
     button.textContent = owned ? 'In My Collection' : 'Buy NFT (demo)';
   }
 
-  function purchaseArtwork(artwork, feedback, paymentMethod = 'Demo checkout') {
+  async function purchaseArtwork(artwork, feedback, paymentMethod = 'Demo checkout') {
     if (!artwork || !isMemberPage) return false;
     const collection = readStoredList(collectionStorageKey, 'collection');
     if (collection.some(item => item.id === artwork.id)) {
@@ -971,13 +1035,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return ethAmount === null ? null : Math.ceil(ethAmount * demoPixelCoinPerEth);
       })()
       : null;
-    const pixelCoinBalance = paymentMethod === 'Pixel Coin (Demo)' ? getPixelCoinBalance() : null;
+    const balance = paymentMethod === 'Pixel Coin (Demo)' ? getPixelCoinBalance() : null;
     if (paymentMethod === 'Pixel Coin (Demo)' &&
-        (pixelCoinAmount === null || pixelCoinBalance === null || pixelCoinBalance < pixelCoinAmount)) {
+        (!pixelCoinWalletLoaded || pixelCoinAmount === null || balance === null || balance < pixelCoinAmount)) {
       if (feedback) {
         feedback.textContent = pixelCoinAmount === null
           ? 'Pixel Coin demo checkout is unavailable because this listing has no supported ETH price.'
-          : `Not enough PIXEL COIN. You need ${pixelCoinAmount.toLocaleString()} and have ${pixelCoinBalance.toLocaleString()}. Add demo coins above to continue.`;
+          : !pixelCoinWalletLoaded
+            ? 'Your account wallet balance is still loading.'
+            : `Not enough PIXEL COIN. You need ${pixelCoinAmount.toLocaleString()} and have ${balance.toLocaleString()}. Add free demo credits to continue.`;
         feedback.hidden = false;
       }
       return false;
@@ -1011,17 +1077,23 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       return false;
     }
-    if (pixelCoinAmount !== null && pixelCoinBalance !== null) {
+    if (pixelCoinAmount !== null) {
       try {
-        window.localStorage.setItem(pixelCoinBalanceStorageKey, String(pixelCoinBalance - pixelCoinAmount));
+        applyPixelCoinWallet(await requestPixelCoinApi('/api/pixel-coins/purchases', 'POST', {
+          artwork_id: artwork.id
+        }));
       } catch (error) {
-        console.error('Could not update the Pixmoree Pixel Coin balance for this demo purchase.', error);
-        writeStoredList(collectionStorageKey, collection, 'collection rollback');
-        writeStoredList(historyStorageKey, history, 'purchase history rollback');
+        if (!writeStoredList(collectionStorageKey, collection, 'collection rollback')) {
+          console.error('Could not restore the browser collection after a failed Pixel Coin purchase.');
+        }
+        if (!writeStoredList(historyStorageKey, history, 'purchase history rollback')) {
+          console.error('Could not restore browser purchase history after a failed Pixel Coin purchase.');
+        }
         if (feedback) {
-          feedback.textContent = 'Could not save the Pixel Coin payment. No purchase was recorded; check browser storage settings.';
+          feedback.textContent = error instanceof Error ? error.message : 'Pixel Coin checkout failed. No purchase was recorded.';
           feedback.hidden = false;
         }
+        showPixelCoinWalletError(error, 'Pixel Coin checkout failed.');
         return false;
       }
     }
@@ -1118,12 +1190,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const artwork = source.classList.contains('art-column') ? getFavoriteFromButton(source.querySelector('.heart-button')) : null;
     return {
       ...(artwork || {}),
-      id: artwork?.id || `${image.getAttribute('src')}|${title}`,
+      id: artwork?.id || source.dataset.artworkId || `${image.getAttribute('src')}|${title}`,
       title,
       creator: creator || 'Pixmoree creator',
       image: image.getAttribute('src'),
       alt: image.alt || title,
       price: price || 'Digital artwork',
+      marketValue: source.dataset.marketValue || '',
+      marketChangePercent: source.dataset.marketChange || '0',
       items,
       rank,
       category: source.dataset.category || 'Digital art'
@@ -1181,9 +1255,13 @@ document.addEventListener('DOMContentLoaded', () => {
     nftPreviewCreator.hidden = !artwork.creator;
     document.getElementById('nftPreviewRankRow').hidden = !artwork.rank;
     document.getElementById('nftPreviewPriceRow').hidden = !artwork.price;
+    document.getElementById('nftPreviewMarketValueRow').hidden = !artwork.marketValue;
     document.getElementById('nftPreviewItemsRow').hidden = !artwork.items;
     document.getElementById('nftPreviewRank').textContent = artwork.rank || '';
     document.getElementById('nftPreviewPrice').textContent = artwork.price || '';
+    document.getElementById('nftPreviewMarketValue').textContent = artwork.marketValue
+      ? `${artwork.marketValue} ETH (${Number(artwork.marketChangePercent) >= 0 ? '+' : ''}${Number(artwork.marketChangePercent).toFixed(1)}%)`
+      : '';
     document.getElementById('nftPreviewItems').textContent = artwork.items || '';
     const fullDetailsLink = document.getElementById('nftPreviewFullDetails');
     const detailSlug = isMemberPage ? saveNftDetails(artwork) : null;
@@ -1264,6 +1342,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('nftDetailCreator').textContent = artwork.creator || 'Pixmoree creator';
     document.getElementById('nftDetailDescription').textContent = artwork.description || 'No creator description is available for this demo listing.';
     document.getElementById('nftDetailPrice').textContent = artwork.price || 'Not listed';
+    const marketValue = document.getElementById('nftDetailMarketValue');
+    const marketChange = document.getElementById('nftDetailMarketChange');
+    marketValue.textContent = artwork.marketValue ? `${artwork.marketValue} ETH` : 'Not enough data yet';
+    marketChange.textContent = artwork.marketValue
+      ? `${Number(artwork.marketChangePercent) >= 0 ? '+' : ''}${Number(artwork.marketChangePercent).toFixed(1)}% vs. asking price · demo estimate only`
+      : 'Demo estimate will appear when this listing has activity.';
     document.getElementById('nftDetailCollection').textContent = artwork.collection || `${artwork.creator || 'Pixmoree'} Collection`;
     document.getElementById('nftDetailCategory').textContent = artwork.category || 'Digital art';
     document.getElementById('nftDetailToken').textContent = artwork.token || artwork.title.match(/#\S+/)?.[0] || `PM-${slug.toUpperCase()}`;

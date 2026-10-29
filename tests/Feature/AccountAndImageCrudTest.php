@@ -65,6 +65,50 @@ class AccountAndImageCrudTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_a_user_can_change_password_after_verifying_the_current_password(): void
+    {
+        $user = User::create([
+            'name' => 'Password Artist',
+            'email' => 'password@example.test',
+            'password' => 'secret-password',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/user/profile-settings')
+            ->assertOk()
+            ->assertSee('Change password')
+            ->assertSee('at least 8 characters');
+
+        $this->put('/user/password', [
+            'current_password' => 'wrong-password',
+            'new_password' => 'easyPass8',
+            'new_password_confirmation' => 'easyPass8',
+        ])->assertSessionHasErrors('current_password');
+
+        $this->put('/user/password', [
+            'current_password' => 'secret-password',
+            'new_password' => 'short',
+            'new_password_confirmation' => 'short',
+        ])->assertSessionHasErrors('new_password');
+
+        $this->assertTrue(Hash::check('secret-password', $user->fresh()->password));
+
+        $this->put('/user/password', [
+            'current_password' => 'secret-password',
+            'new_password' => 'easyPass8',
+            'new_password_confirmation' => 'easyPass8',
+        ])->assertRedirect('/user/profile-settings')->assertSessionHas('status', 'Your password has been changed.');
+
+        $this->assertTrue(Hash::check('easyPass8', $user->fresh()->password));
+
+        $this->post('/logout')->assertRedirect('/login');
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'easyPass8',
+        ])->assertRedirect('/user');
+        $this->assertAuthenticatedAs($user->fresh());
+    }
+
     public function test_a_user_can_create_read_update_and_delete_their_images(): void
     {
         Storage::fake('public');

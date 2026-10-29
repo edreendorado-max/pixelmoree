@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use App\Support\SitePageContent;
 
 require_once base_path('app/Week12Helpers.php');
 require_once base_path('app/ArtworkRepository.php');
@@ -9,6 +10,7 @@ require_once base_path('app/ArtworkRepository.php');
 $authController = \App\Http\Controllers\AuthController::class;
 $artworkController = \App\Http\Controllers\ArtworkController::class;
 $profileController = \App\Http\Controllers\UserProfileController::class;
+$pixelCoinController = \App\Http\Controllers\PixelCoinController::class;
 $sitePageContentController = \App\Http\Controllers\SitePageContentController::class;
 $week12ArtworkStore = static fn (): ArtworkRepository => new ArtworkRepository(DB::connection()->getPdo());
 
@@ -22,7 +24,7 @@ Route::post('/register', [$authController, 'store'])->name('register.store');
 Route::get('/create-account', [$authController, 'create'])->name('create-account');
 Route::post('/logout', [$authController, 'logout'])->middleware('auth')->name('logout');
 
-Route::middleware('auth')->group(function () use ($profileController, $artworkController): void {
+Route::middleware('auth')->group(function () use ($profileController, $artworkController, $pixelCoinController): void {
     Route::view('/user', 'home')->name('user');
     Route::view('/user/dashboard', 'home')->name('user.dashboard');
     Route::view('/user/create', 'home')->name('user.create');
@@ -36,10 +38,12 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
     Route::redirect('/user/settings', '/user/profile-settings')->name('user.settings');
     Route::redirect('/user/profile', '/user/profile-settings')->name('user.profile');
     Route::view('/user/payment', 'home')->name('user.payment');
+    Route::view('/user/pixel-coin', 'home')->name('user.pixel-coin');
     Route::view('/user/terms', 'home')->name('user.terms');
     Route::view('/user/nft/{id}', 'home')->where('id', '[A-Za-z0-9][A-Za-z0-9-]*')->name('user.nft.show');
     Route::get('/user/profile-settings', [$profileController, 'edit'])->name('user.profile-settings');
     Route::post('/user/profile', [$profileController, 'update'])->name('user.profile.update');
+    Route::put('/user/password', [$profileController, 'updatePassword'])->name('user.password.update');
     Route::post('/user/images', [$profileController, 'storeImage'])->name('user.images.store');
     Route::post('/user/images/{imageId}/update', [$profileController, 'updateImage'])
         ->whereNumber('imageId')
@@ -54,15 +58,20 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
     Route::delete('/user/artworks/{id}', [$artworkController, 'destroy'])
         ->where('id', '[a-z0-9-]+')
         ->name('user.artworks.destroy');
+    Route::prefix('/api/pixel-coins')->middleware('throttle:30,1')->group(function () use ($pixelCoinController): void {
+        Route::get('/', [$pixelCoinController, 'show'])->name('api.pixel-coins.show');
+        Route::post('/top-ups', [$pixelCoinController, 'topUp'])->name('api.pixel-coins.top-ups');
+        Route::post('/purchases', [$pixelCoinController, 'purchase'])->name('api.pixel-coins.purchases');
+    });
 });
 
 Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12ArtworkStore, $sitePageContentController, $artworkController): void {
     Route::redirect('/admin/content', '/admin/content/about')->name('admin.content');
     Route::get('/admin/content/{slug}', [$sitePageContentController, 'edit'])
-        ->whereIn('slug', ['home', 'about', 'marketplace'])
+        ->whereIn('slug', array_keys(SitePageContent::definitions()))
         ->name('admin.content.edit');
     Route::post('/admin/content/{slug}', [$sitePageContentController, 'update'])
-        ->whereIn('slug', ['home', 'about', 'marketplace'])
+        ->whereIn('slug', array_keys(SitePageContent::definitions()))
         ->name('admin.content.update');
 
     Route::redirect('/admin', '/week12/admin')->name('admin');

@@ -3,6 +3,12 @@
         Options -MultiViews -Indexes
     </IfModule>
 
+    <IfModule mod_authz_core.c>
+        <FilesMatch "(^\.|\.sql$|\.env(?:\..*)?$|\.bak$|\.log$)">
+            Require all denied
+        </FilesMatch>
+    </IfModule>
+
     RewriteEngine On
 
     # Handle Authorization Header

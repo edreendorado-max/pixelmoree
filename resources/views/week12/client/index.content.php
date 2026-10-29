@@ -10,7 +10,7 @@
             </div>
             <div class="col-lg-5">
                 <div class="w12-hero-art">
-                    <img src="<?= week12_escape(week12_asset('assets/guest-hero-background.png')) ?>" alt="Colorful Pixmoree digital art collage">
+                    <img src="<?= week12_escape(week12_asset($marketplaceContent['hero']['image'])) ?>" alt="<?= week12_escape($marketplaceContent['hero']['image_alt']) ?>">
                     <span class="w12-art-overlay"><i class="bi bi-lightning-charge-fill"></i> Featured collection</span>
                 </div>
             </div>
@@ -23,10 +23,11 @@
         <div>
             <p class="w12-eyebrow mb-2"><?= week12_escape($marketplaceContent['artwork']['eyebrow']) ?></p>
             <h2 class="w12-section-title"><?= week12_escape($marketplaceContent['artwork']['heading']) ?></h2>
-            <p class="text-secondary mb-0"><?= count($artworks) ?> listings loaded from the database.</p>
+            <p class="text-secondary mb-0"><?= count($artworks) ?> <?= week12_escape($marketplaceContent['artwork']['count_label']) ?></p>
+            <p class="text-secondary small mt-2 mb-0">Estimates use recent demo purchases and listing inactivity. They are informational only; creators' asking prices do not change.</p>
         </div>
         <button class="btn w12-btn-outline" type="button" data-demo-action="Filters are a visual demo; no marketplace query was changed.">
-            <i class="bi bi-sliders"></i> Filters (demo)
+            <i class="bi bi-sliders"></i> <?= week12_escape($marketplaceContent['artwork']['filters_label']) ?>
         </button>
     </div>
     <?php if ($artworks === []): ?>
@@ -52,7 +53,7 @@
                             </div>
                             <p class="text-secondary mb-3">By <?= week12_escape($artwork['creator']) ?></p>
                             <div class="d-flex justify-content-between align-items-center mt-auto">
-                                <span class="w12-price"><?= week12_escape($artwork['price']) ?> ETH <small>demo price</small></span>
+                                <span class="w12-price"><?= week12_escape($artwork['price']) ?> ETH <small>asking price</small><br><small>Est. <?= number_format((float) $artwork['estimated_market_value'], 2) ?> ETH (<?= $artwork['market_change_percent'] >= 0 ? '+' : '' ?><?= number_format((float) $artwork['market_change_percent'], 1) ?>%)</small></span>
                                 <a class="btn w12-btn-outline btn-sm" href="<?= week12_escape(week12_url('/week12/artworks/' . rawurlencode($artwork['id']))) ?>">View details</a>
                             </div>
                         </div>

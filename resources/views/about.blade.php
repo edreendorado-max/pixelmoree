@@ -24,13 +24,13 @@
   </div>
 </nav>
 <main>
-  @include('partials.about-content', ['aboutContent' => $aboutContent, 'galleryUrl' => '/#explore', 'teamCreators' => $teamCreators])
+  @include('partials.about-content', ['aboutContent' => $aboutContent, 'galleryUrl' => '/#explore'])
 </main>
 <footer class="site-footer about-footer">
   <a href="/"><img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree" class="footer-logo"></a>
   <p>{{ $aboutContent['footer_tagline'] }}</p>
-  <div class="footer-links"><a href="/#explore">Explore</a><a href="/#creators">Creators</a><a href="/about" aria-current="page">About</a></div>
-  <small>© {{ date('Y') }} Pixmoree. Made for creators and collectors.</small>
+  <div class="footer-links"><a href="/#explore">{{ $aboutContent['footer_links'][0] }}</a><a href="/#creators">{{ $aboutContent['footer_links'][1] }}</a><a href="/about" aria-current="page">{{ $aboutContent['footer_links'][2] }}</a></div>
+  <small>© {{ date('Y') }} Pixmoree. {{ $aboutContent['footer_note'] }}</small>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

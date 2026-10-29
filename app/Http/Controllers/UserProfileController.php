@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Image;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use RuntimeException;
@@ -67,6 +68,24 @@ class UserProfileController extends Controller
         return redirect()
             ->route('user.profile-settings')
             ->with('status', 'Your profile has been updated.');
+    }
+
+    public function updatePassword(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'new_password' => ['required', 'string', 'min:8', 'max:128', 'confirmed', 'different:current_password'],
+        ]);
+
+        $request->user()->forceFill([
+            'password' => Hash::make($validated['new_password']),
+        ])->save();
+
+        $request->session()->regenerate();
+
+        return redirect()
+            ->route('user.profile-settings')
+            ->with('status', 'Your password has been changed.');
     }
 
     public function storeImage(Request $request): RedirectResponse

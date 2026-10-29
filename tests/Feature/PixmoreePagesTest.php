@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Database\Seeders\ArtworkSeeder;
+use App\Support\ArtworkMarketValue;
+use Carbon\CarbonImmutable;
+use Database\Seeders\ArtworkFixtureSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -22,9 +24,165 @@ class PixmoreePagesTest extends TestCase
         $this->get('/register')->assertOk();
     }
 
+    public function test_default_seeding_does_not_create_demo_accounts_or_artwork(): void
+    {
+        $this->seed();
+
+        $this->assertDatabaseCount('users', 0);
+        $this->assertDatabaseCount('artworks', 0);
+    }
+
+    public function test_pixel_coin_wallet_requires_authentication_and_records_demo_topups(): void
+    {
+        $this->getJson('/api/pixel-coins')->assertUnauthorized();
+
+        $user = User::create([
+            'name' => 'Wallet User',
+            'email' => 'wallet@example.test',
+            'password' => 'secret-password',
+        ]);
+
+        $this->actingAs($user)
+            ->getJson('/api/pixel-coins')
+            ->assertOk()
+            ->assertJsonPath('balance', 0)
+            ->assertJsonPath('demo_only', true)
+            ->assertJsonCount(0, 'transactions');
+
+        $this->postJson('/api/pixel-coins/top-ups', ['amount' => 1000])
+            ->assertCreated()
+            ->assertJsonPath('balance', 1000)
+            ->assertJsonPath('transaction.type', 'demo_top_up')
+            ->assertJsonPath('transaction.amount', 1000);
+
+        $this->getJson('/api/pixel-coins')
+            ->assertOk()
+            ->assertJsonPath('balance', 1000)
+            ->assertJsonPath('transactions.0.balance_after', 1000);
+
+        $this->get('/user/pixel-coin')
+            ->assertOk()
+            ->assertSee('Pixel Coin wallet')
+            ->assertSee('data-pixel-topup="500"', false)
+            ->assertSee('member-pixel-coin-link');
+
+        $this->postJson('/api/pixel-coins/top-ups', ['amount' => 100])
+            ->assertUnprocessable();
+
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'pixel_coin_balance' => 1000]);
+        $this->assertDatabaseCount('pixel_coin_transactions', 1);
+    }
+
+    public function test_pixel_coin_purchases_use_server_artwork_prices_and_prevent_duplicate_charges(): void
+    {
+        $this->seed(ArtworkFixtureSeeder::class);
+        $buyer = User::create([
+            'name' => 'Wallet Buyer',
+            'email' => 'buyer@example.test',
+            'password' => 'secret-password',
+        ]);
+
+        $this->actingAs($buyer)->postJson('/api/pixel-coins/top-ups', ['amount' => 1000])->assertCreated();
+        $this->postJson('/api/pixel-coins/purchases', ['artwork_id' => 'neon-wanderer'])
+            ->assertCreated()
+            ->assertJsonPath('balance', 140)
+            ->assertJsonPath('transaction.type', 'purchase')
+            ->assertJsonPath('transaction.amount', 860);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('data-market-value="0.90"', false);
+        $this->assertDatabaseHas('artworks', ['id' => 'neon-wanderer', 'price' => '0.86']);
+
+        $this->get('/week12/artworks/neon-wanderer')
+            ->assertOk()
+            ->assertSee('0.90 ETH');
+
+        $this->postJson('/api/pixel-coins/purchases', ['artwork_id' => 'neon-wanderer'])
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('users', ['id' => $buyer->id, 'pixel_coin_balance' => 140]);
+        $this->assertDatabaseCount('pixel_coin_transactions', 2);
+    }
+
+    public function test_market_estimate_rises_with_recent_sales_and_decays_after_inactivity(): void
+    {
+        $now = CarbonImmutable::parse('2026-10-29 12:00:00');
+
+        $rising = ArtworkMarketValue::estimate(
+            100,
+            $now->subDays(10),
+            3,
+            $now->subDays(3),
+            $now,
+        );
+        $this->assertSame(115.0, $rising['value']);
+        $this->assertSame(15.0, $rising['change_percent']);
+
+        $falling = ArtworkMarketValue::estimate(
+            100,
+            $now->subDays(100),
+            0,
+            null,
+            $now,
+        );
+        $this->assertSame(90.0, $falling['value']);
+        $this->assertSame(-10.0, $falling['change_percent']);
+
+        $capped = ArtworkMarketValue::estimate(
+            100,
+            $now->subDays(1),
+            20,
+            $now,
+            $now,
+        );
+        $this->assertSame(125.0, $capped['value']);
+        $this->assertSame(25.0, $capped['change_percent']);
+    }
+
+    public function test_about_developer_profiles_can_store_quotes_sections_and_safe_social_urls(): void
+    {
+        $admin = User::create([
+            'name' => 'Content Admin',
+            'email' => 'content-admin@example.test',
+            'password' => 'secret-password',
+        ]);
+        $admin->forceFill(['role' => 'admin'])->save();
+
+        $this->actingAs($admin)->post('/admin/content/about', [
+            'content' => [
+                'team' => [
+                    'members' => [
+                        0 => [
+                            'section' => 'Website engineering',
+                            'quote' => 'Creativity grows when ideas are shared.',
+                            'socials' => ['instagram' => 'https://instagram.com/pixmoree'],
+                        ],
+                    ],
+                ],
+            ],
+        ])->assertRedirect('/admin/content/about');
+
+        $this->get('/about')
+            ->assertOk()
+            ->assertSee('Website engineering')
+            ->assertSee('Creativity grows when ideas are shared.')
+            ->assertSee('https://instagram.com/pixmoree', false);
+
+        $this->post('/admin/content/about', [
+            'content' => [
+                'team' => [
+                    'members' => [
+                        0 => ['socials' => ['instagram' => 'javascript:alert(1)']],
+                    ],
+                ],
+            ],
+        ])->assertSessionHasErrors('content.team.members.0.socials.instagram');
+    }
+
     public function test_week12_marketplace_and_admin_screens_render_seeded_artwork(): void
     {
-        $this->seed(ArtworkSeeder::class);
+        $this->seed(ArtworkFixtureSeeder::class);
         $this->assertDatabaseCount('users', 4);
         $this->assertDatabaseCount('artworks', 7);
         $this->assertSame(4, DB::table('artworks')->distinct()->count('user_id'));
@@ -51,8 +209,8 @@ class PixmoreePagesTest extends TestCase
             ->assertSee('assets/creators/noah.jpg')
             ->assertSee('assets/creators/kenneth.png');
         $this->actingAs($admin);
-        $this->get('/week12/admin')->assertOk()->assertSee('Dashboard overview');
-        $this->get('/week12/admin/artworks')->assertOk()->assertSee('Artwork management');
+        $this->get('/week12/admin')->assertOk()->assertSee('Dashboard overview')->assertSee('ADMIN STUDIO');
+        $this->get('/week12/admin/artworks')->assertOk()->assertSee('Artwork management')->assertSee('ADMIN STUDIO');
     }
 
     public function test_admin_can_edit_public_page_copy_and_about_artwork(): void
@@ -78,7 +236,7 @@ class PixmoreePagesTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/content/about')
             ->assertOk()
-            ->assertSee('Edit website content')
+            ->assertSee('Edit About page')
             ->assertSee('Mission artwork');
 
         $imageContent = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lFwAAAAASUVORK5CYII=');
@@ -88,9 +246,15 @@ class PixmoreePagesTest extends TestCase
             'content' => [
                 'hero' => ['heading' => 'A refreshed Pixmoree story'],
                 'stories' => [1 => ['heading' => 'A refreshed mission']],
+                'team' => ['members' => [0 => [
+                    'name' => 'Lead Developer',
+                    'role' => 'Project lead',
+                    'bio' => 'Building the Pixmoree experience.',
+                ]]],
             ],
             'images' => [
                 'stories' => [1 => ['image' => UploadedFile::fake()->createWithContent('mission.png', $imageContent)]],
+                'team' => ['members' => [0 => ['image' => UploadedFile::fake()->createWithContent('developer.png', $imageContent)]]],
             ],
         ])->assertRedirect('/admin/content/about');
 
@@ -99,28 +263,50 @@ class PixmoreePagesTest extends TestCase
         $aboutContent = json_decode($aboutPage->content, true, flags: JSON_THROW_ON_ERROR);
         $this->assertSame('A refreshed Pixmoree story', $aboutContent['hero']['heading']);
         $this->assertSame('A refreshed mission', $aboutContent['stories'][1]['heading']);
+        $this->assertSame('Lead Developer', $aboutContent['team']['members'][0]['name']);
         $uploadedPath = str_replace('storage/', '', $aboutContent['stories'][1]['image']);
         Storage::disk('public')->assertExists($uploadedPath);
+        $developerImagePath = str_replace('storage/', '', $aboutContent['team']['members'][0]['image']);
+        Storage::disk('public')->assertExists($developerImagePath);
 
         $this->get('/about')
             ->assertOk()
             ->assertSee('A refreshed Pixmoree story')
-            ->assertSee('A refreshed mission');
+            ->assertSee('A refreshed mission')
+            ->assertSee('Lead Developer')
+            ->assertSee('Building the Pixmoree experience.');
 
         $this->post('/admin/content/home', [
-            'content' => ['hero_heading' => 'A refreshed home page'],
+            'content' => [
+                'hero_heading' => 'A refreshed home page',
+                'trending' => ['heading' => 'Fresh trends'],
+            ],
+            'images' => ['hero_background' => UploadedFile::fake()->createWithContent('home-hero.png', $imageContent)],
         ])->assertRedirect('/admin/content/home');
-        $this->get('/')->assertOk()->assertSee('A refreshed home page');
+        $homeContent = json_decode(DB::table('site_pages')->where('slug', 'home')->first()->content, true, flags: JSON_THROW_ON_ERROR);
+        Storage::disk('public')->assertExists(str_replace('storage/', '', $homeContent['hero_background']));
+        $this->get('/')->assertOk()->assertSee('A refreshed home page')->assertSee('Fresh trends');
 
         $this->post('/admin/content/marketplace', [
             'content' => ['hero' => ['heading_before' => 'Discover a refreshed']],
+            'images' => ['hero' => ['image' => UploadedFile::fake()->createWithContent('marketplace-hero.png', $imageContent)]],
         ])->assertRedirect('/admin/content/marketplace');
         $this->get('/week12')->assertOk()->assertSee('Discover a refreshed');
+        $this->get('/admin/content/login')->assertOk()->assertSee('Log-in page copy');
+        $this->post('/admin/content/login', [
+            'content' => ['heading' => 'Sign in to Pixmoree'],
+        ])->assertRedirect('/admin/content/login');
+        $this->get('/login')->assertOk()->assertSee('Sign in to Pixmoree');
+        $this->get('/admin/content/register')->assertOk()->assertSee('Registration page copy');
+        $this->post('/admin/content/register', [
+            'content' => ['heading' => 'Join Pixmoree'],
+        ])->assertRedirect('/admin/content/register');
+        $this->get('/register')->assertOk()->assertSee('Join Pixmoree');
     }
 
     public function test_admin_can_create_update_and_delete_an_artwork(): void
     {
-        $this->seed(ArtworkSeeder::class);
+        $this->seed(ArtworkFixtureSeeder::class);
         $admin = User::create([
             'name' => 'Beta Admin',
             'email' => 'admin@example.test',
@@ -154,7 +340,7 @@ class PixmoreePagesTest extends TestCase
     public function test_creator_artwork_uploads_are_persistent_and_identical_images_are_rejected(): void
     {
         Storage::fake('public');
-        $this->seed(ArtworkSeeder::class);
+        $this->seed(ArtworkFixtureSeeder::class);
         $creator = User::query()->where('email', 'noah.creator@pixmoree.test')->firstOrFail();
         $imageContent = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lFwAAAAASUVORK5CYII=');
         $this->assertNotFalse($imageContent);
@@ -216,7 +402,7 @@ class PixmoreePagesTest extends TestCase
 
     public function test_trending_creators_are_capped_at_twelve_live_accounts(): void
     {
-        $this->seed(ArtworkSeeder::class);
+        $this->seed(ArtworkFixtureSeeder::class);
         for ($index = 1; $index <= 10; $index++) {
             $creator = User::create([
                 'name' => 'extra-creator-' . $index,
@@ -240,10 +426,10 @@ class PixmoreePagesTest extends TestCase
         $this->assertSame(17, substr_count($home->getContent(), 'class="col-6 col-sm-3 art-column"'));
     }
 
-    public function test_creator_profile_changes_are_reflected_on_the_about_page(): void
+    public function test_creator_profile_changes_do_not_change_the_developer_team(): void
     {
         Storage::fake('public');
-        $this->seed(ArtworkSeeder::class);
+        $this->seed(ArtworkFixtureSeeder::class);
         $creator = User::query()->where('email', 'noah.creator@pixmoree.test')->firstOrFail();
         $imageContent = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lFwAAAAASUVORK5CYII=');
         $this->assertNotFalse($imageContent);
@@ -262,7 +448,10 @@ class PixmoreePagesTest extends TestCase
         Storage::disk('public')->assertExists(substr($creator->avatar_path, strlen('storage/')));
         $this->get('/about')
             ->assertOk()
-            ->assertSee('Noah Updated')
-            ->assertSee('I make digital illustrations.');
+            ->assertSee('Meet the developers who designed and built the Pixmoree website.')
+            ->assertSee('assets/creators/noah.jpg')
+            ->assertSee('Noah')
+            ->assertDontSee('Noah Updated')
+            ->assertDontSee('I make digital illustrations.');
     }
 }

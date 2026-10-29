@@ -24,6 +24,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'pixel_coin_balance',
     ];
 
     protected function casts(): array
@@ -31,6 +32,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'pixel_coin_balance' => 'integer',
         ];
     }
 
@@ -42,6 +44,11 @@ class User extends Authenticatable
     public function artworks(): HasMany
     {
         return $this->hasMany(Artwork::class);
+    }
+
+    public function pixelCoinTransactions(): HasMany
+    {
+        return $this->hasMany(PixelCoinTransaction::class);
     }
 
     public function isAdmin(): bool

@@ -1,5 +1,5 @@
 <?php
-$week12Title = 'Explore artwork';
+$week12Title = $marketplaceContent['meta_title'];
 $week12Description = $marketplaceContent['meta_description'];
 $week12Area = 'client';
 $week12ContentView = week12_view_path('week12/client/index.content.php');

@@ -69,6 +69,9 @@ class ArtworkController extends Controller
             }
             $this->rejectDuplicateImage($imageHash, $artwork->id);
             $newPath = $file->storePublicly('artworks', 'public');
+            if (! is_string($newPath)) {
+                throw new \RuntimeException('The replacement artwork image could not be stored.');
+            }
             $oldPath = str_starts_with($artwork->image, 'storage/')
                 ? substr($artwork->image, strlen('storage/'))
                 : null;
@@ -143,6 +146,9 @@ class ArtworkController extends Controller
         $this->rejectDuplicateImage($imageHash);
 
         $storedPath = $file->storePublicly('artworks', 'public');
+        if (! is_string($storedPath)) {
+            throw new \RuntimeException('The artwork image could not be stored.');
+        }
 
         try {
             return Artwork::create([

@@ -34,6 +34,11 @@ class AppServiceProvider extends ServiceProvider
             $view->with('homeArtworks', Artwork::query()
                 ->where('status', 'Listed')
                 ->with('user')
+                ->withCount(['pixelCoinTransactions as recent_market_sales_count' => static fn ($query) => $query
+                    ->where('type', 'purchase')
+                    ->where('created_at', '>=', now()->subDays(30))])
+                ->withMax(['pixelCoinTransactions as last_market_sale_at' => static fn ($query) => $query
+                    ->where('type', 'purchase')], 'created_at')
                 ->latest()
                 ->get());
             $view->with('topCreators', User::query()
@@ -43,15 +48,18 @@ class AppServiceProvider extends ServiceProvider
                 ->orderBy('name')
                 ->limit(12)
                 ->get());
-            $view->with('teamCreators', User::query()
-                ->whereNotNull('avatar_path')
-                ->withCount('artworks')
-                ->orderBy('name')
-                ->get());
             $view->with('userArtworks', Auth::user()?->artworks()->latest()->get() ?? collect());
         });
 
-        View::composer('week12.client.index', static function (ViewContract $view): void {
+        View::composer('login', static function (ViewContract $view): void {
+            $view->with('authContent', SitePageContent::get('login'));
+        });
+
+        View::composer('register', static function (ViewContract $view): void {
+            $view->with('authContent', SitePageContent::get('register'));
+        });
+
+        View::composer(['week12.client.index', 'week12.client.show'], static function (ViewContract $view): void {
             $view->with('marketplaceContent', SitePageContent::get('marketplace'));
         });
     }

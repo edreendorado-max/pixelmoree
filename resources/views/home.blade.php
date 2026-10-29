@@ -4,12 +4,13 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $homeContent['meta_title'] }}</title>
     <meta name="description" content="{{ $homeContent['meta_description'] }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/site.css') }}?v=20261020-nft-details" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}?v=20261029-market-value" rel="stylesheet">
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark site-nav guest-nav">
@@ -36,6 +37,7 @@
           <button class="search-icon" type="button" aria-label="Open artwork search" aria-expanded="false" aria-controls="gallerySearch"><i class="bi bi-search"></i></button>
           <input id="gallerySearch" class="search-input" type="search" placeholder="Search artwork..." aria-label="Search artwork" tabindex="-1">
         </div>
+        <a href="/user/pixel-coin" class="member-pixel-coin-link member-only-nav-link" data-member-nav="pixel-coin" aria-label="Pixel Coin wallet" @if (!$account) hidden @endif><i class="bi bi-coin" aria-hidden="true"></i><span data-pixelcoin-balance>{{ number_format((int) ($account?->pixel_coin_balance ?? 0)) }}</span><small>PIXEL</small><span class="member-pixel-coin-status" id="memberPixelCoinNavStatus" role="status" aria-label="Wallet unavailable" hidden>!</span></a>
         <a href="/user/notifications" class="member-notification-button member-only-nav-link" aria-label="Notifications" hidden><i class="bi bi-bell"></i><span id="memberTopNotificationBadge" hidden>0</span></a>
         <div class="member-profile" id="memberProfile" hidden>
           <button class="member-profile-toggle" id="memberProfileToggle" type="button" aria-expanded="false" aria-controls="memberProfileMenu"><span class="member-avatar" id="memberNavAvatar"><span class="member-avatar-initial">{{ strtoupper(substr($account?->name ?? 'A', 0, 1)) }}</span></span><span id="memberNavName">{{ $account?->name ?? 'Account' }}</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
@@ -46,6 +48,7 @@
             <a href="/user/dashboard" data-member-action="dashboard"><i class="bi bi-grid"></i> Dashboard</a>
             <a href="/user/create" data-member-action="create"><i class="bi bi-plus-circle"></i> Create</a>
             <a href="/user/purchases" data-member-action="history"><i class="bi bi-receipt"></i> Purchases</a>
+            <a href="/user/pixel-coin" data-member-action="pixel-coin"><i class="bi bi-coin"></i> Pixel Coin wallet</a>
             <a href="/user/terms" data-member-action="terms"><i class="bi bi-shield-check"></i> Terms &amp; Originality</a>
             <a href="/user/profile-settings" data-member-action="profile-settings"><i class="bi bi-person-gear"></i> Profile Settings</a>
             <a href="/user/about" data-member-action="about"><i class="bi bi-info-circle"></i> About Pixmoree</a>
@@ -74,6 +77,7 @@
       <p class="nft-detail-creator">Created by <strong id="nftDetailCreator"></strong></p>
       <p class="nft-detail-description" id="nftDetailDescription"></p>
       <div class="nft-detail-price"><small>Current asking price <span>(demo)</span></small><strong id="nftDetailPrice"></strong></div>
+      <div class="nft-detail-estimate"><small>Estimated market value <span>(demo estimate)</span></small><strong id="nftDetailMarketValue"></strong><small id="nftDetailMarketChange"></small></div>
       <div class="nft-detail-actions">
         <button class="nft-detail-buy" id="nftDetailBuy" type="button" hidden><i class="bi bi-bag-plus"></i> Buy NFT (demo)</button>
         <button class="nft-detail-favorite" id="nftDetailFavorite" type="button" hidden><i class="bi bi-heart"></i> <span>Favorite</span></button>
@@ -111,7 +115,7 @@
     </ul>
     <a class="btn hero-explore" href="#explore">{{ $homeContent['hero_cta'] }}</a>
   </div>
-  <img class="hero-background-art" src="{{ asset('assets/guest-hero-background.png') }}" alt="" aria-hidden="true">
+  <img class="hero-background-art" src="{{ asset($homeContent['hero_background']) }}" alt="" aria-hidden="true">
 </section>
 <main class="container-fluid px-3 px-lg-5 py-4">
     <section class="member-dashboard" id="memberWelcome" hidden aria-label="User account pages">
@@ -172,25 +176,35 @@
             <div class="member-panel-heading"><div><h3>Purchases</h3><p>Demo transaction records; no real payments are processed.</p></div></div>
             <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Artwork</th><th>Price paid</th><th>Date</th><th>Status</th></tr></thead><tbody id="memberHistoryItems"><tr><td colspan="4" class="member-empty-state">No demo purchases yet.</td></tr></tbody></table></div>
           </section>
-          <section class="member-dashboard-panel" data-member-panel-content="payment" hidden>
-            <div class="member-payment-heading"><div><span class="member-welcome-kicker"><i class="bi bi-shield-check"></i> PIXMOREE CHECKOUT</span><h3>Payment &amp; Transactions</h3><p>Review your order and choose a demo payment method.</p></div><span class="member-demo-label"><i class="bi bi-info-circle"></i> SIMULATION ONLY</span></div>
-            <div class="member-payment-safety"><i class="bi bi-shield-lock"></i><span><strong>Safe demo checkout</strong> Payment providers are not connected. This page never asks for card/account numbers, passwords, PINs, or OTPs; no payment is sent or charged. Never share an OTP or wallet PIN in chat or with a seller.</span></div>
+          <section class="member-dashboard-panel" data-member-panel-content="pixel-coin" hidden>
+            <div class="member-panel-heading"><div><h3>Pixel Coin wallet</h3><p>Your demo balance and recent account activity are saved to Pixmoree.</p></div><span class="member-demo-label"><i class="bi bi-info-circle"></i> DEMO CREDITS ONLY</span></div>
             <section class="member-panel-card member-pixel-wallet" aria-labelledby="memberPixelWalletHeading">
               <div class="member-wallet-overview">
                 <span class="member-wallet-icon"><i class="bi bi-coin"></i></span>
-                <div><small id="memberPixelWalletHeading">PIXMOREE DEMO WALLET</small><strong><span id="memberPixelCoinBalance">0</span> <span>PIXEL COIN</span></strong><p>Demo-only credits · no cash value</p></div>
+                <div><small id="memberPixelWalletHeading">YOUR PIXEL COIN BALANCE</small><strong><span data-pixelcoin-balance>{{ number_format((int) ($account?->pixel_coin_balance ?? 0)) }}</span> <span>PIXEL COIN</span></strong><p>Free demo credits · no cash value</p></div>
               </div>
               <div class="member-wallet-topups">
-                <strong>Add demo coins</strong>
+                <strong>Add free demo credits</strong>
                 <div class="member-wallet-topup-options">
                   <button type="button" data-pixel-topup="500">+500 <small>PIXEL COIN</small></button>
                   <button type="button" data-pixel-topup="1000">+1,000 <small>PIXEL COIN</small></button>
                   <button type="button" data-pixel-topup="2500">+2,500 <small>PIXEL COIN</small></button>
                 </div>
-                <small>Top-ups instantly add sample credits in this browser. They are free demo credits—not deposits, purchases, or redeemable currency.</small>
+                <small>These server-recorded demo credits are free, non-cash, and cannot be purchased or redeemed. No payment provider is connected.</small>
                 <p class="member-wallet-feedback" id="memberPixelWalletFeedback" role="status" aria-live="polite" hidden></p>
-                <div class="member-wallet-activity" id="memberPixelCoinActivity" aria-live="polite"></div>
               </div>
+            </section>
+            <section class="member-panel-card member-transactions-card">
+              <div class="member-panel-heading"><div><h4>Pixel Coin activity</h4><p>Recent demo credits and Pixel Coin checkout deductions.</p></div></div>
+              <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Activity</th><th>Change</th><th>Balance after</th><th>Date</th></tr></thead><tbody id="memberPixelCoinActivity"><tr><td colspan="4" class="member-empty-state">Loading wallet activity…</td></tr></tbody></table></div>
+            </section>
+          </section>
+          <section class="member-dashboard-panel" data-member-panel-content="payment" hidden>
+            <div class="member-payment-heading"><div><span class="member-welcome-kicker"><i class="bi bi-shield-check"></i> PIXMOREE CHECKOUT</span><h3>Payment &amp; Transactions</h3><p>Review your order and choose a demo payment method.</p></div><span class="member-demo-label"><i class="bi bi-info-circle"></i> SIMULATION ONLY</span></div>
+            <div class="member-payment-safety"><i class="bi bi-shield-lock"></i><span><strong>Safe demo checkout</strong> Payment providers are not connected. This page never asks for card/account numbers, passwords, PINs, or OTPs; no payment is sent or charged. Never share an OTP or wallet PIN in chat or with a seller.</span></div>
+            <section class="member-panel-card member-pixel-wallet" aria-labelledby="memberPaymentWalletHeading">
+              <div class="member-wallet-overview"><span class="member-wallet-icon"><i class="bi bi-coin"></i></span><div><small id="memberPaymentWalletHeading">PIXMOREE DEMO WALLET</small><strong><span data-pixelcoin-balance>{{ number_format((int) ($account?->pixel_coin_balance ?? 0)) }}</span> <span>PIXEL COIN</span></strong><p>Demo-only credits · no cash value</p></div></div>
+              <a class="member-wallet-topup-link" href="/user/pixel-coin"><i class="bi bi-plus-circle"></i> Manage wallet and add free demo credits</a>
             </section>
             <div class="member-payment-layout">
               <section class="member-panel-card member-checkout-card" aria-labelledby="memberCheckoutHeading">
@@ -229,7 +243,7 @@
               <h4>2. Originality and anti-plagiarism</h4><p>Only upload work you created or have clear permission and appropriate licenses to use. Do not copy, trace, repackage, or mint another creator’s artwork, photographs, characters, logos, writing, or other protected material as your own. Credit alone does not replace permission.</p>
               <p>Do not use unauthorized AI training outputs, reference material, or third-party assets in a way that infringes another person’s rights. Keep source files and permission records where appropriate. If a work includes licensed or collaborative material, disclose that clearly and follow the license terms.</p>
               <h4>3. Reports, review, and consequences</h4><p>Rights holders should provide the listing link, identify the material at issue, and explain their rights when reporting suspected copying. Pixmoree should review reports, give creators a reasonable opportunity to respond where appropriate, and may hide or remove disputed listings, restrict accounts, or refer serious matters for further review. False or abusive reports are not permitted.</p>
-              <h4>4. Purchases and demo transactions</h4><p>This version records sample purchase events in browser storage only. It does not process payments, create blockchain tokens, transfer ownership, or provide refunds. A production marketplace would need clear sale, refund, privacy, tax, and dispute terms before launch.</p>
+              <h4>4. Purchases and demo transactions</h4><p>Pixel Coin balances and demo coin events are stored in the account database. Demo purchase receipts are saved in this browser. The service does not process payments, create blockchain tokens, transfer ownership, or provide refunds. A production marketplace would need clear sale, refund, privacy, tax, and dispute terms before launch.</p>
               <h4>5. Respect intellectual property</h4><p>Creators retain rights they hold in their work. A listing or demo purchase does not transfer copyright unless a separate, valid agreement says so. Collectors should not reproduce, sell, or commercially exploit artwork without the creator’s permission or a license that allows it.</p>
               <h4>6. Policy updates and contact</h4><p>These draft rules may change as the project evolves. For a real service, publish the effective date, operator identity, contact and appeal process, governing law, and privacy terms after professional review.</p>
             </article>
@@ -248,7 +262,7 @@
             </div>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="create" hidden>
-            <div class="member-panel-heading"><div><h3>Create a listing</h3><p>Share original artwork with the Pixmoree community.</p></div><span class="member-demo-label">DEMO SELLER</span></div>
+            <div class="member-panel-heading"><div><h3>Create a listing</h3><p>Upload an original image and publish its listing to the Pixmoree database.</p></div><span class="member-demo-label">CREATOR STUDIO</span></div>
             <form class="member-create-form" id="memberCreateForm" method="post" action="{{ route('user.artworks.store') }}" enctype="multipart/form-data">
               @csrf
               <label class="member-create-upload" for="memberArtworkFile"><i class="bi bi-cloud-arrow-up"></i><strong>Choose an artwork image</strong><span>PNG, JPG, or WEBP · up to 2 MB</span><img id="memberArtworkPreview" alt="Artwork preview" hidden></label>
@@ -265,7 +279,7 @@
               @if (session('status'))
                 <p class="member-profile-feedback" role="status">{{ session('status') }}</p>
               @endif
-              <small>Artwork listings are stored in the database. Duplicate image files are rejected.</small>
+              <small>Your artwork details and image path are saved in the database, and the image file is stored securely. Duplicate image files are rejected.</small>
             </form>
             <section class="member-dashboard-panel mt-4" aria-labelledby="my-artworks-title">
               <h4 id="my-artworks-title">My artwork listings</h4>
@@ -299,12 +313,13 @@
       </div>
     </section>
     <section id="trending" class="trending-nft-section">
-      <div class="trending-nft-heading"><div><h2>Trending</h2><p>Trending NFT's today</p></div><a href="#explore" class="trending-view-all">View all <i class="bi bi-arrow-up-right"></i></a></div>
+      <div class="trending-nft-heading"><div><h2>{{ $homeContent['trending']['heading'] }}</h2><p>{{ $homeContent['trending']['description'] }}</p></div><a href="#explore" class="trending-view-all">{{ $homeContent['trending']['view_all'] }} <i class="bi bi-arrow-up-right"></i></a></div>
       <div class="trending-nft-grid">
         <article class="trending-feature" aria-label="Featured trending NFTs">
           <div class="trending-feature-slides" aria-live="polite">
             @foreach ($homeArtworks->take(5) as $artwork)
-              <div class="trending-feature-slide {{ $loop->first ? 'active' : '' }}" data-title="{{ $artwork->title }}" data-creator="{{ $artwork->creator }}" data-floor="Ξ {{ number_format((float) $artwork->price, 2) }}" data-items="1" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
+              @php($marketEstimate = $artwork->marketEstimate())
+              <div class="trending-feature-slide {{ $loop->first ? 'active' : '' }}" data-artwork-id="{{ $artwork->id }}" data-title="{{ $artwork->title }}" data-creator="{{ $artwork->creator }}" data-floor="Ξ {{ number_format((float) $artwork->price, 2) }}" data-market-value="{{ number_format($marketEstimate['value'], 2, '.', '') }}" data-market-change="{{ number_format($marketEstimate['change_percent'], 1, '.', '') }}" data-items="1" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
                 <img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}">
               </div>
             @endforeach
@@ -325,30 +340,33 @@
               </div>
             @endif
           @else
-            <div class="trending-feature-info"><div><h3 class="trending-feature-title">No artwork yet</h3><p class="trending-feature-creator">New creator listings will appear here.</p></div></div>
+            <div class="trending-feature-info"><div><h3 class="trending-feature-title">{{ $homeContent['trending']['empty_heading'] }}</h3><p class="trending-feature-creator">{{ $homeContent['trending']['empty_body'] }}</p></div></div>
           @endif
         </article>
         @if ($homeArtworks->count() > 1)
           <div class="trending-nft-list" aria-label="Other listed artworks">
             @foreach ($homeArtworks->skip(1) as $artwork)
-              <a class="trending-nft-item" href="{{ route('week12.client.artwork', ['id' => $artwork->id]) }}"><em class="trending-nft-rank">#{{ sprintf('%02d', $loop->iteration + 1) }}</em><img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}"><span><strong>{{ $artwork->title }}</strong><small>By {{ $artwork->creator }}</small></span><b>Ξ {{ number_format((float) $artwork->price, 2) }}</b></a>
+              @php($marketEstimate = $artwork->marketEstimate())
+              <a class="trending-nft-item" data-artwork-id="{{ $artwork->id }}" data-market-value="{{ number_format($marketEstimate['value'], 2, '.', '') }}" data-market-change="{{ number_format($marketEstimate['change_percent'], 1, '.', '') }}" href="{{ route('week12.client.artwork', ['id' => $artwork->id]) }}"><em class="trending-nft-rank">#{{ sprintf('%02d', $loop->iteration + 1) }}</em><img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}"><span><strong>{{ $artwork->title }}</strong><small>By {{ $artwork->creator }}</small></span><b>Ξ {{ number_format((float) $artwork->price, 2) }}</b></a>
             @endforeach
           </div>
         @endif
       </div>
     </section>
     <section class="creator-strip-section">
-      <div class="creator-strip-heading"><h2>Trending Creators</h2><p>Creators with listed work on Pixmoree</p></div>
+      <div class="creator-strip-heading"><h2>{{ $homeContent['creators']['heading'] }}</h2><p>{{ $homeContent['creators']['description'] }}</p></div>
       <div class="creator-carousel" aria-label="Trending creators">
         <button class="creator-arrow creator-arrow-prev" type="button" aria-label="Scroll creators left"><i class="bi bi-chevron-left"></i></button>
         <div class="creator-track" id="creatorTrack">
-          @foreach ($topCreators as $creator)
+          @forelse ($topCreators as $creator)
             <article class="creator-mini-card">
               <img class="creator-mini-avatar" src="{{ asset($creator->avatar_path ?? 'assets/Pixmoree Neon Pixel Logo.png') }}" alt="{{ $creator->name }}">
               <div class="creator-mini-copy"><h3>{{ $creator->name }}</h3><p>{{ $creator->artworks_count }} {{ \Illuminate\Support\Str::plural('artwork', $creator->artworks_count) }}</p></div>
-              <small class="creator-mini-sales"><i class="bi bi-gem"></i> Creator</small>
+              <small class="creator-mini-sales"><i class="bi bi-gem"></i> {{ $homeContent['creators']['role_label'] }}</small>
             </article>
-          @endforeach
+          @empty
+            <p class="text-secondary">{{ $homeContent['creators']['empty_message'] }}</p>
+          @endforelse
         </div>
         <button class="creator-arrow creator-arrow-next" type="button" aria-label="Scroll creators right"><i class="bi bi-chevron-right"></i></button>
       </div>
@@ -360,11 +378,12 @@
       <span id="creators" class="creator-anchor" aria-hidden="true"></span>
     </section>
   <section id="explore" class="explore-section">
-    <div class="section-heading explore-heading"><div><h2>Explore <i class="bi bi-compass"></i></h2><p class="muted">Find your next favorite piece</p></div></div>
-    <div class="filter-row"><div class="filter-pills"><button class="filter-pill active" data-filter="all">All items</button><button class="filter-pill" data-filter="newest">Newest</button><button class="filter-pill" data-filter="price">Price</button><button class="filter-pill" data-filter="favorites">Favorites</button></div><label class="sort-button"><i class="bi bi-sort-down"></i><span>Sort by</span><select id="sortSelect" aria-label="Sort artworks"><option value="default">Default</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></label></div>
+    <div class="section-heading explore-heading"><div><h2>{{ $homeContent['explore']['heading'] }} <i class="bi bi-compass"></i></h2><p class="muted">{{ $homeContent['explore']['description'] }}</p></div></div>
+    <div class="filter-row"><div class="filter-pills"><button class="filter-pill active" data-filter="all">{{ $homeContent['explore']['filters'][0] }}</button><button class="filter-pill" data-filter="newest">{{ $homeContent['explore']['filters'][1] }}</button><button class="filter-pill" data-filter="price">{{ $homeContent['explore']['filters'][2] }}</button><button class="filter-pill" data-filter="favorites">{{ $homeContent['explore']['filters'][3] }}</button></div><label class="sort-button"><i class="bi bi-sort-down"></i><span>{{ $homeContent['explore']['sort_label'] }}</span><select id="sortSelect" aria-label="Sort artworks"><option value="default">Default</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></label></div>
     <div class="row g-3" id="artGrid">
       @forelse ($homeArtworks as $artwork)
-        <div class="col-6 col-sm-3 art-column" data-category="{{ \Illuminate\Support\Str::slug($artwork->category) }}" data-price="{{ $artwork->price }}" data-created="{{ $artwork->created_at?->timestamp ?? 0 }}">
+        @php($marketEstimate = $artwork->marketEstimate())
+        <div class="col-6 col-sm-3 art-column" data-artwork-id="{{ $artwork->id }}" data-category="{{ \Illuminate\Support\Str::slug($artwork->category) }}" data-price="{{ $artwork->price }}" data-market-value="{{ number_format($marketEstimate['value'], 2, '.', '') }}" data-market-change="{{ number_format($marketEstimate['change_percent'], 1, '.', '') }}" data-created="{{ $artwork->created_at?->timestamp ?? 0 }}">
           <article class="art-card">
             <div class="art-image-wrap">
               <img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }} digital artwork">
@@ -373,18 +392,18 @@
             </div>
             <div class="art-card-body">
               <div class="art-creator">By <span>{{ $artwork->creator }}</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div>
-              <div class="art-stats"><div class="art-price"><small>Price</small><strong>{{ number_format((float) $artwork->price, 2) }} ETH</strong></div><div class="art-items"><small>Artwork</small><strong>1</strong></div></div>
+              <div class="art-stats"><div class="art-price"><small>Asking price</small><strong>{{ number_format((float) $artwork->price, 2) }} ETH</strong><small class="art-market-estimate">Demo est. {{ number_format($marketEstimate['value'], 2) }} ETH <span>({{ $marketEstimate['change_percent'] >= 0 ? '+' : '' }}{{ number_format($marketEstimate['change_percent'], 1) }}%)</span></small></div><div class="art-items"><small>Artwork</small><strong>1</strong></div></div>
             </div>
           </article>
         </div>
       @empty
-        <p class="text-secondary">No artwork has been listed yet.</p>
+        <p class="text-secondary">{{ $homeContent['explore']['empty_message'] }}</p>
       @endforelse
     </div>
-    <div class="load-more-wrap"><button class="btn-load" id="loadMoreItems" type="button"><i class="bi bi-plus-circle" aria-hidden="true"></i> Load more items</button></div>
+    <div class="load-more-wrap"><button class="btn-load" id="loadMoreItems" type="button"><i class="bi bi-plus-circle" aria-hidden="true"></i> {{ $homeContent['explore']['load_more'] }}</button></div>
   </section>
   <section id="about" class="guest-about"><h2>{{ $homeContent['closing_heading'] }}</h2><p>{{ $homeContent['closing_body'] }}</p><a href="/login" class="btn hero-explore">{{ $homeContent['closing_cta'] }}</a></section>
-  <footer class="site-footer"><a href="#"><img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree" class="footer-logo"></a><p>{{ $homeContent['footer_tagline'] }}</p><div class="footer-links"><a href="#explore">Explore</a><a href="#creators">Creators</a><a href="#">Community</a><a href="#">Support</a></div><small>© {{ date('Y') }} Pixmoree. Made for creators and collectors.</small></footer>
+  <footer class="site-footer"><a href="#"><img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree" class="footer-logo"></a><p>{{ $homeContent['footer_tagline'] }}</p><div class="footer-links"><a href="#explore">{{ $homeContent['footer_links'][0] }}</a><a href="#creators">{{ $homeContent['footer_links'][1] }}</a><a href="#">{{ $homeContent['footer_links'][2] }}</a><a href="#">{{ $homeContent['footer_links'][3] }}</a></div><small>© {{ date('Y') }} Pixmoree. {{ $homeContent['footer_note'] }}</small></footer>
 </main>
 <dialog class="nft-preview" id="nftPreview" aria-labelledby="nftPreviewTitle">
   <div class="nft-preview-card">
@@ -397,6 +416,7 @@
       <dl class="nft-preview-stats">
         <div id="nftPreviewRankRow" hidden><dt>Trending rank</dt><dd id="nftPreviewRank"></dd></div>
         <div id="nftPreviewPriceRow" hidden><dt>Floor price</dt><dd id="nftPreviewPrice"></dd></div>
+        <div id="nftPreviewMarketValueRow" hidden><dt>Estimated value (demo)</dt><dd id="nftPreviewMarketValue"></dd></div>
         <div id="nftPreviewItemsRow" hidden><dt>Items</dt><dd id="nftPreviewItems"></dd></div>
       </dl>
       <a class="nft-preview-explore" href="#explore">Explore gallery <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
@@ -406,8 +426,8 @@
     </div>
   </div>
 </dialog>
-<script>window.pixmoreeAccount = <?= json_encode($account?->only(['name', 'email', 'phone', 'bio']) ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;</script>
+<script>window.pixmoreeAccount = <?= json_encode($account?->only(['name', 'email', 'phone', 'bio', 'pixel_coin_balance']) ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{{ asset('js/site.js') }}?v=20261020-nft-details"></script>
+<script src="{{ asset('js/site.js') }}?v=20261029-market-value"></script>
 </body>
 </html>

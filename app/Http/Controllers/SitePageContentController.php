@@ -45,6 +45,9 @@ class SitePageContentController extends Controller
                 $fieldRules = ['nullable', 'string', 'max:' . $field['max']];
                 if ($field['type'] === 'email') {
                     $fieldRules[] = 'email';
+                } elseif ($field['type'] === 'url') {
+                    $fieldRules[] = 'url';
+                    $fieldRules[] = 'starts_with:http://,https://';
                 } elseif ($field['type'] === 'date') {
                     $fieldRules[] = 'date_format:Y-m-d';
                 }
