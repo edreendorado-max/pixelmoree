@@ -37,8 +37,18 @@
     <section class="card shadow-sm mb-4">
         <div class="card-body p-4">
             <h2 class="h4 mb-3">Your information</h2>
-            <form method="post" action="{{ route('user.profile.update') }}">
+            <form method="post" action="{{ route('user.profile.update') }}" enctype="multipart/form-data">
                 @csrf
+                @if ($user->avatar_path)
+                    <div class="mb-3">
+                        <img src="{{ asset($user->avatar_path) }}" alt="Current profile image" class="rounded-circle" style="width: 96px; height: 96px; object-fit: cover">
+                    </div>
+                @endif
+                <div class="mb-3">
+                    <label class="form-label" for="profile-avatar">Creator profile image</label>
+                    <input class="form-control" id="profile-avatar" name="avatar" type="file" accept=".jpg,.jpeg,.png,.gif,.webp">
+                    <div class="form-text">Optional. JPG, PNG, GIF or WebP; maximum file size 5 MB.</div>
+                </div>
                 <div class="mb-3">
                     <label class="form-label" for="profile-name">Display name</label>
                     <input class="form-control" id="profile-name" name="name" value="{{ old('name', $user->name) }}" maxlength="120" required>

@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use RuntimeException;
 use Throwable;
 
 class UserProfileController extends Controller
@@ -27,12 +28,41 @@ class UserProfileController extends Controller
             'email' => ['required', 'string', 'email', 'max:254', 'unique:users,email,'.$user->id],
             'phone' => ['nullable', 'string', 'max:30'],
             'bio' => ['nullable', 'string', 'max:2000'],
+            'avatar' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
         ]);
+        $avatar = $validated['avatar'] ?? null;
+        unset($validated['avatar']);
 
         if ($user->email !== $validated['email']) {
             $user->email_verified_at = null;
         }
-        $user->fill($validated)->save();
+
+        $newAvatarPath = $avatar?->storePublicly('avatars', 'public');
+        $previousAvatarPath = $user->avatar_path;
+
+        try {
+            $user->fill($validated);
+            if ($newAvatarPath !== null) {
+                $user->avatar_path = 'storage/' . $newAvatarPath;
+            }
+            $user->save();
+        } catch (Throwable $exception) {
+            if ($newAvatarPath !== null) {
+                Storage::disk('public')->delete($newAvatarPath);
+            }
+            throw $exception;
+        }
+
+        if (
+            $newAvatarPath !== null
+            && is_string($previousAvatarPath)
+            && str_starts_with($previousAvatarPath, 'storage/avatars/')
+        ) {
+            $oldAvatarPath = substr($previousAvatarPath, strlen('storage/'));
+            if (Storage::disk('public')->exists($oldAvatarPath) && ! Storage::disk('public')->delete($oldAvatarPath)) {
+                throw new RuntimeException('The previous profile image could not be removed.');
+            }
+        }
 
         return redirect()
             ->route('user.profile-settings')

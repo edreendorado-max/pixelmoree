@@ -7,7 +7,9 @@ require_once base_path('app/Week12Helpers.php');
 require_once base_path('app/ArtworkRepository.php');
 
 $authController = \App\Http\Controllers\AuthController::class;
+$artworkController = \App\Http\Controllers\ArtworkController::class;
 $profileController = \App\Http\Controllers\UserProfileController::class;
+$sitePageContentController = \App\Http\Controllers\SitePageContentController::class;
 $week12ArtworkStore = static fn (): ArtworkRepository => new ArtworkRepository(DB::connection()->getPdo());
 
 Route::view('/', 'home')->name('home');
@@ -20,7 +22,7 @@ Route::post('/register', [$authController, 'store'])->name('register.store');
 Route::get('/create-account', [$authController, 'create'])->name('create-account');
 Route::post('/logout', [$authController, 'logout'])->middleware('auth')->name('logout');
 
-Route::middleware('auth')->group(function () use ($profileController): void {
+Route::middleware('auth')->group(function () use ($profileController, $artworkController): void {
     Route::view('/user', 'home')->name('user');
     Route::view('/user/dashboard', 'home')->name('user.dashboard');
     Route::view('/user/create', 'home')->name('user.create');
@@ -45,9 +47,24 @@ Route::middleware('auth')->group(function () use ($profileController): void {
     Route::post('/user/images/{imageId}/delete', [$profileController, 'destroyImage'])
         ->whereNumber('imageId')
         ->name('user.images.destroy');
+    Route::post('/user/artworks', [$artworkController, 'store'])->name('user.artworks.store');
+    Route::patch('/user/artworks/{id}', [$artworkController, 'update'])
+        ->where('id', '[a-z0-9-]+')
+        ->name('user.artworks.update');
+    Route::delete('/user/artworks/{id}', [$artworkController, 'destroy'])
+        ->where('id', '[a-z0-9-]+')
+        ->name('user.artworks.destroy');
 });
 
-Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12ArtworkStore): void {
+Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12ArtworkStore, $sitePageContentController, $artworkController): void {
+    Route::redirect('/admin/content', '/admin/content/about')->name('admin.content');
+    Route::get('/admin/content/{slug}', [$sitePageContentController, 'edit'])
+        ->whereIn('slug', ['home', 'about', 'marketplace'])
+        ->name('admin.content.edit');
+    Route::post('/admin/content/{slug}', [$sitePageContentController, 'update'])
+        ->whereIn('slug', ['home', 'about', 'marketplace'])
+        ->name('admin.content.update');
+
     Route::redirect('/admin', '/week12/admin')->name('admin');
 
     Route::get('/week12/admin', function () use ($week12ArtworkStore) {
@@ -60,10 +77,15 @@ Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12A
     Route::get('/week12/admin/artworks', function () use ($week12ArtworkStore) {
         return view('week12.admin.artworks', [
             'artworks' => $week12ArtworkStore()->all(),
+            'creators' => DB::table('users')->orderBy('name')->get(['id', 'name']),
         ]);
     })->name('week12.admin.artworks');
 
-    Route::post('/week12/admin/artworks', function () use ($week12ArtworkStore) {
+    Route::post('/week12/admin/artworks', function () use ($week12ArtworkStore, $artworkController) {
+        if (request()->hasFile('image_upload')) {
+            return app($artworkController)->storeAdmin(request());
+        }
+
         try {
             $id = $week12ArtworkStore()->create(request()->all());
         } catch (InvalidArgumentException $exception) {
@@ -98,7 +120,7 @@ Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12A
 
 Route::get('/week12', function () use ($week12ArtworkStore) {
     return view('week12.client.index', [
-        'artworks' => $week12ArtworkStore()->all(),
+        'artworks' => $week12ArtworkStore()->listed(),
     ]);
 })->name('week12.client');
 

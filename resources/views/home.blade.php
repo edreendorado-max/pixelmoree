@@ -4,8 +4,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Pixmoree — Discover Digital Collectibles</title>
-    <meta name="description" content="Explore digital art, anime-inspired collectibles, and creators on Pixmoree.">
+    <title>{{ $homeContent['meta_title'] }}</title>
+    <meta name="description" content="{{ $homeContent['meta_description'] }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -51,6 +51,7 @@
             <a href="/user/about" data-member-action="about"><i class="bi bi-info-circle"></i> About Pixmoree</a>
             @if ($account?->isAdmin())
               <a href="/admin" data-member-action="admin"><i class="bi bi-shield-lock"></i> Admin</a>
+              <a href="/admin/content/about" data-member-action="admin"><i class="bi bi-pencil-square"></i> Website content</a>
             @endif
             <a href="#explore" class="member-menu-explore"><i class="bi bi-shop"></i> Explore NFTs</a>
             <form method="post" action="{{ route('logout') }}">
@@ -103,12 +104,12 @@
 <section id="home" class="guest-hero">
   <div class="hero-stars hero-stars-one" aria-hidden="true">✦</div><div class="hero-stars hero-stars-two" aria-hidden="true">✦</div>
   <div class="hero-content">
-    <h1>Welcome!</h1><p class="hero-tagline">Enter a new dimension of digital creativity.</p>
+    <h1>{{ $homeContent['hero_heading'] }}</h1><p class="hero-tagline">{{ $homeContent['hero_tagline'] }}</p>
     <ul class="hero-benefits">
-      <li><i class="bi bi-check-circle"></i><span>Discover the extraordinary in digital art.</span></li>
-      <li><i class="bi bi-check-circle"></i><span>Explore unique creations, collect digital treasures, and find art that speaks to you.</span></li>
+      <li><i class="bi bi-check-circle"></i><span>{{ $homeContent['hero_benefits'][0] }}</span></li>
+      <li><i class="bi bi-check-circle"></i><span>{{ $homeContent['hero_benefits'][1] }}</span></li>
     </ul>
-    <a class="btn hero-explore" href="#explore">Explore</a>
+    <a class="btn hero-explore" href="#explore">{{ $homeContent['hero_cta'] }}</a>
   </div>
   <img class="hero-background-art" src="{{ asset('assets/guest-hero-background.png') }}" alt="" aria-hidden="true">
 </section>
@@ -243,86 +244,56 @@
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="about" hidden>
             <div class="member-about-page">
-              <header class="about-hero">
-                <div class="about-hero-copy">
-                  <span class="about-eyebrow"><i class="bi bi-stars" aria-hidden="true"></i> OUR STORY</span>
-                  <h1>A little more<br><span class="about-hero-brand-line">about <img class="about-hero-logo" src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree"></span></h1>
-                  <p>A colorful corner of the internet for discovering digital art, meeting creators, and finding something that feels uniquely yours.</p>
-                  <a class="about-hero-link" href="/user#explore">Explore the gallery <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
-                </div>
-                <div class="about-hero-art">
-                  <img src="{{ asset('assets/anime-style-character-space (2).jpg') }}" alt="Dreamlike character artwork among the stars">
-                  <span><i class="bi bi-stars" aria-hidden="true"></i> Discover something new</span>
-                </div>
-              </header>
-              <section class="about-content" aria-label="About Pixmoree">
-                <article class="about-story-card">
-                  <div class="about-story-image"><img src="{{ asset('assets/guest-hero-background.png') }}" alt="A colorful digital universe, representing the Pixmoree marketplace"><span class="about-image-mark"><i class="bi bi-sparkle" aria-hidden="true"></i></span></div>
-                  <div class="about-story-copy"><span class="about-eyebrow">01 / ABOUT PIXMOREE</span><h2>Digital art, waiting to be discovered.</h2><p>Pixmoree is a digital collectibles marketplace concept focused on discovering and showcasing digital artwork. It brings imaginative pieces together in one place, making it easy to browse art and see the people behind it.</p></div>
-                </article>
-                <article class="about-story-card about-story-reverse">
-                  <div class="about-story-image"><img src="{{ asset('assets/Neon Pixel Sparkle Sticker Sheet.png') }}" alt="A sheet of playful neon pixel-art characters and sparkles"><span class="about-image-mark"><i class="bi bi-heart" aria-hidden="true"></i></span></div>
-                  <div class="about-story-copy"><span class="about-eyebrow">02 / OUR MISSION</span><h2>Make room for every kind of creator.</h2><p>Our goal is to offer a simple, visually engaging place where people can explore digital artwork and discover different artists. We want the experience to feel welcoming, inspiring, and fun to come back to.</p></div>
-                </article>
-                <article class="about-story-card">
-                  <div class="about-story-image"><img src="{{ asset('assets/29108282_JEMA GER 1446-01.jpg') }}" alt="Anime-inspired digital artwork from the Pixmoree gallery"><span class="about-image-mark"><i class="bi bi-grid" aria-hidden="true"></i></span></div>
-                  <div class="about-story-copy"><span class="about-eyebrow">03 / WHAT YOU CAN DO</span><h2>Explore at your own pace.</h2><p>Browse collections, open artwork to see its details, check out what is trending, and save pieces you love to your favorites. Pixmoree is designed to make finding your next inspiration feel effortless.</p><a class="about-inline-link" href="/user#explore">Browse the gallery <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div>
-                </article>
-              </section>
-              <section class="about-project">
-                <div class="about-project-image"><img src="{{ asset('assets/anime-character-using-virtual-reality-glasses-metaverse.jpg') }}" alt="A character exploring a virtual digital world"><div class="about-project-image-caption"><i class="bi bi-code-slash" aria-hidden="true"></i> Made while learning</div></div>
-                <div class="about-project-copy">
-                  <span class="about-eyebrow">04 / ABOUT THE PROJECT</span><h2>Built as a learning experience.</h2>
-                  <p>Pixmoree is an educational project developed by students to practice web design, frontend development, and marketplace functionality. The site is a creative concept, made to bring those skills together in one interactive experience.</p>
-                  <p class="about-project-started"><i class="bi bi-calendar3" aria-hidden="true"></i> Project started <time datetime="2026-10-15">October 15, 2026</time></p>
-                  <div class="about-project-note"><i class="bi bi-lightbulb" aria-hidden="true"></i><span>Curiosity, creativity, and code — all in one project.</span></div>
-                  <div class="about-tools"><span class="about-tools-label">Apps used</span><div class="about-tool-list">
-                    <span class="about-tool"><span class="about-tool-logo about-tool-ae" aria-hidden="true">Ae</span><span>After Effects</span></span>
-                    <span class="about-tool"><span class="about-tool-logo about-tool-ps" aria-hidden="true">Ps</span><span>Photoshop</span></span>
-                    <span class="about-tool"><svg class="about-tool-vscode" viewBox="0 0 24 24" aria-hidden="true"><path fill="#007ACC" d="M17.2 2.1 7.3 11.2 2.1 7.1 0 8.5v7l2.1 1.4 5.2-4.1 9.9 9.1L24 19V5l-6.8-2.9Zm.1 4.1 3.2 1.4v8.8l-3.2 1.4-6.7-5.8 6.7-5.8Z"/><path fill="#1F9CF0" d="m2.1 7.1 5.2 4.1v1.6l-5.2 4.1L0 15.5v-7l2.1-1.4Z"/></svg><span>VS Code</span></span>
-                  </div></div>
-                </div>
-              </section>
-              <section class="about-student-brief" aria-label="Student project overview">
-                <div class="about-student-brief-heading"><span class="about-eyebrow">STUDENT PROJECT OVERVIEW</span><h3>Purpose, scope, and learning goals.</h3></div>
-                <div class="about-student-brief-grid">
-                  <article><i class="bi bi-bullseye" aria-hidden="true"></i><h4>Project purpose</h4><p>Explore how a digital-art marketplace can help people discover artwork and creators through a clear, accessible interface.</p></article>
-                  <article><i class="bi bi-stars" aria-hidden="true"></i><h4>Core features</h4><p>Artwork discovery, search and filters, favorites, creator listings, user collections, NFT detail views, and simulated checkout.</p></article>
-                  <article><i class="bi bi-mortarboard" aria-hidden="true"></i><h4>Learning goals</h4><p>Practice responsive UI design, reusable page patterns, browser storage, form validation, accessibility, and responsible handling of creative work.</p></article>
-                  <article><i class="bi bi-code-slash" aria-hidden="true"></i><h4>Tools and stack</h4><p>PHP/Laravel-compatible views, HTML, CSS, JavaScript, and Bootstrap, with Photoshop and After Effects for visual assets.</p></article>
-                  <article><i class="bi bi-journal-check" aria-hidden="true"></i><h4>Scope and limitations</h4><p>This build is a student prototype. Accounts, listings, transactions, Pixel Coin, and payments are browser-based demonstrations—not production services.</p></article>
-                </div>
-              </section>
-              <section class="about-team" aria-labelledby="member-about-team-title">
-                <div class="about-team-heading"><span class="about-eyebrow">05 / MEET THE CREATORS</span><h2 id="member-about-team-title">The people behind Pixmoree.</h2><p>We’re a student team bringing design, code, and creativity together. Replace these profile placeholders with your team’s details.</p></div>
-                <div class="about-team-grid">
-                  <article class="about-team-card"><div class="about-team-image"><img src="{{ asset('assets/anime-style-character-space.jpg') }}" alt="Artwork placeholder for team member one"><span>01</span></div><div class="about-team-details"><span class="about-team-role">Project Lead · UI/UX Designer</span><h3>[Your Name]</h3><p class="about-team-course">[Course / Program] <span>·</span> [Year Level]</p><blockquote>“[Add a short quote about your role or what inspired you.]”</blockquote><div class="about-team-contact"><span><i class="bi bi-instagram" aria-hidden="true"></i> @your-handle</span><span><i class="bi bi-envelope" aria-hidden="true"></i> your.email@example.com</span><span><i class="bi bi-telephone" aria-hidden="true"></i> +63 XXX XXX XXXX</span></div></div></article>
-                  <article class="about-team-card"><div class="about-team-image"><img src="{{ asset('assets/29108282_JEMA GER 1446-01.jpg') }}" alt="Artwork placeholder for team member two"><span>02</span></div><div class="about-team-details"><span class="about-team-role">Frontend Developer</span><h3>[Your Name]</h3><p class="about-team-course">[Course / Program] <span>·</span> [Year Level]</p><blockquote>“[Add a short quote about your role or what inspired you.]”</blockquote><div class="about-team-contact"><span><i class="bi bi-github" aria-hidden="true"></i> @your-handle</span><span><i class="bi bi-envelope" aria-hidden="true"></i> your.email@example.com</span><span><i class="bi bi-telephone" aria-hidden="true"></i> +63 XXX XXX XXXX</span></div></div></article>
-                  <article class="about-team-card"><div class="about-team-image"><img src="{{ asset('assets/anime-style-character-space (1).jpg') }}" alt="Artwork placeholder for team member three"><span>03</span></div><div class="about-team-details"><span class="about-team-role">Marketplace Developer</span><h3>[Your Name]</h3><p class="about-team-course">[Course / Program] <span>·</span> [Year Level]</p><blockquote>“[Add a short quote about your role or what inspired you.]”</blockquote><div class="about-team-contact"><span><i class="bi bi-instagram" aria-hidden="true"></i> @your-handle</span><span><i class="bi bi-envelope" aria-hidden="true"></i> your.email@example.com</span><span><i class="bi bi-telephone" aria-hidden="true"></i> +63 XXX XXX XXXX</span></div></div></article>
-                  <article class="about-team-card"><div class="about-team-image"><img src="{{ asset('assets/anime-character-using-virtual-reality-glasses-metaverse.jpg') }}" alt="Artwork placeholder for team member four"><span>04</span></div><div class="about-team-details"><span class="about-team-role">Content &amp; Visual Designer</span><h3>[Your Name]</h3><p class="about-team-course">[Course / Program] <span>·</span> [Year Level]</p><blockquote>“[Add a short quote about your role or what inspired you.]”</blockquote><div class="about-team-contact"><span><i class="bi bi-instagram" aria-hidden="true"></i> @your-handle</span><span><i class="bi bi-envelope" aria-hidden="true"></i> your.email@example.com</span><span><i class="bi bi-telephone" aria-hidden="true"></i> +63 XXX XXX XXXX</span></div></div></article>
-                </div>
-                <p class="about-team-privacy"><i class="bi bi-shield-check" aria-hidden="true"></i> Only publish contact details and social profiles that each team member has agreed to share.</p>
-              </section>
-              <section class="about-contact">
-                <div class="about-contact-icon"><i class="bi bi-chat-square-heart" aria-hidden="true"></i></div>
-                <div><span class="about-eyebrow">06 / CONTACT &amp; PROJECT INFO</span><h2>Have a question about the project?</h2><p>For project questions, use the team contact details above once your members have chosen what they want to share, or reach out through your course or class channel.</p></div>
-                <a href="/user" class="about-contact-link">Back to home <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
-              </section>
+              @include('partials.about-content', ['aboutContent' => $aboutContent, 'galleryUrl' => '/user#explore'])
             </div>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="create" hidden>
             <div class="member-panel-heading"><div><h3>Create a listing</h3><p>Share original artwork with the Pixmoree community.</p></div><span class="member-demo-label">DEMO SELLER</span></div>
-            <form class="member-create-form" id="memberCreateForm">
+            <form class="member-create-form" id="memberCreateForm" method="post" action="{{ route('user.artworks.store') }}" enctype="multipart/form-data">
+              @csrf
               <label class="member-create-upload" for="memberArtworkFile"><i class="bi bi-cloud-arrow-up"></i><strong>Choose an artwork image</strong><span>PNG, JPG, or WEBP · up to 2 MB</span><img id="memberArtworkPreview" alt="Artwork preview" hidden></label>
-              <input id="memberArtworkFile" name="image" type="file" accept="image/png,image/jpeg,image/webp">
+              <input id="memberArtworkFile" name="image" type="file" accept="image/png,image/jpeg,image/webp" required>
               <label for="memberArtworkTitle">Artwork title<input id="memberArtworkTitle" name="title" type="text" maxlength="60" placeholder="e.g. Starlight Wanderer" required></label>
-              <label for="memberArtworkDescription">Description<textarea id="memberArtworkDescription" name="description" rows="4" maxlength="400" placeholder="Tell collectors about your artwork." required></textarea></label>
+              <label for="memberArtworkDescription">Description<textarea id="memberArtworkDescription" name="description" rows="4" maxlength="500" placeholder="Tell collectors about your artwork." required></textarea></label>
               <div class="member-create-form-row"><label for="memberArtworkPrice">Price (ETH)<input id="memberArtworkPrice" name="price" type="number" min="0.01" max="100000" step="0.01" placeholder="0.25" required></label><label for="memberArtworkCategory">Category<select id="memberArtworkCategory" name="category"><option>Digital Art</option><option>Illustration</option><option>Photography</option><option>3D Art</option></select></label></div>
               <label class="member-policy-accept"><input id="memberArtworkOriginality" name="originality" type="checkbox" required> I created this work or have permission to list it, and it does not knowingly violate anyone else’s rights. I agree to the <a href="/user/terms">Terms &amp; Originality Policy</a>.</label>
               <button class="member-profile-save" type="submit"><i class="bi bi-plus-lg"></i> Create listing</button>
               <p class="member-profile-feedback" id="memberCreateFeedback" role="status" hidden></p>
-              <small>Demo only: listings are saved in this browser. No payment or real marketplace listing is created.</small>
+              @if ($errors->any())
+                <p class="member-profile-feedback" role="alert">{{ $errors->first() }}</p>
+              @endif
+              @if (session('status'))
+                <p class="member-profile-feedback" role="status">{{ session('status') }}</p>
+              @endif
+              <small>Artwork listings are stored in the database. Duplicate image files are rejected.</small>
             </form>
+            <section class="member-dashboard-panel mt-4" aria-labelledby="my-artworks-title">
+              <h4 id="my-artworks-title">My artwork listings</h4>
+              @forelse ($userArtworks as $listing)
+                <details class="w12-panel mb-3">
+                  <summary>{{ $listing->title }} · {{ $listing->status }}</summary>
+                  <form method="post" action="{{ route('user.artworks.update', ['id' => $listing->id]) }}" enctype="multipart/form-data" class="member-create-form mt-3">
+                    @csrf
+                    @method('PATCH')
+                    <label>Artwork title<input name="title" value="{{ $listing->title }}" maxlength="120" required></label>
+                    <label>Description<textarea name="description" rows="3" maxlength="500" required>{{ $listing->description }}</textarea></label>
+                    <div class="member-create-form-row">
+                      <label>Category<input name="category" value="{{ $listing->category }}" maxlength="50" required></label>
+                      <label>Price (ETH)<input name="price" type="number" min="0" max="99999999" step="0.01" value="{{ $listing->price }}" required></label>
+                    </div>
+                    <label>Replace image (optional)<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
+                    <button class="member-profile-save" type="submit">Update artwork</button>
+                  </form>
+                  <form method="post" action="{{ route('user.artworks.destroy', ['id' => $listing->id]) }}" onsubmit="return confirm('Delete this artwork listing?');">
+                    @csrf
+                    @method('DELETE')
+                    <button class="btn btn-outline-danger btn-sm mt-2" type="submit">Delete artwork</button>
+                  </form>
+                </details>
+              @empty
+                <p class="text-secondary">You have not listed any artwork yet.</p>
+              @endforelse
+            </section>
           </section>
         </div>
       </div>
@@ -332,150 +303,88 @@
       <div class="trending-nft-grid">
         <article class="trending-feature" aria-label="Featured trending NFTs">
           <div class="trending-feature-slides" aria-live="polite">
-            <div class="trending-feature-slide active" data-title="Anime Girl" data-creator="Insan.Rin" data-floor="Ξ 4,403.94K" data-items="43" aria-hidden="false">
-              <img src="{{ asset('assets/29108282_JEMA GER 1446-01.jpg') }}" alt="Anime Girl digital collectible">
-            </div>
-            <div class="trending-feature-slide" data-title="Anime Boy" data-creator="Insan.Rin" data-floor="Ξ 1,334.0K" data-items="38" aria-hidden="true">
-              <img src="{{ asset('assets/anime-style-character-space.jpg') }}" alt="Anime Boy digital collectible">
-            </div>
-            <div class="trending-feature-slide" data-title="Space" data-creator="Insan.Rin" data-floor="Ξ 1,520.0K" data-items="52" aria-hidden="true">
-              <img src="{{ asset('assets/anime-style-character-space (2).jpg') }}" alt="Space digital collectible">
-            </div>
-            <div class="trending-feature-slide" data-title="Chinese Zombie" data-creator="Insan.Rin" data-floor="Ξ 1,543.0K" data-items="29" aria-hidden="true">
-              <img src="{{ asset('assets/cute-astronaut-samurai-with-kitsune-mask-katana-sword-cartoon-vector-icon-illustration-science.png') }}" alt="Chinese Zombie digital collectible">
-            </div>
-            <div class="trending-feature-slide" data-title="Astro Boy" data-creator="Insan.Rin" data-floor="Ξ 1,132.1K" data-items="47" aria-hidden="true">
-              <img src="{{ asset('assets/anime-character-using-virtual-reality-glasses-metaverse.jpg') }}" alt="Astro Boy digital collectible">
-            </div>
+            @foreach ($homeArtworks->take(5) as $artwork)
+              <div class="trending-feature-slide {{ $loop->first ? 'active' : '' }}" data-title="{{ $artwork->title }}" data-creator="{{ $artwork->creator }}" data-floor="Ξ {{ number_format((float) $artwork->price, 2) }}" data-items="1" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
+                <img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}">
+              </div>
+            @endforeach
           </div>
-          <div class="trending-feature-info">
-            <div><h3 class="trending-feature-title">Anime Girl <i class="bi bi-patch-check-fill" aria-label="Verified"></i></h3><p class="trending-feature-creator">By Insan.Rin</p></div>
-            <div class="trending-feature-stats"><div><small>Floor Price</small><strong class="trending-feature-floor">Ξ 4,403.94K</strong></div><div><small>Items</small><strong class="trending-feature-items">43</strong></div></div>
-          </div>
-          <button class="trending-feature-arrow trending-feature-prev" type="button" aria-label="Previous featured NFT"><i class="bi bi-chevron-left"></i></button>
-          <button class="trending-feature-arrow trending-feature-next" type="button" aria-label="Next featured NFT"><i class="bi bi-chevron-right"></i></button>
-          <div class="trending-nft-pagination" role="group" aria-label="Choose featured NFT">
-            <button class="active" type="button" aria-label="Show featured NFT 1" aria-current="true"></button>
-            <button type="button" aria-label="Show featured NFT 2" aria-current="false"></button>
-            <button type="button" aria-label="Show featured NFT 3" aria-current="false"></button>
-            <button type="button" aria-label="Show featured NFT 4" aria-current="false"></button>
-            <button type="button" aria-label="Show featured NFT 5" aria-current="false"></button>
-          </div>
+          @if ($homeArtworks->isNotEmpty())
+            @php($featuredArtwork = $homeArtworks->first())
+            <div class="trending-feature-info">
+              <div><h3 class="trending-feature-title">{{ $featuredArtwork->title }} <i class="bi bi-patch-check-fill" aria-label="Verified"></i></h3><p class="trending-feature-creator">By {{ $featuredArtwork->creator }}</p></div>
+              <div class="trending-feature-stats"><div><small>Price</small><strong class="trending-feature-floor">Ξ {{ number_format((float) $featuredArtwork->price, 2) }}</strong></div><div><small>Items</small><strong class="trending-feature-items">1</strong></div></div>
+            </div>
+            @if ($homeArtworks->count() > 1)
+              <button class="trending-feature-arrow trending-feature-prev" type="button" aria-label="Previous featured artwork"><i class="bi bi-chevron-left"></i></button>
+              <button class="trending-feature-arrow trending-feature-next" type="button" aria-label="Next featured artwork"><i class="bi bi-chevron-right"></i></button>
+              <div class="trending-nft-pagination" role="group" aria-label="Choose featured artwork">
+                @foreach ($homeArtworks->take(5) as $artwork)
+                  <button class="{{ $loop->first ? 'active' : '' }}" type="button" aria-label="Show featured artwork {{ $loop->iteration }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
+                @endforeach
+              </div>
+            @endif
+          @else
+            <div class="trending-feature-info"><div><h3 class="trending-feature-title">No artwork yet</h3><p class="trending-feature-creator">New creator listings will appear here.</p></div></div>
+          @endif
         </article>
-        <div class="trending-nft-list" aria-label="Trending NFT ranks 6 through 15">
-          <a class="trending-nft-item" href="#explore"><em class="trending-nft-rank">#06</em><img src="{{ asset('assets/anime-style-character-space.jpg') }}" alt=""><span><strong>Neon Wanderer</strong><small>By pixel.dreams</small></span><b>Ξ 1,334.0K</b></a>
-          <a class="trending-nft-item" href="#explore"><em class="trending-nft-rank">#07</em><img src="{{ asset('assets/anime-style-character-space (2).jpg') }}" alt=""><span><strong>Starlight Drift</strong><small>By cosmic.art</small></span><b>Ξ 1,520.0K</b></a>
-          <a class="trending-nft-item" href="#explore"><em class="trending-nft-rank">#08</em><img src="{{ asset('assets/cute-astronaut-samurai-with-kitsune-mask-katana-sword-cartoon-vector-icon-illustration-science.png') }}" alt=""><span><strong>Moonlit Guardian</strong><small>By neko.studio</small></span><b>Ξ 1,543.0K</b></a>
-          <a class="trending-nft-item" href="#explore"><em class="trending-nft-rank">#09</em><img src="{{ asset('assets/anime-character-using-virtual-reality-glasses-metaverse.jpg') }}" alt=""><span><strong>Virtual Voyager</strong><small>By astro.design</small></span><b>Ξ 1,132.1K</b></a>
-          <a class="trending-nft-item" href="#explore"><em class="trending-nft-rank">#10</em><img src="{{ asset('assets/29108282_JEMA GER 1446-01.jpg') }}" alt=""><span><strong>Dreamscape Bloom</strong><small>By jema.works</small></span><b>Ξ 1,098.5K</b></a>
-          <a class="trending-nft-item" href="#explore"><em class="trending-nft-rank">#11</em><img src="{{ asset('assets/36101435_7200_4_03.jpg') }}" alt=""><span><strong>Pixel Ronin</strong><small>By pixel.soul</small></span><b>Ξ 987.2K</b></a>
-          <a class="trending-nft-item" href="#explore"><em class="trending-nft-rank">#12</em><img src="{{ asset('assets/anime-style-character-space (3).jpg') }}" alt=""><span><strong>Dragon Reverie</strong><small>By dreamforge</small></span><b>Ξ 945.8K</b></a>
-          <a class="trending-nft-item" href="#explore"><em class="trending-nft-rank">#13</em><img src="{{ asset('assets/anime-style-character-space (1).jpg') }}" alt=""><span><strong>Cosmic Daydream</strong><small>By neon.muse</small></span><b>Ξ 902.4K</b></a>
-          <a class="trending-nft-item" href="#explore"><em class="trending-nft-rank">#14</em><img src="{{ asset('assets/cute-astronaut-samurai-with-kitsune-mask-katana-sword-cartoon-vector-icon-illustration-science.png') }}" alt=""><span><strong>Foxfire Samurai</strong><small>By kitsu.art</small></span><b>Ξ 876.0K</b></a>
-          <a class="trending-nft-item" href="#explore"><em class="trending-nft-rank">#15</em><img src="{{ asset('assets/Neon Pixel Sparkle Sticker Sheet.png') }}" alt=""><span><strong>Orbit of Stars</strong><small>By orbit.draws</small></span><b>Ξ 841.6K</b></a>
-        </div>
+        @if ($homeArtworks->count() > 1)
+          <div class="trending-nft-list" aria-label="Other listed artworks">
+            @foreach ($homeArtworks->skip(1) as $artwork)
+              <a class="trending-nft-item" href="{{ route('week12.client.artwork', ['id' => $artwork->id]) }}"><em class="trending-nft-rank">#{{ sprintf('%02d', $loop->iteration + 1) }}</em><img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}"><span><strong>{{ $artwork->title }}</strong><small>By {{ $artwork->creator }}</small></span><b>Ξ {{ number_format((float) $artwork->price, 2) }}</b></a>
+            @endforeach
+          </div>
+        @endif
       </div>
     </section>
     <section class="creator-strip-section">
-    <div class="creator-strip-heading"><h2>Trending Creators</h2><p>Artists making waves this week</p></div>
-    <div class="creator-carousel" aria-label="Trending creators">
-      <button class="creator-arrow creator-arrow-prev" type="button" aria-label="Scroll creators left"><i class="bi bi-chevron-left"></i></button>
-      <div class="creator-track" id="creatorTrack">
-        <article class="creator-mini-card">
-          <img class="creator-mini-avatar" src="{{ asset('assets/anime-style-character-space.jpg') }}" alt="">
-          <div class="creator-mini-copy"><h3>pixel.dreams<i class="bi bi-patch-check-fill" aria-label="Verified"></i></h3><p>12.8K <span>↗ +12.4%</span></p></div>
-          <small class="creator-mini-sales"><i class="bi bi-gem"></i> 04.0k</small>
-        </article>
-        <article class="creator-mini-card">
-          <img class="creator-mini-avatar" src="{{ asset('assets/anime-style-character-space (1).jpg') }}" alt="">
-          <div class="creator-mini-copy"><h3>cosmic.art<i class="bi bi-patch-check-fill" aria-label="Verified"></i></h3><p>9.4K <span>↗ +12.4%</span></p></div>
-          <small class="creator-mini-sales"><i class="bi bi-gem"></i> 04.0k</small>
-        </article>
-        <article class="creator-mini-card">
-          <img class="creator-mini-avatar" src="{{ asset('assets/cute-astronaut-samurai-with-kitsune-mask-katana-sword-cartoon-vector-icon-illustration-science.png') }}" alt="">
-          <div class="creator-mini-copy"><h3>neko.studio<i class="bi bi-patch-check-fill" aria-label="Verified"></i></h3><p>8.2K <span>↗ +12.4%</span></p></div>
-          <small class="creator-mini-sales"><i class="bi bi-gem"></i> 04.0k</small>
-        </article>
-        <article class="creator-mini-card">
-          <img class="creator-mini-avatar" src="{{ asset('assets/anime-character-using-virtual-reality-glasses-metaverse.jpg') }}" alt="">
-          <div class="creator-mini-copy"><h3>astro.design<i class="bi bi-patch-check-fill" aria-label="Verified"></i></h3><p>6.7K <span>↗ +12.4%</span></p></div>
-          <small class="creator-mini-sales"><i class="bi bi-gem"></i> 04.0k</small>
-        </article>
-        <article class="creator-mini-card">
-          <img class="creator-mini-avatar" src="{{ asset('assets/29108282_JEMA GER 1446-01.jpg') }}" alt="">
-          <div class="creator-mini-copy"><h3>jema.works<i class="bi bi-patch-check-fill" aria-label="Verified"></i></h3><p>5.9K <span>↗ +10.8%</span></p></div>
-          <small class="creator-mini-sales"><i class="bi bi-gem"></i> 03.8k</small>
-        </article>
-        <article class="creator-mini-card">
-          <img class="creator-mini-avatar" src="{{ asset('assets/36101435_7200_4_03.jpg') }}" alt="">
-          <div class="creator-mini-copy"><h3>pixel.soul<i class="bi bi-patch-check-fill" aria-label="Verified"></i></h3><p>5.2K <span>↗ +9.6%</span></p></div>
-          <small class="creator-mini-sales"><i class="bi bi-gem"></i> 03.5k</small>
-        </article>
-        <article class="creator-mini-card">
-          <img class="creator-mini-avatar" src="{{ asset('assets/anime-style-character-space (3).jpg') }}" alt="">
-          <div class="creator-mini-copy"><h3>dreamforge<i class="bi bi-patch-check-fill" aria-label="Verified"></i></h3><p>4.8K <span>↗ +8.9%</span></p></div>
-          <small class="creator-mini-sales"><i class="bi bi-gem"></i> 03.1k</small>
-        </article>
-        <article class="creator-mini-card">
-          <img class="creator-mini-avatar" src="{{ asset('assets/anime-style-character-space (2).jpg') }}" alt="">
-          <div class="creator-mini-copy"><h3>neon.muse<i class="bi bi-patch-check-fill" aria-label="Verified"></i></h3><p>4.3K <span>↗ +8.1%</span></p></div>
-          <small class="creator-mini-sales"><i class="bi bi-gem"></i> 02.9k</small>
-        </article>
-        <article class="creator-mini-card">
-          <img class="creator-mini-avatar" src="{{ asset('assets/anime-style-character-space (1).jpg') }}" alt="">
-          <div class="creator-mini-copy"><h3>moonbyte<i class="bi bi-patch-check-fill" aria-label="Verified"></i></h3><p>3.9K <span>↗ +7.4%</span></p></div>
-          <small class="creator-mini-sales"><i class="bi bi-gem"></i> 02.6k</small>
-        </article>
-        <article class="creator-mini-card">
-          <img class="creator-mini-avatar" src="{{ asset('assets/cute-astronaut-samurai-with-kitsune-mask-katana-sword-cartoon-vector-icon-illustration-science.png') }}" alt="">
-          <div class="creator-mini-copy"><h3>kitsu.art<i class="bi bi-patch-check-fill" aria-label="Verified"></i></h3><p>3.4K <span>↗ +6.7%</span></p></div>
-          <small class="creator-mini-sales"><i class="bi bi-gem"></i> 02.2k</small>
-        </article>
-        <article class="creator-mini-card">
-          <img class="creator-mini-avatar" src="{{ asset('assets/anime-character-using-virtual-reality-glasses-metaverse.jpg') }}" alt="">
-          <div class="creator-mini-copy"><h3>orbit.draws<i class="bi bi-patch-check-fill" aria-label="Verified"></i></h3><p>3.1K <span>↗ +5.9%</span></p></div>
-          <small class="creator-mini-sales"><i class="bi bi-gem"></i> 01.9k</small>
-        </article>
-        <article class="creator-mini-card">
-          <img class="creator-mini-avatar" src="{{ asset('assets/Neon Pixel Sparkle Sticker Sheet.png') }}" alt="">
-          <div class="creator-mini-copy"><h3>starlit.art<i class="bi bi-patch-check-fill" aria-label="Verified"></i></h3><p>2.8K <span>↗ +5.2%</span></p></div>
-          <small class="creator-mini-sales"><i class="bi bi-gem"></i> 01.7k</small>
-        </article>
+      <div class="creator-strip-heading"><h2>Trending Creators</h2><p>Creators with listed work on Pixmoree</p></div>
+      <div class="creator-carousel" aria-label="Trending creators">
+        <button class="creator-arrow creator-arrow-prev" type="button" aria-label="Scroll creators left"><i class="bi bi-chevron-left"></i></button>
+        <div class="creator-track" id="creatorTrack">
+          @foreach ($topCreators as $creator)
+            <article class="creator-mini-card">
+              <img class="creator-mini-avatar" src="{{ asset($creator->avatar_path ?? 'assets/Pixmoree Neon Pixel Logo.png') }}" alt="{{ $creator->name }}">
+              <div class="creator-mini-copy"><h3>{{ $creator->name }}</h3><p>{{ $creator->artworks_count }} {{ \Illuminate\Support\Str::plural('artwork', $creator->artworks_count) }}</p></div>
+              <small class="creator-mini-sales"><i class="bi bi-gem"></i> Creator</small>
+            </article>
+          @endforeach
+        </div>
+        <button class="creator-arrow creator-arrow-next" type="button" aria-label="Scroll creators right"><i class="bi bi-chevron-right"></i></button>
       </div>
-      <button class="creator-arrow creator-arrow-next" type="button" aria-label="Scroll creators right"><i class="bi bi-chevron-right"></i></button>
-    </div>
-    <div class="creator-pagination" aria-hidden="true"><span class="active"></span><span></span><span></span></div>
-    <span id="creators" class="creator-anchor" aria-hidden="true"></span>
-  </section>
+      <div class="creator-pagination" aria-hidden="true">
+        @foreach ($topCreators->chunk(4) as $page)
+          <span class="{{ $loop->first ? 'active' : '' }}"></span>
+        @endforeach
+      </div>
+      <span id="creators" class="creator-anchor" aria-hidden="true"></span>
+    </section>
   <section id="explore" class="explore-section">
     <div class="section-heading explore-heading"><div><h2>Explore <i class="bi bi-compass"></i></h2><p class="muted">Find your next favorite piece</p></div></div>
     <div class="filter-row"><div class="filter-pills"><button class="filter-pill active" data-filter="all">All items</button><button class="filter-pill" data-filter="newest">Newest</button><button class="filter-pill" data-filter="price">Price</button><button class="filter-pill" data-filter="favorites">Favorites</button></div><label class="sort-button"><i class="bi bi-sort-down"></i><span>Sort by</span><select id="sortSelect" aria-label="Sort artworks"><option value="default">Default</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></label></div>
     <div class="row g-3" id="artGrid">
-      <div class="col-6 col-sm-3 art-column" data-category="anime" data-price="2.40" data-created="8"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/anime-style-character-space.jpg') }}" alt="Anime boy digital collectible"><span class="artwork-title">ANIME BOY #032</span><button class="heart-button guest-heart" type="button" aria-label="Add Anime Boy to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>pixel.dreams</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>2.40 ETH</strong></div><div class="art-items"><small>Items</small><strong>18</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="space" data-price="1.85" data-created="7"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/anime-style-character-space (1).jpg') }}" alt="Samurai in a dreamlike landscape"><span class="artwork-title">SAMURAI #8423</span><button class="heart-button guest-heart" type="button" aria-label="Add Samurai to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>cosmic.art</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>1.85 ETH</strong></div><div class="art-items"><small>Items</small><strong>19</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="space" data-price="3.10" data-created="6"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/anime-style-character-space (2).jpg') }}" alt="Colorful space-inspired artwork"><span class="artwork-title">SPACE BOY #043</span><button class="heart-button guest-heart" type="button" aria-label="Add Space Boy to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>neko.studio</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>3.10 ETH</strong></div><div class="art-items"><small>Items</small><strong>18</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="anime" data-price="2.75" data-created="5"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/anime-style-character-space (3).jpg') }}" alt="Fantasy dragon girl artwork"><span class="artwork-title">DRAGON GIRL #02</span><button class="heart-button guest-heart" type="button" aria-label="Add Dragon Girl to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>pixel.dreams</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>2.75 ETH</strong></div><div class="art-items"><small>Items</small><strong>19</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="character" data-price="1.60" data-created="4"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/anime-character-using-virtual-reality-glasses-metaverse.jpg') }}" alt="Anime character portrait"><span class="artwork-title">GOJO SATORU #083</span><button class="heart-button guest-heart" type="button" aria-label="Add Gojo Satoru to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>cosmic.art</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>1.60 ETH</strong></div><div class="art-items"><small>Items</small><strong>18</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="character" data-price="0.95" data-created="3"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/36101435_7200_4_03.jpg') }}" alt="Anime samurai collectible"><span class="artwork-title">SOLO LEVELING #8423</span><button class="heart-button guest-heart" type="button" aria-label="Add Solo Leveling to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>neko.studio</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>0.95 ETH</strong></div><div class="art-items"><small>Items</small><strong>19</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="anime" data-price="1.25" data-created="2"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/cute-astronaut-samurai-with-kitsune-mask-katana-sword-cartoon-vector-icon-illustration-science.png') }}" alt="Cute astronaut samurai with fox mask"><span class="artwork-title">DASTLE #042</span><button class="heart-button guest-heart" type="button" aria-label="Add Dastle to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>pixel.dreams</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>1.25 ETH</strong></div><div class="art-items"><small>Items</small><strong>18</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="anime" data-price="2.20" data-created="1"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/29108282_JEMA GER 1446-01.jpg') }}" alt="Anime portrait artwork"><span class="artwork-title">ITACHI #02</span><button class="heart-button guest-heart" type="button" aria-label="Add Itachi to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>cosmic.art</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>2.20 ETH</strong></div><div class="art-items"><small>Items</small><strong>12</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="space" data-price="1.45" data-created="9"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/anime-style-character-space (2).jpg') }}" alt="Neon orbit digital artwork"><span class="artwork-title">NEON ORBIT #018</span><button class="heart-button guest-heart" type="button" aria-label="Add Neon Orbit to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>astro.design</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>1.45 ETH</strong></div><div class="art-items"><small>Items</small><strong>24</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="character" data-price="2.05" data-created="10"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/anime-character-using-virtual-reality-glasses-metaverse.jpg') }}" alt="Dream traveler digital collectible"><span class="artwork-title">DREAM TRAVELER #12</span><button class="heart-button guest-heart" type="button" aria-label="Add Dream Traveler to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>moonbyte</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>2.05 ETH</strong></div><div class="art-items"><small>Items</small><strong>16</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="anime" data-price="1.75" data-created="11"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/anime-style-character-space (3).jpg') }}" alt="Crimson dragon digital collectible"><span class="artwork-title">CRIMSON DRAGON #07</span><button class="heart-button guest-heart" type="button" aria-label="Add Crimson Dragon to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>dreamforge</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>1.75 ETH</strong></div><div class="art-items"><small>Items</small><strong>21</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="space" data-price="0.88" data-created="12"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/Neon Pixel Sparkle Sticker Sheet.png') }}" alt="Stardust sparkle digital artwork"><span class="artwork-title">STARDUST #301</span><button class="heart-button guest-heart" type="button" aria-label="Add Stardust to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>starlit.art</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>0.88 ETH</strong></div><div class="art-items"><small>Items</small><strong>31</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="anime" data-price="2.60" data-created="13"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/29108282_JEMA GER 1446-01.jpg') }}" alt="Moonlit portrait digital artwork"><span class="artwork-title">MOONLIT #044</span><button class="heart-button guest-heart" type="button" aria-label="Add Moonlit to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>jema.works</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>2.60 ETH</strong></div><div class="art-items"><small>Items</small><strong>14</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="character" data-price="1.18" data-created="14"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/36101435_7200_4_03.jpg') }}" alt="Shadow ronin digital collectible"><span class="artwork-title">SHADOW RONIN #09</span><button class="heart-button guest-heart" type="button" aria-label="Add Shadow Ronin to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>pixel.soul</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>1.18 ETH</strong></div><div class="art-items"><small>Items</small><strong>27</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="space" data-price="1.92" data-created="15"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/anime-style-character-space (1).jpg') }}" alt="Cosmic samurai digital artwork"><span class="artwork-title">COSMIC SAMURAI #5</span><button class="heart-button guest-heart" type="button" aria-label="Add Cosmic Samurai to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>kitsu.art</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>1.92 ETH</strong></div><div class="art-items"><small>Items</small><strong>20</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="character" data-price="1.35" data-created="16"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/cute-astronaut-samurai-with-kitsune-mask-katana-sword-cartoon-vector-icon-illustration-science.png') }}" alt="Foxfire astronaut digital collectible"><span class="artwork-title">FOXFIRE #016</span><button class="heart-button guest-heart" type="button" aria-label="Add Foxfire to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>neko.studio</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>1.35 ETH</strong></div><div class="art-items"><small>Items</small><strong>22</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="anime" data-price="0.76" data-created="17"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/anime-style-character-space.jpg') }}" alt="Pixel dream digital artwork"><span class="artwork-title">PIXEL DREAM #128</span><button class="heart-button guest-heart" type="button" aria-label="Add Pixel Dream to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>pixel.dreams</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>0.76 ETH</strong></div><div class="art-items"><small>Items</small><strong>35</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="space" data-price="1.08" data-created="18"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/anime-style-character-space (2).jpg') }}" alt="Orbit glow digital artwork"><span class="artwork-title">ORBIT GLOW #020</span><button class="heart-button guest-heart" type="button" aria-label="Add Orbit Glow to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>orbit.draws</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>1.08 ETH</strong></div><div class="art-items"><small>Items</small><strong>28</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="anime" data-price="1.64" data-created="19"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/29108282_JEMA GER 1446-01.jpg') }}" alt="Aurora portrait digital artwork"><span class="artwork-title">AURORA VEIL #019</span><button class="heart-button guest-heart" type="button" aria-label="Add Aurora Veil to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>jema.works</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>1.64 ETH</strong></div><div class="art-items"><small>Items</small><strong>17</strong></div></div></div></article></div>
-      <div class="col-6 col-sm-3 art-column" data-category="character" data-price="0.92" data-created="20"><article class="art-card"><div class="art-image-wrap"><img src="{{ asset('assets/cute-astronaut-samurai-with-kitsune-mask-katana-sword-cartoon-vector-icon-illustration-science.png') }}" alt="Kitsune star digital collectible"><span class="artwork-title">KITSUNE STAR #020</span><button class="heart-button guest-heart" type="button" aria-label="Add Kitsune Star to favorites"><i class="bi bi-heart"></i></button></div><div class="art-card-body"><div class="art-creator">By <span>kitsu.art</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div><div class="art-stats"><div class="art-price"><small>Floor Price</small><strong>0.92 ETH</strong></div><div class="art-items"><small>Items</small><strong>26</strong></div></div></div></article></div>
+      @forelse ($homeArtworks as $artwork)
+        <div class="col-6 col-sm-3 art-column" data-category="{{ \Illuminate\Support\Str::slug($artwork->category) }}" data-price="{{ $artwork->price }}" data-created="{{ $artwork->created_at?->timestamp ?? 0 }}">
+          <article class="art-card">
+            <div class="art-image-wrap">
+              <img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }} digital artwork">
+              <span class="artwork-title">{{ $artwork->title }}</span>
+              <button class="heart-button guest-heart" type="button" aria-label="Add {{ $artwork->title }} to favorites"><i class="bi bi-heart"></i></button>
+            </div>
+            <div class="art-card-body">
+              <div class="art-creator">By <span>{{ $artwork->creator }}</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div>
+              <div class="art-stats"><div class="art-price"><small>Price</small><strong>{{ number_format((float) $artwork->price, 2) }} ETH</strong></div><div class="art-items"><small>Artwork</small><strong>1</strong></div></div>
+            </div>
+          </article>
+        </div>
+      @empty
+        <p class="text-secondary">No artwork has been listed yet.</p>
+      @endforelse
     </div>
     <div class="load-more-wrap"><button class="btn-load" id="loadMoreItems" type="button"><i class="bi bi-plus-circle" aria-hidden="true"></i> Load more items</button></div>
   </section>
-  <section id="about" class="guest-about"><h2>Creativity has a new home.</h2><p>Explore digital art, discover emerging creators, and find your next favorite piece on Pixmoree.</p><a href="/login" class="btn hero-explore">Join the community</a></section>
-  <footer class="site-footer"><a href="#"><img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree" class="footer-logo"></a><p>Discover a universe of digital creativity.</p><div class="footer-links"><a href="#explore">Explore</a><a href="#creators">Creators</a><a href="#">Community</a><a href="#">Support</a></div><small>© {{ date('Y') }} Pixmoree. Made for creators and collectors.</small></footer>
+  <section id="about" class="guest-about"><h2>{{ $homeContent['closing_heading'] }}</h2><p>{{ $homeContent['closing_body'] }}</p><a href="/login" class="btn hero-explore">{{ $homeContent['closing_cta'] }}</a></section>
+  <footer class="site-footer"><a href="#"><img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree" class="footer-logo"></a><p>{{ $homeContent['footer_tagline'] }}</p><div class="footer-links"><a href="#explore">Explore</a><a href="#creators">Creators</a><a href="#">Community</a><a href="#">Support</a></div><small>© {{ date('Y') }} Pixmoree. Made for creators and collectors.</small></footer>
 </main>
 <dialog class="nft-preview" id="nftPreview" aria-labelledby="nftPreviewTitle">
   <div class="nft-preview-card">

@@ -25,6 +25,15 @@ if (!function_exists('week12_asset')) {
     }
 }
 
+if (!function_exists('week12_artwork_image')) {
+    function week12_artwork_image(string $path): string
+    {
+        return str_starts_with($path, 'storage/')
+            ? week12_asset($path)
+            : week12_asset('assets/' . $path);
+    }
+}
+
 if (!function_exists('week12_url')) {
     function week12_url(string $path): string
     {

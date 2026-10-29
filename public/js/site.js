@@ -905,14 +905,11 @@ document.addEventListener('DOMContentLoaded', () => {
       renderPaymentPanel();
     });
 
-    const createForm = document.getElementById('memberCreateForm');
     const artworkFile = document.getElementById('memberArtworkFile');
     const artworkPreview = document.getElementById('memberArtworkPreview');
     const createFeedback = document.getElementById('memberCreateFeedback');
-    let selectedArtworkImage = '';
     artworkFile.addEventListener('change', () => {
       const file = artworkFile.files?.[0];
-      selectedArtworkImage = '';
       artworkPreview.hidden = true;
       if (!file) return;
       if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
@@ -924,8 +921,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const reader = new FileReader();
       reader.addEventListener('load', () => {
         if (typeof reader.result !== 'string') return;
-        selectedArtworkImage = reader.result;
-        artworkPreview.src = selectedArtworkImage;
+        artworkPreview.src = reader.result;
         artworkPreview.hidden = false;
         createFeedback.hidden = true;
       });
@@ -934,36 +930,6 @@ document.addEventListener('DOMContentLoaded', () => {
         createFeedback.hidden = false;
       });
       reader.readAsDataURL(file);
-    });
-    createForm.addEventListener('submit', event => {
-      event.preventDefault();
-      if (!createForm.reportValidity()) return;
-      const profileName = document.getElementById('memberNavName').textContent.trim();
-      const listing = {
-        id: `creator-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        title: document.getElementById('memberArtworkTitle').value.trim(),
-        description: document.getElementById('memberArtworkDescription').value.trim(),
-        creator: profileName,
-        image: selectedArtworkImage || '/public/assets/guest-hero-background.png',
-        alt: document.getElementById('memberArtworkTitle').value.trim(),
-        price: `${Number(document.getElementById('memberArtworkPrice').value).toFixed(2)} ETH`,
-        category: document.getElementById('memberArtworkCategory').value,
-        originalityConfirmed: document.getElementById('memberArtworkOriginality').checked,
-        date: new Date().toISOString().slice(0, 10),
-        status: 'Listed · Demo'
-      };
-      const listings = readStoredList(createdArtStorageKey, 'created artwork');
-      if (!writeStoredList(createdArtStorageKey, [listing, ...listings], 'created artwork')) {
-        createFeedback.textContent = 'Could not save your listing. Check available browser storage.';
-        createFeedback.hidden = false;
-        return;
-      }
-      createForm.reset();
-      selectedArtworkImage = '';
-      artworkPreview.hidden = true;
-      createFeedback.textContent = 'Your artwork was added to your demo listings. No real sale was created.';
-      createFeedback.hidden = false;
-      renderMemberDashboard();
     });
   }
 

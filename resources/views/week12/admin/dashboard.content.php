@@ -50,6 +50,7 @@
                 <h2 class="h5">Quick actions</h2>
                 <p class="text-secondary small">Artwork-management actions update the local database.</p>
                 <div class="d-grid gap-2">
+                    <a href="<?= week12_escape(week12_url('/admin/content/about')) ?>" class="btn w12-btn-outline text-start"><i class="bi bi-pencil-square"></i> Edit website content</a>
                     <a href="<?= week12_escape(week12_url('/week12/admin/artworks#new-listing')) ?>" class="btn w12-btn-outline text-start"><i class="bi bi-plus-circle"></i> Add demo listing</a>
                     <a href="<?= week12_escape(week12_url('/week12/admin/artworks')) ?>" class="btn w12-btn-outline text-start"><i class="bi bi-card-list"></i> Review artwork list</a>
                 </div>

@@ -18,6 +18,7 @@ class User extends Authenticatable
         'password',
         'phone',
         'bio',
+        'avatar_path',
     ];
 
     protected $hidden = [
@@ -36,6 +37,11 @@ class User extends Authenticatable
     public function images(): HasMany
     {
         return $this->hasMany(Image::class);
+    }
+
+    public function artworks(): HasMany
+    {
+        return $this->hasMany(Artwork::class);
     }
 
     public function isAdmin(): bool

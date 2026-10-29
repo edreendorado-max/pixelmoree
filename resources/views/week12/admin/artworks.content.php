@@ -1,32 +1,46 @@
 <section class="container py-4 py-lg-5">
     <?php $formError = $error ?? (isset($errors) ? $errors->first('listing') : null); ?>
+    <?php $usedImages = array_column($artworks, 'image'); ?>
     <a class="w12-back-link" href="<?= week12_escape(week12_url('/week12/admin')) ?>"><i class="bi bi-arrow-left"></i> Back to admin overview</a>
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mt-3 mb-4">
         <div>
             <p class="w12-eyebrow mb-2">ADMIN / CONTENT</p>
             <h1 class="w12-section-title">Artwork management</h1>
-            <p class="text-secondary mb-0">Create, review, and remove fictional listings stored in MySQL.</p>
+            <p class="text-secondary mb-0">Create, review, and remove creator artwork stored in MySQL.</p>
         </div>
         <a class="btn w12-btn-primary" href="#new-listing"><i class="bi bi-plus-lg"></i> Add listing</a>
     </div>
-    <?php if (!empty($formError)): ?>
-        <div class="alert alert-danger" role="alert"><?= week12_escape($formError) ?></div>
+    <?php if (!empty($formError) || (isset($errors) && $errors->any())): ?>
+        <div class="alert alert-danger" role="alert">
+            <?php if (!empty($formError)): ?><p class="mb-1"><?= week12_escape($formError) ?></p><?php endif; ?>
+            <?php if (isset($errors) && $errors->any()): ?>
+                <ul class="mb-0"><?php foreach ($errors->all() as $error): ?><li><?= week12_escape($error) ?></li><?php endforeach; ?></ul>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+    <?php if (session('status')): ?>
+        <div class="alert alert-success" role="status"><?= week12_escape(session('status')) ?></div>
     <?php endif; ?>
     <div class="alert w12-alert" role="note">
         <i class="bi bi-info-circle-fill"></i>
         <span>This is a classroom demo. Listing changes persist in the local database; do not enter real personal or payment information.</span>
     </div>
     <section class="w12-panel mb-4" id="new-listing">
-        <h2 class="h5 mb-3">Add a fictional artwork listing</h2>
-        <form method="post" action="<?= week12_escape(week12_url('/week12/admin/artworks')) ?>" class="row g-3">
+        <h2 class="h5 mb-3">Add a creator artwork listing</h2>
+        <form method="post" action="<?= week12_escape(week12_url('/week12/admin/artworks')) ?>" enctype="multipart/form-data" class="row g-3">
             <input type="hidden" name="_token" value="<?= week12_escape($week12CsrfToken) ?>">
             <div class="col-md-6">
                 <label class="form-label" for="title">Artwork title</label>
                 <input class="form-control" id="title" name="title" maxlength="120" required>
             </div>
             <div class="col-md-6">
-                <label class="form-label" for="creator">Creator name</label>
-                <input class="form-control" id="creator" name="creator" maxlength="80" required>
+                <label class="form-label" for="user_id">Creator account</label>
+                <select class="form-select" id="user_id" name="user_id" required>
+                    <option value="">Choose creator account</option>
+                    <?php foreach ($creators as $creator): ?>
+                        <option value="<?= (int) $creator->id ?>"><?= week12_escape($creator->name) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             <div class="col-sm-6 col-lg-3">
                 <label class="form-label" for="category">Category</label>
@@ -37,12 +51,26 @@
                 <input class="form-control" id="price" name="price" type="number" min="0" max="99999999" step="0.01" required>
             </div>
             <div class="col-sm-6 col-lg-6">
-                <label class="form-label" for="image">Project sample image</label>
-                <select class="form-select" id="image" name="image" required>
-                    <option value="anime-style-character-space.jpg">Neon character art</option>
-                    <option value="cute-astronaut-samurai-with-kitsune-mask-katana-sword-cartoon-vector-icon-illustration-science.png">Astronaut samurai art</option>
-                    <option value="anime-style-character-space (2).jpg">Starlight art</option>
+                <label class="form-label" for="image">Artwork image</label>
+                <select class="form-select" id="image" name="image">
+                    <option value="">Choose an unused supplied artwork</option>
+                    <?php foreach ([
+                        'nfts/ethereal-life.png' => 'Ethereal Life',
+                        'nfts/rather-lie.png' => 'Rather Lie',
+                        'nfts/sneaker-study.jpg' => 'Sneaker Study',
+                        'nfts/neon-character.png' => 'Neon Character',
+                        'nfts/team-poster.png' => 'Team Poster',
+                        'nfts/music-analytics.png' => 'Music Analytics',
+                        'nfts/monochrome-study.png' => 'Monochrome Study',
+                    ] as $imagePath => $imageLabel): ?>
+                        <option value="<?= week12_escape($imagePath) ?>" <?= in_array($imagePath, $usedImages, true) ? 'disabled' : '' ?>><?= week12_escape($imageLabel) ?><?= in_array($imagePath, $usedImages, true) ? ' (already listed)' : '' ?></option>
+                    <?php endforeach; ?>
                 </select>
+            </div>
+            <div class="col-sm-6 col-lg-6">
+                <label class="form-label" for="image_upload">Or upload a new artwork image</label>
+                <input class="form-control" id="image_upload" name="image_upload" type="file" accept=".jpg,.jpeg,.png,.gif,.webp">
+                <div class="form-text">Optional. JPG, PNG, GIF, or WebP up to 20 MB. An identical image cannot be listed twice.</div>
             </div>
             <div class="col-12">
                 <label class="form-label" for="description">Description</label>
@@ -61,7 +89,7 @@
                 <tbody>
                     <?php foreach ($artworks as $artwork): ?>
                         <tr>
-                            <td><div class="d-flex align-items-center gap-2"><img class="w12-table-thumb" src="<?= week12_escape(week12_asset('assets/' . $artwork['image'])) ?>" alt=""><span class="fw-semibold"><?= week12_escape($artwork['title']) ?></span></div></td>
+                            <td><div class="d-flex align-items-center gap-2"><img class="w12-table-thumb" src="<?= week12_escape(week12_artwork_image($artwork['image'])) ?>" alt=""><span class="fw-semibold"><?= week12_escape($artwork['title']) ?></span></div></td>
                             <td><?= week12_escape($artwork['creator']) ?></td>
                             <td><?= week12_escape($artwork['category']) ?></td>
                             <td><?= week12_escape($artwork['price']) ?> ETH</td>

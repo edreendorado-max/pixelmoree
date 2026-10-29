@@ -8,7 +8,7 @@ $week12CsrfToken ??= '';
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Pixmoree Week 12 marketplace database demonstration.">
+    <meta name="description" content="<?= week12_escape($week12Description ?? 'Pixmoree Week 12 marketplace database demonstration.') ?>">
     <title><?= week12_escape($week12Title) ?> · Pixmoree</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -29,6 +29,7 @@ $week12CsrfToken ??= '';
                 <a class="nav-link <?= $week12Area === 'client' ? 'active' : '' ?>" href="<?= week12_escape(week12_url('/week12')) ?>">Marketplace</a>
                 <?php if (auth()->check() && auth()->user()->isAdmin()): ?>
                     <a class="nav-link <?= $week12Area === 'admin' ? 'active' : '' ?>" href="<?= week12_escape(week12_url('/week12/admin')) ?>">Admin</a>
+                    <a class="nav-link" href="<?= week12_escape(week12_url('/admin/content/about')) ?>">Website content</a>
                 <?php endif; ?>
                 <span class="w12-demo-pill"><i class="bi bi-info-circle"></i> MySQL-backed listings</span>
             </div>

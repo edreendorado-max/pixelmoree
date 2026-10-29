@@ -132,6 +132,7 @@ class AccountAndImageCrudTest extends TestCase
     {
         $this->get('/user')->assertRedirect('/login');
         $this->get('/user/profile-settings')->assertRedirect('/login');
+        $this->get('/admin/content/about')->assertRedirect('/login');
         $this->post('/user/profile')->assertRedirect('/login');
         $this->get('/week12/admin')->assertRedirect('/login');
     }
