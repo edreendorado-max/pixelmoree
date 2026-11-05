@@ -13,6 +13,7 @@ if ($week12Area === 'admin') {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="<?= week12_escape(csrf_token()) ?>">
     <meta name="description" content="<?= week12_escape($week12Description) ?>">
     <title><?= week12_escape($week12Title) ?> · Pixmoree</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -59,6 +60,7 @@ if ($week12Area === 'admin') {
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="<?= week12_escape(week12_asset('js/engagement.js')) ?>?v=20261104-engagement"></script>
 <script>
     document.querySelectorAll('[data-demo-action]').forEach((button) => {
         button.addEventListener('click', () => {

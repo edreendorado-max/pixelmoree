@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS `artworks` (
     `creator` VARCHAR(80) NOT NULL,
     `category` VARCHAR(50) NOT NULL,
     `price` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    `item_count` INT UNSIGNED NOT NULL DEFAULT 1,
     `image` VARCHAR(255) NOT NULL,
     `image_hash` CHAR(64) NULL,
     `description` VARCHAR(500) NOT NULL,
@@ -108,6 +109,21 @@ CREATE TABLE IF NOT EXISTS `artworks` (
 ) ENGINE=InnoDB
   DEFAULT CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
+
+SET @add_artworks_item_count = IF(
+        EXISTS (
+                SELECT 1
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = 'pixmoreedb'
+                    AND TABLE_NAME = 'artworks'
+                    AND COLUMN_NAME = 'item_count'
+        ),
+        'SELECT 1',
+        'ALTER TABLE `pixmoreedb`.`artworks` ADD COLUMN `item_count` INT UNSIGNED NOT NULL DEFAULT 1 AFTER `price`'
+);
+PREPARE `add_artworks_item_count` FROM @add_artworks_item_count;
+EXECUTE `add_artworks_item_count`;
+DEALLOCATE PREPARE `add_artworks_item_count`;
 
 SET @add_artworks_creator_columns = IF(
     EXISTS (

@@ -15,11 +15,21 @@
             <div class="w12-price-panel">
                 <span>Creator's demo asking price</span>
                 <strong><?= week12_escape($artwork['price']) ?> ETH</strong>
+                <span><?= number_format((int) $artwork['item_count']) ?> items in this edition</span>
             </div>
             <div class="w12-price-panel mt-3">
                 <span>Estimated market value (demo only)</span>
                 <strong><?= number_format((float) $artwork['estimated_market_value'], 2) ?> ETH</strong>
                 <span><?= $artwork['market_change_percent'] >= 0 ? '+' : '' ?><?= number_format((float) $artwork['market_change_percent'], 1) ?>% vs. asking price</span>
+            </div>
+            <div class="w12-engagement-panel" data-engagement-metrics="artwork" data-entity-id="<?= week12_escape($artwork['id']) ?>" data-views="<?= (int) $artwork['views_count'] ?>" data-likes="<?= (int) $artwork['likes_count'] ?>">
+                <span><i class="bi bi-eye" aria-label="Views"></i> <span data-engagement-views><?= number_format((int) $artwork['views_count']) ?></span> views</span>
+                <?php if (auth()->check()): ?>
+                    <button type="button" data-engagement-like="artwork" data-entity-id="<?= week12_escape($artwork['id']) ?>" data-liked="<?= $artwork['liked'] ? 'true' : 'false' ?>" aria-pressed="<?= $artwork['liked'] ? 'true' : 'false' ?>"><i class="bi <?= $artwork['liked'] ? 'bi-heart-fill' : 'bi-heart' ?>" aria-hidden="true"></i> <span data-engagement-likes><?= number_format((int) $artwork['likes_count']) ?></span> like</button>
+                <?php else: ?>
+                    <a href="/login"><i class="bi bi-heart" aria-hidden="true"></i> <span data-engagement-likes><?= number_format((int) $artwork['likes_count']) ?></span> likes · log in to like</a>
+                <?php endif; ?>
+                <p class="w12-engagement-feedback" data-engagement-feedback role="status" aria-live="polite" hidden></p>
             </div>
             <div class="d-grid d-sm-flex gap-2 mt-3">
                 <button type="button" class="btn w12-btn-primary" data-demo-action="Purchase is simulated. No payment or transaction was made.">

@@ -31,6 +31,7 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
+        $user->forceFill(['role' => 'user'])->save();
 
         Auth::login($user);
         $request->session()->regenerate();

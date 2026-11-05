@@ -14,7 +14,7 @@ final class ArtworkRepository
         $statement = $this->pdo->query(
             'SELECT artworks.id, artworks.user_id, artworks.title,
                     COALESCE(users.name, artworks.creator) AS creator,
-                    artworks.category, artworks.price, artworks.image,
+                    artworks.category, artworks.price, artworks.item_count, artworks.image,
                     artworks.image_hash, artworks.description, artworks.status, artworks.created_at
              FROM artworks
              LEFT JOIN users ON users.id = artworks.user_id
@@ -29,7 +29,7 @@ final class ArtworkRepository
         $statement = $this->pdo->query(
             "SELECT artworks.id, artworks.user_id, artworks.title,
                     COALESCE(users.name, artworks.creator) AS creator,
-                    artworks.category, artworks.price, artworks.image,
+                    artworks.category, artworks.price, artworks.item_count, artworks.image,
                     artworks.image_hash, artworks.description, artworks.status, artworks.created_at
              FROM artworks
              LEFT JOIN users ON users.id = artworks.user_id
@@ -46,7 +46,7 @@ final class ArtworkRepository
         $statement = $this->pdo->query(
             'SELECT artworks.id, artworks.user_id, artworks.title,
                     COALESCE(users.name, artworks.creator) AS creator,
-                    artworks.category, artworks.price, artworks.image,
+                    artworks.category, artworks.price, artworks.item_count, artworks.image,
                     artworks.image_hash, artworks.description, artworks.status, artworks.created_at
              FROM artworks
              LEFT JOIN users ON users.id = artworks.user_id
@@ -62,7 +62,7 @@ final class ArtworkRepository
         $statement = $this->pdo->prepare(
             'SELECT artworks.id, artworks.user_id, artworks.title,
                     COALESCE(users.name, artworks.creator) AS creator,
-                    artworks.category, artworks.price, artworks.image,
+                    artworks.category, artworks.price, artworks.item_count, artworks.image,
                     artworks.image_hash, artworks.description, artworks.status, artworks.created_at
              FROM artworks
              LEFT JOIN users ON users.id = artworks.user_id
@@ -86,6 +86,32 @@ final class ArtworkRepository
 
         $ids = array_column($artworks, 'id');
         $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $views = $this->pdo->prepare(
+            "SELECT artwork_id, COUNT(*) AS views_count FROM artwork_views WHERE artwork_id IN ($placeholders) GROUP BY artwork_id"
+        );
+        $views->execute($ids);
+        $viewsByArtwork = array_column($views->fetchAll(PDO::FETCH_ASSOC), 'views_count', 'artwork_id');
+        $likes = $this->pdo->prepare(
+            "SELECT artwork_id, COUNT(*) AS likes_count FROM artwork_likes WHERE artwork_id IN ($placeholders) GROUP BY artwork_id"
+        );
+        $likes->execute($ids);
+        $likesByArtwork = array_column($likes->fetchAll(PDO::FETCH_ASSOC), 'likes_count', 'artwork_id');
+        $creatorIds = array_values(array_unique(array_filter(array_map('intval', array_column($artworks, 'user_id')))));
+        $creatorStatsByUser = [];
+        if ($creatorIds !== []) {
+            $creatorPlaceholders = implode(', ', array_fill(0, count($creatorIds), '?'));
+            $creatorStats = $this->pdo->prepare(
+                "SELECT users.id AS creator_id,
+                        (SELECT COUNT(*) FROM creator_views WHERE creator_id = users.id) AS profile_views_count,
+                        (SELECT COUNT(*) FROM creator_follows WHERE creator_id = users.id) AS followers_count,
+                        (SELECT COUNT(*) FROM pixel_coin_transactions AS purchases
+                         INNER JOIN artworks AS sold_artworks ON sold_artworks.id = purchases.artwork_id
+                         WHERE purchases.type = 'purchase' AND sold_artworks.user_id = users.id) AS sold_count
+                 FROM users WHERE users.id IN ($creatorPlaceholders)"
+            );
+            $creatorStats->execute($creatorIds);
+            $creatorStatsByUser = array_column($creatorStats->fetchAll(PDO::FETCH_ASSOC), null, 'creator_id');
+        }
         $statement = $this->pdo->prepare(
             "SELECT artwork_id,
                     SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) AS recent_sales,
@@ -102,6 +128,10 @@ final class ArtworkRepository
         }
 
         foreach ($artworks as &$artwork) {
+            $artwork['views_count'] = (int) ($viewsByArtwork[$artwork['id']] ?? 0);
+            $artwork['likes_count'] = (int) ($likesByArtwork[$artwork['id']] ?? 0);
+            $artwork['item_count'] = max(1, (int) ($artwork['item_count'] ?? 1));
+            $creator = $creatorStatsByUser[(int) ($artwork['user_id'] ?? 0)] ?? [];
             $sales = $salesByArtwork[$artwork['id']] ?? [];
             $estimate = ArtworkMarketValue::estimate(
                 (float) $artwork['price'],
@@ -109,6 +139,12 @@ final class ArtworkRepository
                 (int) ($sales['recent_sales'] ?? 0),
                 $sales['last_sale_at'] ?? null,
                 $now,
+                (int) $artwork['likes_count'],
+                (int) $artwork['views_count'],
+                (int) ($creator['followers_count'] ?? 0),
+                (int) ($creator['profile_views_count'] ?? 0),
+                (int) ($creator['sold_count'] ?? 0),
+                (int) $artwork['item_count'],
             );
             $artwork['estimated_market_value'] = $estimate['value'];
             $artwork['market_change_percent'] = $estimate['change_percent'];
@@ -157,8 +193,8 @@ final class ArtworkRepository
 
         $id = $this->slug($artwork['title']) . '-' . bin2hex(random_bytes(3));
         $statement = $this->pdo->prepare(
-            'INSERT INTO artworks (id, user_id, title, creator, category, price, image, image_hash, description, status)
-             VALUES (:id, :user_id, :title, :creator, :category, :price, :image, :image_hash, :description, :status)'
+            'INSERT INTO artworks (id, user_id, title, creator, category, price, item_count, image, image_hash, description, status)
+             VALUES (:id, :user_id, :title, :creator, :category, :price, :item_count, :image, :image_hash, :description, :status)'
         );
         $statement->execute([
             'id' => $id,
@@ -167,6 +203,7 @@ final class ArtworkRepository
             'creator' => $artwork['creator'],
             'category' => $artwork['category'],
             'price' => $artwork['price'],
+            'item_count' => $artwork['item_count'],
             'image' => $artwork['image'],
             'image_hash' => $imageHash,
             'description' => $artwork['description'],
@@ -219,6 +256,9 @@ final class ArtworkRepository
         $creator = trim((string) ($input['creator'] ?? ''));
         $category = trim((string) ($input['category'] ?? ''));
         $price = trim((string) ($input['price'] ?? ''));
+        $itemCount = filter_var($input['item_count'] ?? 1, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => 100000],
+        ]);
         $image = trim((string) ($input['image'] ?? ''));
         $ownerId = $input['user_id'] ?? null;
         $description = trim((string) ($input['description'] ?? ''));
@@ -234,6 +274,9 @@ final class ArtworkRepository
         }
         if (!preg_match('/^\d{1,8}(?:\.\d{1,2})?$/', $price)) {
             throw new InvalidArgumentException('Enter a non-negative price with up to two decimal places.');
+        }
+        if ($itemCount === false) {
+            throw new InvalidArgumentException('Enter an item count from 1 to 100,000.');
         }
         if ($description === '' || mb_strlen($description) > 500) {
             throw new InvalidArgumentException('Enter a description up to 500 characters long.');
@@ -284,6 +327,7 @@ final class ArtworkRepository
             'creator' => $creator,
             'category' => $category,
             'price' => $price,
+            'item_count' => $itemCount,
             'image' => $image,
             'description' => $description,
         ];

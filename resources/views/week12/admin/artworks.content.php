@@ -50,6 +50,10 @@
                 <label class="form-label" for="price">Sample price (ETH)</label>
                 <input class="form-control" id="price" name="price" type="number" min="0" max="99999999" step="0.01" required>
             </div>
+            <div class="col-sm-6 col-lg-3">
+                <label class="form-label" for="item_count">Items in this edition</label>
+                <input class="form-control" id="item_count" name="item_count" type="number" min="1" max="100000" step="1" value="1" required>
+            </div>
             <div class="col-sm-6 col-lg-6">
                 <label class="form-label" for="image">Artwork image</label>
                 <select class="form-select" id="image" name="image">
@@ -85,7 +89,7 @@
         </div>
         <div class="table-responsive">
             <table class="table w12-table align-middle mb-0">
-                <thead><tr><th>Artwork</th><th>Creator</th><th>Category</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Artwork</th><th>Creator</th><th>Category</th><th>Price</th><th>Items</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody>
                     <?php foreach ($artworks as $artwork): ?>
                         <tr>
@@ -93,6 +97,7 @@
                             <td><?= week12_escape($artwork['creator']) ?></td>
                             <td><?= week12_escape($artwork['category']) ?></td>
                             <td><?= week12_escape($artwork['price']) ?> ETH</td>
+                            <td><?= number_format((int) $artwork['item_count']) ?></td>
                             <td><span class="w12-status <?= $artwork['status'] === 'Review' ? 'w12-status-review' : '' ?>"><?= week12_escape($artwork['status']) ?></span></td>
                             <td>
                                 <div class="d-flex flex-wrap gap-2">

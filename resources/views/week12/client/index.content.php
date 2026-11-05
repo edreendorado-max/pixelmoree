@@ -52,8 +52,12 @@
                                 <span class="w12-status <?= $artwork['status'] === 'Review' ? 'w12-status-review' : '' ?>"><?= week12_escape($artwork['status']) ?></span>
                             </div>
                             <p class="text-secondary mb-3">By <?= week12_escape($artwork['creator']) ?></p>
+                            <p class="w12-engagement-inline" data-engagement-metrics="artwork" data-entity-id="<?= week12_escape($artwork['id']) ?>" data-views="<?= (int) $artwork['views_count'] ?>" data-likes="<?= (int) $artwork['likes_count'] ?>">
+                                <span><i class="bi bi-eye" aria-label="Views"></i> <span data-engagement-views><?= number_format((int) $artwork['views_count']) ?></span></span>
+                                <span><i class="bi bi-heart" aria-label="Likes"></i> <span data-engagement-likes><?= number_format((int) $artwork['likes_count']) ?></span></span>
+                            </p>
                             <div class="d-flex justify-content-between align-items-center mt-auto">
-                                <span class="w12-price"><?= week12_escape($artwork['price']) ?> ETH <small>asking price</small><br><small>Est. <?= number_format((float) $artwork['estimated_market_value'], 2) ?> ETH (<?= $artwork['market_change_percent'] >= 0 ? '+' : '' ?><?= number_format((float) $artwork['market_change_percent'], 1) ?>%)</small></span>
+                                <span class="w12-price"><?= week12_escape($artwork['price']) ?> ETH <small>asking price</small><br><small><?= number_format((int) $artwork['item_count']) ?> items</small><br><small>Est. <?= number_format((float) $artwork['estimated_market_value'], 2) ?> ETH (<?= $artwork['market_change_percent'] >= 0 ? '+' : '' ?><?= number_format((float) $artwork['market_change_percent'], 1) ?>%)</small></span>
                                 <a class="btn w12-btn-outline btn-sm" href="<?= week12_escape(week12_url('/week12/artworks/' . rawurlencode($artwork['id']))) ?>">View details</a>
                             </div>
                         </div>

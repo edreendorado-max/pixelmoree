@@ -43,6 +43,35 @@ class PixmoreePagesTest extends TestCase
         }
     }
 
+    public function test_member_home_recommends_live_listed_artwork_in_for_you_section(): void
+    {
+        $user = User::create([
+            'name' => 'For You Creator',
+            'email' => 'for-you-creator@example.test',
+            'password' => 'secret-password',
+        ]);
+        DB::table('artworks')->insert([
+            'id' => 'for-you-artwork',
+            'user_id' => $user->id,
+            'title' => 'For You Artwork',
+            'creator' => $user->name,
+            'category' => 'Digital Art',
+            'price' => 1.25,
+            'image' => 'for-you-artwork.png',
+            'description' => 'A recommended listing.',
+            'status' => 'Listed',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get('/user')
+            ->assertOk()
+            ->assertSee('For You')
+            ->assertSee('For You Artwork')
+            ->assertSee('/week12/artworks/for-you-artwork');
+    }
+
     public function test_default_seeding_does_not_create_demo_accounts_or_artwork(): void
     {
         $this->seed();
@@ -82,6 +111,7 @@ class PixmoreePagesTest extends TestCase
         $this->get('/user/pixel-coin')
             ->assertOk()
             ->assertSee('Pixel Coin wallet')
+            ->assertSee('No real GCash, PayPal, or prepaid-load payment is connected.')
             ->assertSee('data-pixel-topup="500"', false)
             ->assertSee('member-pixel-coin-link');
 
@@ -90,6 +120,96 @@ class PixmoreePagesTest extends TestCase
 
         $this->assertDatabaseHas('users', ['id' => $user->id, 'pixel_coin_balance' => 1000]);
         $this->assertDatabaseCount('pixel_coin_transactions', 1);
+    }
+
+    public function test_artwork_views_are_deduplicated_and_likes_require_authentication(): void
+    {
+        $artworkId = 'engagement-nft';
+        DB::table('artworks')->insert([
+            'id' => $artworkId,
+            'title' => 'Engagement NFT',
+            'creator' => 'Engagement Creator',
+            'category' => 'Digital Art',
+            'price' => 1,
+            'image' => 'engagement-nft.png',
+            'description' => 'A test artwork for engagement metrics.',
+            'status' => 'Listed',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->putJson("/api/artworks/{$artworkId}/like")->assertUnauthorized();
+        $user = User::create([
+            'name' => 'Artwork Liker',
+            'email' => 'artwork-liker@example.test',
+            'password' => 'secret-password',
+        ]);
+
+        $this->actingAs($user)->postJson("/api/artworks/{$artworkId}/views")
+            ->assertOk()
+            ->assertJsonPath('views', 1)
+            ->assertJsonPath('likes', 0);
+        $this->postJson("/api/artworks/{$artworkId}/views")
+            ->assertOk()
+            ->assertJsonPath('views', 1);
+
+        $this->putJson("/api/artworks/{$artworkId}/like")
+            ->assertOk()
+            ->assertJsonPath('liked', true)
+            ->assertJsonPath('likes', 1);
+        $this->putJson("/api/artworks/{$artworkId}/like")
+            ->assertOk()
+            ->assertJsonPath('likes', 1);
+        $this->deleteJson("/api/artworks/{$artworkId}/like")
+            ->assertOk()
+            ->assertJsonPath('liked', false)
+            ->assertJsonPath('likes', 0);
+    }
+
+    public function test_creator_views_likes_and_follows_are_persistent_and_creator_only(): void
+    {
+        $creator = User::create([
+            'name' => 'Engagement Creator',
+            'email' => 'engagement-creator@example.test',
+            'password' => 'secret-password',
+        ]);
+        $creator->forceFill(['role' => 'user'])->save();
+        $follower = User::create([
+            'name' => 'Creator Follower',
+            'email' => 'creator-follower@example.test',
+            'password' => 'secret-password',
+        ]);
+        $follower->forceFill(['role' => 'user'])->save();
+
+        $this->actingAs($follower)->postJson("/api/creators/{$creator->id}/views")
+            ->assertOk()
+            ->assertJsonPath('views', 1)
+            ->assertJsonPath('followers', 0);
+        $this->postJson("/api/creators/{$creator->id}/views")
+            ->assertOk()
+            ->assertJsonPath('views', 1);
+
+        $this->putJson("/api/creators/{$creator->id}/like")
+            ->assertOk()
+            ->assertJsonPath('liked', true)
+            ->assertJsonPath('likes', 1);
+        $this->putJson("/api/creators/{$creator->id}/follow")
+            ->assertOk()
+            ->assertJsonPath('following', true)
+            ->assertJsonPath('followers', 1);
+        $this->deleteJson("/api/creators/{$creator->id}/follow")
+            ->assertOk()
+            ->assertJsonPath('following', false)
+            ->assertJsonPath('followers', 0);
+
+        $this->actingAs($creator)->putJson("/api/creators/{$creator->id}/like")->assertUnprocessable();
+        $this->putJson("/api/creators/{$creator->id}/follow")->assertUnprocessable();
+        $this->assertDatabaseMissing('creator_follows', ['user_id' => $creator->id, 'creator_id' => $creator->id]);
+
+        $this->get("/creators/{$creator->id}")
+            ->assertOk()
+            ->assertSee('Engagement Creator')
+            ->assertSee('Followers');
     }
 
     public function test_earnings_page_summarizes_only_recorded_purchases_of_the_signed_in_users_artwork(): void
@@ -195,19 +315,21 @@ class PixmoreePagesTest extends TestCase
         $this->assertDatabaseCount('pixel_coin_transactions', 2);
     }
 
-    public function test_market_estimate_rises_with_recent_sales_and_decays_after_inactivity(): void
+    public function test_market_estimate_combines_popularity_creator_reputation_supply_and_inactivity(): void
     {
         $now = CarbonImmutable::parse('2026-10-29 12:00:00');
 
-        $rising = ArtworkMarketValue::estimate(
-            100,
-            $now->subDays(10),
-            3,
-            $now->subDays(3),
-            $now,
-        );
-        $this->assertSame(115.0, $rising['value']);
-        $this->assertSame(15.0, $rising['change_percent']);
+        $baseline = ArtworkMarketValue::estimate(100, $now, 0, null, $now, itemCount: 10);
+        $popular = ArtworkMarketValue::estimate(100, $now, 4, $now, $now, 80, 500, 0, 0, 0, 10);
+        $famousCreator = ArtworkMarketValue::estimate(100, $now, 0, null, $now, 0, 0, 100, 1000, 50, 10);
+        $scarce = ArtworkMarketValue::estimate(100, $now, 0, null, $now, itemCount: 1);
+        $abundant = ArtworkMarketValue::estimate(100, $now, 0, null, $now, itemCount: 100);
+
+        $this->assertSame(100.0, $baseline['value']);
+        $this->assertGreaterThan($baseline['value'], $popular['value']);
+        $this->assertGreaterThan($baseline['value'], $famousCreator['value']);
+        $this->assertGreaterThan($abundant['value'], $scarce['value']);
+        $this->assertSame(1, $scarce['item_count']);
 
         $falling = ArtworkMarketValue::estimate(
             100,
@@ -215,6 +337,7 @@ class PixmoreePagesTest extends TestCase
             0,
             null,
             $now,
+            itemCount: 10,
         );
         $this->assertSame(90.0, $falling['value']);
         $this->assertSame(-10.0, $falling['change_percent']);
@@ -225,9 +348,15 @@ class PixmoreePagesTest extends TestCase
             20,
             $now,
             $now,
+            200,
+            2000,
+            200,
+            2000,
+            100,
+            1,
         );
-        $this->assertSame(125.0, $capped['value']);
-        $this->assertSame(25.0, $capped['change_percent']);
+        $this->assertSame(140.0, $capped['value']);
+        $this->assertSame(40.0, $capped['change_percent']);
     }
 
     public function test_about_developer_profiles_can_store_quotes_sections_and_safe_social_urls(): void

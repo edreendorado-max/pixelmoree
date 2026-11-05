@@ -4,10 +4,15 @@ namespace Tests\Feature;
 
 use App\Models\Image;
 use App\Models\User;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Socialite\Contracts\Provider as SocialProvider;
+use Laravel\Socialite\Contracts\User as SocialUser;
+use Laravel\Socialite\Facades\Socialite;
 use Tests\TestCase;
 
 class AccountAndImageCrudTest extends TestCase
@@ -29,7 +34,7 @@ class AccountAndImageCrudTest extends TestCase
         $this->assertTrue(Hash::check('secret-password', $user->password));
         $this->assertSame('user', $user->role);
 
-        $this->get('/user/profile-settings')->assertOk()->assertSee('Pixel Artist');
+        $this->get('/user/profile-settings')->assertOk()->assertSee('Pixel Artist')->assertSee('Back to account');
 
         $this->post('/user/profile', [
             'name' => 'Updated Artist',
@@ -63,6 +68,110 @@ class AccountAndImageCrudTest extends TestCase
 
         $this->post('/logout')->assertRedirect('/login');
         $this->assertGuest();
+    }
+
+    public function test_a_user_can_request_and_complete_a_password_reset(): void
+    {
+        Notification::fake();
+        $user = User::create([
+            'name' => 'Password Reset User',
+            'email' => 'reset@example.test',
+            'password' => 'old-password',
+        ]);
+
+        $this->get('/forgot-password')->assertOk()->assertSee('Reset password');
+        $this->post('/forgot-password', ['email' => $user->email])
+            ->assertRedirect()
+            ->assertSessionHas('status', 'If an account exists for that email, a reset link has been sent.');
+
+        $token = null;
+        Notification::assertSentTo($user, ResetPassword::class, function (ResetPassword $notification) use (&$token): bool {
+            $token = $notification->token;
+
+            return true;
+        });
+        $this->assertIsString($token);
+
+        $this->get(route('password.reset', ['token' => $token, 'email' => $user->email]))
+            ->assertOk()
+            ->assertSee('Choose a new password');
+        $this->post('/reset-password', [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'new-secret-password',
+            'password_confirmation' => 'new-secret-password',
+        ])->assertRedirect(route('login'))
+            ->assertSessionHas('status', 'Your password has been reset. You can now sign in.');
+
+        $this->assertTrue(Hash::check('new-secret-password', $user->fresh()->password));
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'new-secret-password',
+        ])->assertRedirect('/user');
+    }
+
+    public function test_password_reset_request_does_not_disclose_unknown_emails(): void
+    {
+        Notification::fake();
+
+        $this->post('/forgot-password', ['email' => 'missing@example.test'])
+            ->assertRedirect()
+            ->assertSessionHas('status', 'If an account exists for that email, a reset link has been sent.');
+
+        Notification::assertNothingSent();
+    }
+
+    public function test_google_sign_in_creates_and_authenticates_a_regular_user(): void
+    {
+        $this->mockSocialProvider('google', 'google-user-123', 'google@example.test', 'Google Person');
+
+        $this->get('/auth/google/callback')->assertRedirect('/user');
+
+        $user = User::where('email', 'google@example.test')->firstOrFail();
+        $this->assertSame('google-user-123', $user->google_id);
+        $this->assertSame('user', $user->role);
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_facebook_sign_in_creates_and_authenticates_a_regular_user(): void
+    {
+        $this->mockSocialProvider('facebook', 'facebook-user-456', 'facebook@example.test', 'Facebook Person');
+
+        $this->get('/auth/facebook/callback')->assertRedirect('/user');
+
+        $user = User::where('email', 'facebook@example.test')->firstOrFail();
+        $this->assertSame('facebook-user-456', $user->facebook_id);
+        $this->assertSame('user', $user->role);
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_social_sign_in_does_not_link_an_existing_password_account_by_email(): void
+    {
+        $user = User::create([
+            'name' => 'Existing Account',
+            'email' => 'existing@example.test',
+            'password' => 'secret-password',
+        ]);
+        $this->mockSocialProvider('google', 'unlinked-google-id', $user->email, 'Existing Account');
+
+        $this->get('/auth/google/callback')
+            ->assertRedirect('/login')
+            ->assertSessionHasErrors('social');
+
+        $this->assertNull($user->fresh()->google_id);
+        $this->assertGuest();
+    }
+
+    public function test_unconfigured_social_provider_returns_a_login_error(): void
+    {
+        config([
+            'services.google.client_id' => null,
+            'services.google.client_secret' => null,
+        ]);
+
+        $this->get('/auth/google/redirect')
+            ->assertRedirect('/login')
+            ->assertSessionHasErrors('social');
     }
 
     public function test_a_user_can_upload_and_replace_their_profile_banner(): void
@@ -261,5 +370,19 @@ class AccountAndImageCrudTest extends TestCase
             ->assertExitCode(1);
 
         $this->assertDatabaseMissing('users', ['email' => 'missing@example.test']);
+    }
+
+    private function mockSocialProvider(string $providerName, string $providerId, string $email, string $name): void
+    {
+        $socialUser = \Mockery::mock(SocialUser::class);
+        $socialUser->shouldReceive('getId')->once()->andReturn($providerId);
+        $socialUser->shouldReceive('getEmail')->once()->andReturn($email);
+        $socialUser->shouldReceive('getName')->andReturn($name);
+        $socialUser->shouldReceive('getNickname')->andReturn(null);
+
+        $provider = \Mockery::mock(SocialProvider::class);
+        $provider->shouldReceive('user')->once()->andReturn($socialUser);
+
+        Socialite::shouldReceive('driver')->once()->with($providerName)->andReturn($provider);
     }
 }

@@ -82,7 +82,15 @@
         <button class="nft-detail-buy" id="nftDetailBuy" type="button" hidden><i class="bi bi-bag-plus"></i> Buy NFT (demo)</button>
         <button class="nft-detail-favorite" id="nftDetailFavorite" type="button" hidden><i class="bi bi-heart"></i> <span>Favorite</span></button>
       </div>
-      <p class="nft-detail-feedback" id="nftDetailFeedback" role="status" hidden></p>
+      <div class="nft-detail-engagement" id="nftDetailEngagement" data-engagement-metrics="artwork" data-entity-id="">
+        <span><i class="bi bi-eye" aria-hidden="true"></i> <span data-engagement-views>0</span> views</span>
+        @auth
+          <button type="button" id="nftDetailLike" data-engagement-like="artwork" data-entity-id="" data-liked="false" aria-pressed="false"><i class="bi bi-heart" aria-hidden="true"></i> <span data-engagement-label>Like</span> <span data-engagement-likes>0</span></button>
+        @else
+          <a href="{{ route('login') }}"><i class="bi bi-heart" aria-hidden="true"></i> Log in to like <span data-engagement-likes>0</span></a>
+        @endauth
+      </div>
+      <p class="nft-detail-feedback" id="nftDetailFeedback" data-engagement-feedback role="status" hidden></p>
       <section class="nft-detail-panel" aria-labelledby="nftDetailInfoHeading">
         <h2 id="nftDetailInfoHeading">NFT information</h2>
         <dl class="nft-detail-info">
@@ -132,7 +140,19 @@
               <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-receipt"></i></span><div><small>Purchases</small><strong id="memberHomePurchaseCount">0</strong></div><a href="/user/purchases" aria-label="Open purchases"><i class="bi bi-arrow-up-right"></i></a></article>
               <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-heart-fill"></i></span><div><small>Favorites</small><strong id="memberHomeFavoriteCount">0</strong></div><a href="/user/favorites" aria-label="Open favorites"><i class="bi bi-arrow-up-right"></i></a></article>
             </div>
-            <div class="member-panel-card"><div class="member-panel-heading"><div><h3>Recently viewed</h3><p>Your latest discoveries.</p></div><a href="/user#explore">Explore <i class="bi bi-arrow-up-right"></i></a></div><div class="member-recent-grid" id="memberRecentItems"><p class="member-empty-state">Artwork you view will show up here.</p></div></div>
+            <div class="member-panel-card">
+              <div class="member-panel-heading"><div><h3>For You</h3><p>Popular and recently listed work from Pixmoree creators.</p></div><a href="/user#explore">Explore <i class="bi bi-arrow-up-right"></i></a></div>
+              <div class="member-recent-grid" id="memberForYouItems">
+                @forelse ($forYouArtworks as $artwork)
+                  <a class="member-art-tile member-for-you-tile" href="{{ route('week12.client.artwork', ['id' => $artwork->id]) }}">
+                    <span class="member-art-tile-image"><img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}"></span>
+                    <span class="member-art-tile-details"><strong>{{ $artwork->title }}</strong><small>By {{ $artwork->creator }}</small><span>{{ number_format((float) $artwork->price, 2) }} ETH</span><small class="member-for-you-engagement"><i class="bi bi-eye" aria-label="Views"></i> {{ number_format($artwork->views_count) }} <i class="bi bi-heart" aria-label="Likes"></i> {{ number_format($artwork->likes_count) }}</small></span>
+                  </a>
+                @empty
+                  <p class="member-empty-state">New artwork will appear here as creators publish listings.</p>
+                @endforelse
+              </div>
+            </div>
           </section>
           <section class="member-dashboard-panel active" data-member-panel-content="me">
             <div class="member-panel-heading"><div><h3>Me</h3><p>Your profile, uploads, and collected artwork.</p></div><span class="member-demo-label">YOUR ACCOUNT</span></div>
@@ -145,8 +165,9 @@
               <span class="member-dashboard-avatar" id="memberDashboardAvatar"><span class="member-avatar-initial">{{ strtoupper(substr($account?->name ?? 'A', 0, 1)) }}</span><img id="memberDashboardAvatarImage" alt="" hidden></span>
               <div class="member-dashboard-identity"><small>YOUR PROFILE</small><strong id="memberDashboardProfileName">{{ $account?->name ?? 'Account' }}</strong><span id="memberDashboardUsername">{{ '@'.strtolower(str_replace(' ', '-', $account?->name ?? 'account')) }}</span></div>
               <div class="member-dashboard-profile-stats">
-                <div><small>Profile likes</small><strong id="memberDashboardLikes">0</strong></div>
-                <div><small>Items sold</small><strong id="memberDashboardSold">0</strong></div>
+                <div><small>Profile views</small><strong>{{ number_format($account?->profile_views_count ?? 0) }}</strong></div>
+                <div><small>Profile likes</small><strong>{{ number_format($account?->profile_likes_count ?? 0) }}</strong></div>
+                <div><small>Followers</small><strong>{{ number_format($account?->followers_count ?? 0) }}</strong></div>
               </div>
             </article>
             <div class="member-stat-grid">
@@ -296,6 +317,7 @@
               <label for="memberArtworkTitle">Artwork title<input id="memberArtworkTitle" name="title" type="text" maxlength="60" placeholder="e.g. Starlight Wanderer" required></label>
               <label for="memberArtworkDescription">Description<textarea id="memberArtworkDescription" name="description" rows="4" maxlength="500" placeholder="Tell collectors about your artwork." required></textarea></label>
               <div class="member-create-form-row"><label for="memberArtworkPrice">Price (ETH)<input id="memberArtworkPrice" name="price" type="number" min="0.01" max="100000" step="0.01" placeholder="0.25" required></label><label for="memberArtworkCategory">Category<select id="memberArtworkCategory" name="category"><option>Digital Art</option><option>Illustration</option><option>Photography</option><option>3D Art</option></select></label></div>
+              <label for="memberArtworkItemCount">Items in this edition<input id="memberArtworkItemCount" name="item_count" type="number" min="1" max="100000" step="1" value="1" required></label>
               <label class="member-policy-accept"><input id="memberArtworkOriginality" name="originality" type="checkbox" required> I created this work or have permission to list it, and it does not knowingly violate anyone else’s rights. I agree to the <a href="/user/terms">Terms &amp; Originality Policy</a>.</label>
               <button class="member-profile-save" type="submit"><i class="bi bi-plus-lg"></i> Create listing</button>
               <p class="member-profile-feedback" id="memberCreateFeedback" role="status" hidden></p>
@@ -321,6 +343,7 @@
                       <label>Category<input name="category" value="{{ $listing->category }}" maxlength="50" required></label>
                       <label>Price (ETH)<input name="price" type="number" min="0" max="99999999" step="0.01" value="{{ $listing->price }}" required></label>
                     </div>
+                    <label>Items in this edition<input name="item_count" type="number" min="1" max="100000" step="1" value="{{ $listing->item_count }}" required></label>
                     <label>Replace image (optional)<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
                     <button class="member-profile-save" type="submit">Update artwork</button>
                   </form>
@@ -345,7 +368,7 @@
           <div class="trending-feature-slides" aria-live="polite">
             @foreach ($homeArtworks->take(5) as $artwork)
               @php($marketEstimate = $artwork->marketEstimate())
-              <div class="trending-feature-slide {{ $loop->first ? 'active' : '' }}" data-artwork-id="{{ $artwork->id }}" data-title="{{ $artwork->title }}" data-creator="{{ $artwork->creator }}" data-floor="Ξ {{ number_format((float) $artwork->price, 2) }}" data-market-value="{{ number_format($marketEstimate['value'], 2, '.', '') }}" data-market-change="{{ number_format($marketEstimate['change_percent'], 1, '.', '') }}" data-items="1" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
+              <div class="trending-feature-slide {{ $loop->first ? 'active' : '' }}" data-artwork-id="{{ $artwork->id }}" data-title="{{ $artwork->title }}" data-creator="{{ $artwork->creator }}" data-floor="Ξ {{ number_format((float) $artwork->price, 2) }}" data-market-value="{{ number_format($marketEstimate['value'], 2, '.', '') }}" data-market-change="{{ number_format($marketEstimate['change_percent'], 1, '.', '') }}" data-items="{{ $artwork->item_count }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
                 <img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}">
               </div>
             @endforeach
@@ -385,11 +408,11 @@
         <button class="creator-arrow creator-arrow-prev" type="button" aria-label="Scroll creators left"><i class="bi bi-chevron-left"></i></button>
         <div class="creator-track" id="creatorTrack">
           @forelse ($topCreators as $creator)
-            <article class="creator-mini-card">
+            <a class="creator-mini-card" href="{{ route('creators.show', ['creator' => $creator->id]) }}">
               <img class="creator-mini-avatar" src="{{ asset($creator->avatar_path ?? 'assets/Pixmoree Neon Pixel Logo.png') }}" alt="{{ $creator->name }}">
-              <div class="creator-mini-copy"><h3>{{ $creator->name }}</h3><p>{{ $creator->artworks_count }} {{ \Illuminate\Support\Str::plural('artwork', $creator->artworks_count) }}</p></div>
-              <small class="creator-mini-sales"><i class="bi bi-gem"></i> {{ $homeContent['creators']['role_label'] }}</small>
-            </article>
+              <span class="creator-mini-copy"><strong>{{ $creator->name }}</strong><small>{{ $creator->artworks_count }} {{ \Illuminate\Support\Str::plural('artwork', $creator->artworks_count) }}</small></span>
+              <small class="creator-mini-sales"><i class="bi bi-person-plus"></i> {{ number_format($creator->followers_count) }} followers</small>
+            </a>
           @empty
             <p class="text-secondary">{{ $homeContent['creators']['empty_message'] }}</p>
           @endforelse
@@ -418,7 +441,16 @@
             </div>
             <div class="art-card-body">
               <div class="art-creator">By <span>{{ $artwork->creator }}</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div>
-              <div class="art-stats"><div class="art-price"><small>Asking price</small><strong>{{ number_format((float) $artwork->price, 2) }} ETH</strong><small class="art-market-estimate">Demo est. {{ number_format($marketEstimate['value'], 2) }} ETH <span>({{ $marketEstimate['change_percent'] >= 0 ? '+' : '' }}{{ number_format($marketEstimate['change_percent'], 1) }}%)</span></small></div><div class="art-items"><small>Artwork</small><strong>1</strong></div></div>
+              <div class="art-stats"><div class="art-price"><small>Asking price</small><strong>{{ number_format((float) $artwork->price, 2) }} ETH</strong><small class="art-market-estimate">Demo est. {{ number_format($marketEstimate['value'], 2) }} ETH <span>({{ $marketEstimate['change_percent'] >= 0 ? '+' : '' }}{{ number_format($marketEstimate['change_percent'], 1) }}%)</span></small></div><div class="art-items"><small>Items</small><strong>{{ number_format($artwork->item_count) }}</strong></div></div>
+              <div class="art-engagement" data-engagement-metrics="artwork" data-entity-id="{{ $artwork->id }}">
+                <span><i class="bi bi-eye" aria-hidden="true"></i> <span data-engagement-views>{{ number_format($artwork->views_count) }}</span></span>
+                @auth
+                  @php($artworkLiked = in_array($artwork->id, $likedArtworkIds, true))
+                  <button class="art-engagement-like" type="button" data-engagement-like="artwork" data-entity-id="{{ $artwork->id }}" data-liked="{{ $artworkLiked ? 'true' : 'false' }}" aria-pressed="{{ $artworkLiked ? 'true' : 'false' }}"><i class="bi {{ $artworkLiked ? 'bi-heart-fill' : 'bi-heart' }}" aria-hidden="true"></i> <span data-engagement-likes>{{ number_format($artwork->likes_count) }}</span></button>
+                @else
+                  <a class="art-engagement-like" href="{{ route('login') }}"><i class="bi bi-heart" aria-hidden="true"></i> <span data-engagement-likes>{{ number_format($artwork->likes_count) }}</span></a>
+                @endauth
+              </div>
             </div>
           </article>
         </div>
@@ -439,6 +471,14 @@
       <p class="nft-preview-eyebrow"><i class="bi bi-stars" aria-hidden="true"></i> Digital collectible</p>
       <h2 id="nftPreviewTitle"></h2>
       <p class="nft-preview-creator" id="nftPreviewCreator"></p>
+      <div class="nft-preview-engagement" id="nftPreviewEngagement" data-engagement-metrics="artwork" data-entity-id="">
+        <span><i class="bi bi-eye" aria-hidden="true"></i> <span data-engagement-views>0</span> views</span>
+        @auth
+          <button type="button" data-engagement-like="artwork" data-entity-id="" data-liked="false" aria-pressed="false"><i class="bi bi-heart" aria-hidden="true"></i> <span data-engagement-label>Like</span> <span data-engagement-likes>0</span></button>
+        @else
+          <a href="{{ route('login') }}"><i class="bi bi-heart" aria-hidden="true"></i> Log in to like <span data-engagement-likes>0</span></a>
+        @endauth
+      </div>
       <dl class="nft-preview-stats">
         <div id="nftPreviewRankRow" hidden><dt>Trending rank</dt><dd id="nftPreviewRank"></dd></div>
         <div id="nftPreviewPriceRow" hidden><dt>Floor price</dt><dd id="nftPreviewPrice"></dd></div>
@@ -455,5 +495,6 @@
 <script>window.pixmoreeAccount = <?= json_encode($account?->only(['name', 'email', 'phone', 'bio', 'pixel_coin_balance']) ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ asset('js/site.js') }}?v=20261030-me"></script>
+<script src="{{ asset('js/engagement.js') }}?v=20261104-engagement"></script>
 </body>
 </html>

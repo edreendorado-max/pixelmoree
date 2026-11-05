@@ -1,6 +1,6 @@
 # Pixmoree
 
-Pixmoree is a Laravel 12 application for the guest-facing marketplace prototype and its Week 12 artwork screens. User registration, login, profile details, uploaded images, and artwork listings are stored in MySQL. Payments and third-party social sign-in are not implemented.
+Pixmoree is a Laravel 12 application for the guest-facing marketplace prototype and its Week 12 artwork screens. User registration, login, profile details, uploaded images, and artwork listings are stored in MySQL. Google and Facebook sign-in are supported when provider credentials are configured. Payments are not implemented.
 
 ## Requirements
 
@@ -24,6 +24,19 @@ php artisan serve
 ```
 
 Before running migrations, update `.env` with the MySQL connection values below. Adding XAMPP's PHP directory to the front of `PATH` ensures `php artisan serve` launches the same PHP runtime as the Artisan commands. Open <http://127.0.0.1:8000/> for the guest homepage. Registration is at `/register`; profile and image management is at `/user/profile-settings`. The public marketplace is at `/week12`; admin routes at `/admin`, `/week12/admin`, and `/week12/admin/artworks` require an admin account.
+
+## Password reset and social sign-in
+
+Password reset is available from the login page. Local development defaults to `MAIL_MAILER=log`, so reset messages are written to `storage/logs/laravel.log`; configure SMTP mail settings in `.env` to deliver email. Reset tokens expire after 60 minutes.
+
+To enable Google and Facebook OAuth, create OAuth apps with each provider and set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `FACEBOOK_CLIENT_ID`, and `FACEBOOK_CLIENT_SECRET` in `.env`. Register these callback URLs with the providers:
+
+```text
+http://127.0.0.1:8000/auth/google/callback
+http://127.0.0.1:8000/auth/facebook/callback
+```
+
+The callback base uses `APP_URL`; update it for another host or production domain. Keep provider secrets out of Git. Social sign-in creates regular user accounts and does not automatically link to an existing password account with the same email.
 
 ## MySQL Workbench connection
 

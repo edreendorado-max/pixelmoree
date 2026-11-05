@@ -348,9 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const favorites = readSavedFavorites();
     let collection = readStoredList(collectionStorageKey, 'collection');
     let history = readStoredList(historyStorageKey, 'purchase history');
-    const recent = readStoredList(recentStorageKey, 'recently viewed artwork');
     const createdArt = readStoredList(createdArtStorageKey, 'created artwork');
-    const soldArtCount = createdArt.filter(item => item.sold === true || Number(item.soldCount) > 0 || /^sold\b/i.test(item.status || '')).length;
     document.getElementById('memberWelcomeFavorites').textContent = String(favorites.length);
     document.getElementById('memberFavoritePanelCount').textContent = String(favorites.length);
     document.getElementById('memberOwnedCount').textContent = String(collection.length);
@@ -359,8 +357,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('memberHomeOwnedCount').textContent = String(collection.length);
     document.getElementById('memberHomePurchaseCount').textContent = String(history.length);
     document.getElementById('memberHomeFavoriteCount').textContent = String(favorites.length);
-    document.getElementById('memberDashboardLikes').textContent = String(favorites.length);
-    document.getElementById('memberDashboardSold').textContent = String(soldArtCount);
 
     const collectionItems = document.getElementById('memberCollectionItems');
     collectionItems.replaceChildren(...(collection.length
@@ -374,11 +370,6 @@ document.addEventListener('DOMContentLoaded', () => {
     collectionUploads.replaceChildren(...(createdArt.length
       ? createdArt.map(item => makeArtworkTile(item, 'created'))
       : [Object.assign(document.createElement('p'), { className: 'member-empty-state', textContent: 'You have not uploaded any artwork yet. Start creating to add your first upload.' })]));
-    const recentItems = document.getElementById('memberRecentItems');
-    const recentTiles = recent.length
-      ? recent.slice(0, 4).map(item => makeArtworkTile(item, 'recent'))
-      : [Object.assign(document.createElement('p'), { className: 'member-empty-state', textContent: 'Artwork you view will show up here.' })];
-    recentItems.replaceChildren(...recentTiles);
     const historyItems = document.getElementById('memberHistoryItems');
     if (!history.length) {
       const emptyRow = document.createElement('tr');
@@ -1266,6 +1257,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (collectButton) collectButton.hidden = !isMemberPage;
     const collectFeedback = document.getElementById('nftPreviewCollectFeedback');
     collectFeedback.hidden = true;
+    const engagementPanel = document.getElementById('nftPreviewEngagement');
+    if (engagementPanel && typeof artwork.id === 'string') {
+      engagementPanel.dataset.entityId = artwork.id;
+      const likeButton = engagementPanel.querySelector('[data-engagement-like]');
+      if (likeButton) likeButton.dataset.entityId = artwork.id;
+      window.dispatchEvent(new CustomEvent('pixmoree:artwork-view', { detail: { id: artwork.id } }));
+    }
 
     if (isMemberPage) {
       const recent = readStoredList(recentStorageKey, 'recently viewed artwork')
@@ -1329,6 +1327,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     layout.hidden = false;
+    const engagementPanel = document.getElementById('nftDetailEngagement');
+    const engagementLike = document.getElementById('nftDetailLike');
+    if (typeof artwork.id === 'string') {
+      engagementPanel.dataset.entityId = artwork.id;
+      if (engagementLike) engagementLike.dataset.entityId = artwork.id;
+      window.dispatchEvent(new CustomEvent('pixmoree:artwork-view', { detail: { id: artwork.id } }));
+    } else {
+      engagementPanel.hidden = true;
+    }
     document.getElementById('nftDetailImage').src = artwork.image;
     document.getElementById('nftDetailImage').alt = artwork.alt || artwork.title;
     document.getElementById('nftDetailTitle').textContent = artwork.title;
@@ -1424,7 +1431,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.addEventListener('click', event => {
-    if (!(event.target instanceof Element) || event.target.closest('.heart-button, .trending-feature-arrow, .trending-nft-pagination, [data-artwork-purchase]')) return;
+    if (!(event.target instanceof Element) || event.target.closest('.heart-button, .art-engagement-like, .trending-feature-arrow, .trending-nft-pagination, [data-artwork-purchase], [data-engagement-like], [data-engagement-follow]')) return;
     const feature = event.target.closest('.trending-feature');
     const source = event.target.closest('.art-column, .trending-nft-item, .trending-feature-slide.active') ||
       feature?.querySelector('.trending-feature-slide.active');

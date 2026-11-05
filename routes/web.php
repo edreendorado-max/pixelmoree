@@ -3,11 +3,16 @@
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use App\Support\SitePageContent;
+use App\Models\Artwork;
 
 require_once base_path('app/Week12Helpers.php');
 require_once base_path('app/ArtworkRepository.php');
 
 $authController = \App\Http\Controllers\AuthController::class;
+$passwordResetController = \App\Http\Controllers\PasswordResetController::class;
+$socialAuthController = \App\Http\Controllers\SocialAuthController::class;
+$creatorController = \App\Http\Controllers\CreatorController::class;
+$engagementController = \App\Http\Controllers\EngagementController::class;
 $artworkController = \App\Http\Controllers\ArtworkController::class;
 $earningsController = \App\Http\Controllers\UserEarningsController::class;
 $profileController = \App\Http\Controllers\UserProfileController::class;
@@ -23,9 +28,38 @@ Route::post('/login', [$authController, 'login'])->name('login.store');
 Route::get('/register', [$authController, 'create'])->name('register');
 Route::post('/register', [$authController, 'store'])->name('register.store');
 Route::get('/create-account', [$authController, 'create'])->name('create-account');
+Route::get('/forgot-password', [$passwordResetController, 'createLink'])->name('password.request');
+Route::post('/forgot-password', [$passwordResetController, 'sendLink'])->middleware('throttle:5,1')->name('password.email');
+Route::get('/reset-password/{token}', [$passwordResetController, 'createForm'])->name('password.reset');
+Route::post('/reset-password', [$passwordResetController, 'reset'])->middleware('throttle:5,1')->name('password.update');
+Route::middleware(['guest', 'throttle:10,1'])->group(function () use ($socialAuthController): void {
+    Route::get('/auth/{provider}/redirect', [$socialAuthController, 'redirect'])
+        ->whereIn('provider', ['google', 'facebook'])
+        ->name('social.redirect');
+    Route::get('/auth/{provider}/callback', [$socialAuthController, 'callback'])
+        ->whereIn('provider', ['google', 'facebook'])
+        ->name('social.callback');
+});
 Route::post('/logout', [$authController, 'logout'])->middleware('auth')->name('logout');
 
-Route::middleware('auth')->group(function () use ($profileController, $artworkController, $pixelCoinController, $earningsController): void {
+Route::get('/creators/{creator}', [$creatorController, 'show'])
+    ->whereNumber('creator')
+    ->name('creators.show');
+
+Route::middleware('throttle:120,1')->group(function () use ($engagementController): void {
+    Route::get('/api/artworks/{artwork}/engagement', [$engagementController, 'showArtwork'])
+        ->name('api.artworks.engagement');
+    Route::post('/api/artworks/{artwork}/views', [$engagementController, 'viewArtwork'])
+        ->name('api.artworks.views');
+    Route::get('/api/creators/{creator}/engagement', [$engagementController, 'showCreator'])
+        ->whereNumber('creator')
+        ->name('api.creators.engagement');
+    Route::post('/api/creators/{creator}/views', [$engagementController, 'viewCreator'])
+        ->whereNumber('creator')
+        ->name('api.creators.views');
+});
+
+Route::middleware('auth')->group(function () use ($profileController, $artworkController, $pixelCoinController, $earningsController, $engagementController): void {
     Route::view('/user', 'home')->name('user');
     Route::view('/user/me', 'home')->name('user.me');
     Route::view('/user/dashboard', 'home')->name('user.dashboard');
@@ -41,7 +75,7 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
     Route::redirect('/user/settings', '/user/profile-settings')->name('user.settings');
     Route::redirect('/user/profile', '/user/profile-settings')->name('user.profile');
     Route::view('/user/payment', 'home')->name('user.payment');
-    Route::view('/user/pixel-coin', 'home')->name('user.pixel-coin');
+    Route::view('/user/pixel-coin', 'user.pixel-coin')->name('user.pixel-coin');
     Route::view('/user/terms', 'home')->name('user.terms');
     Route::view('/user/nft/{id}', 'home')->where('id', '[A-Za-z0-9][A-Za-z0-9-]*')->name('user.nft.show');
     Route::get('/user/profile-settings', [$profileController, 'edit'])->name('user.profile-settings');
@@ -65,6 +99,15 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
         Route::get('/', [$pixelCoinController, 'show'])->name('api.pixel-coins.show');
         Route::post('/top-ups', [$pixelCoinController, 'topUp'])->name('api.pixel-coins.top-ups');
         Route::post('/purchases', [$pixelCoinController, 'purchase'])->name('api.pixel-coins.purchases');
+    });
+
+    Route::prefix('/api')->middleware('throttle:30,1')->group(function () use ($engagementController): void {
+        Route::put('/artworks/{artwork}/like', [$engagementController, 'likeArtwork'])->name('api.artworks.like');
+        Route::delete('/artworks/{artwork}/like', [$engagementController, 'unlikeArtwork'])->name('api.artworks.unlike');
+        Route::put('/creators/{creator}/like', [$engagementController, 'likeCreator'])->whereNumber('creator')->name('api.creators.like');
+        Route::delete('/creators/{creator}/like', [$engagementController, 'unlikeCreator'])->whereNumber('creator')->name('api.creators.unlike');
+        Route::put('/creators/{creator}/follow', [$engagementController, 'followCreator'])->whereNumber('creator')->name('api.creators.follow');
+        Route::delete('/creators/{creator}/follow', [$engagementController, 'unfollowCreator'])->whereNumber('creator')->name('api.creators.unfollow');
     });
 });
 
@@ -136,9 +179,20 @@ Route::get('/week12', function () use ($week12ArtworkStore) {
     ]);
 })->name('week12.client');
 
-Route::get('/week12/artworks/{id}', function (string $id) use ($week12ArtworkStore) {
+Route::get('/week12/artworks/{id}', function (string $id) use ($week12ArtworkStore, $engagementController) {
     $artwork = $week12ArtworkStore()->find($id);
     abort_if($artwork === null, 404);
+
+    $model = Artwork::query()->findOrFail($id);
+    if ($artwork['status'] === 'Listed') {
+        app($engagementController)->viewArtwork(request(), $model);
+    }
+    $artwork['views_count'] = DB::table('artwork_views')->where('artwork_id', $id)->count();
+    $artwork['likes_count'] = DB::table('artwork_likes')->where('artwork_id', $id)->count();
+    $artwork['liked'] = auth()->check() && DB::table('artwork_likes')
+        ->where('user_id', auth()->id())
+        ->where('artwork_id', $id)
+        ->exists();
 
     return view('week12.client.show', ['artwork' => $artwork]);
 })->where('id', '[a-z0-9-]+')->name('week12.client.artwork');

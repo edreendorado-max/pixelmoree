@@ -19,6 +19,7 @@ class ArtworkController extends Controller
             'description' => ['required', 'string', 'max:500'],
             'category' => ['required', 'string', 'max:50'],
             'price' => ['required', 'numeric', 'min:0', 'max:99999999', 'decimal:0,2'],
+            'item_count' => ['sometimes', 'integer', 'min:1', 'max:100000'],
             'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'originality' => ['accepted'],
         ]);
@@ -37,6 +38,7 @@ class ArtworkController extends Controller
             'description' => ['required', 'string', 'max:500'],
             'category' => ['required', 'string', 'max:50'],
             'price' => ['required', 'numeric', 'min:0', 'max:99999999', 'decimal:0,2'],
+            'item_count' => ['sometimes', 'integer', 'min:1', 'max:100000'],
             'user_id' => ['required', 'integer', 'exists:users,id'],
             'image_upload' => ['required', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:20480'],
         ]);
@@ -56,6 +58,7 @@ class ArtworkController extends Controller
             'description' => ['required', 'string', 'max:500'],
             'category' => ['required', 'string', 'max:50'],
             'price' => ['required', 'numeric', 'min:0', 'max:99999999', 'decimal:0,2'],
+            'item_count' => ['sometimes', 'integer', 'min:1', 'max:100000'],
             'image' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
@@ -84,6 +87,7 @@ class ArtworkController extends Controller
             'description' => $validated['description'],
             'category' => $validated['category'],
             'price' => $validated['price'],
+            'item_count' => $validated['item_count'] ?? $artwork->item_count,
         ]);
 
         try {
@@ -158,6 +162,7 @@ class ArtworkController extends Controller
                 'creator' => $owner->name,
                 'category' => $validated['category'],
                 'price' => $validated['price'],
+                'item_count' => $validated['item_count'] ?? 1,
                 'image' => 'storage/' . $storedPath,
                 'image_hash' => $imageHash,
                 'description' => $validated['description'],

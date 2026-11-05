@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ asset('css/site.css') }}" rel="stylesheet">
 </head>
-<body class="auth-page profile-settings-page">
+<body class="profile-settings-page">
 <header class="profile-settings-topbar">
     <div class="profile-settings-topbar-inner">
         <a class="profile-settings-brand" href="/" aria-label="Pixmoree home">
@@ -16,7 +16,7 @@
         </a>
         <nav class="profile-settings-nav" aria-label="Account navigation">
             <a href="/week12"><i class="bi bi-compass" aria-hidden="true"></i> Explore</a>
-            <a href="/user"><i class="bi bi-grid" aria-hidden="true"></i> Account</a>
+            <a class="profile-settings-back-link" href="/user"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to account</a>
             <form method="post" action="{{ route('logout') }}">
                 @csrf
                 <button class="profile-settings-logout" type="submit"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Log out</button>
