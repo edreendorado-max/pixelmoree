@@ -31,6 +31,7 @@
     </div>
 
     <div class="auth-divider"><span>{{ $authContent['divider_label'] }}</span></div>
+    <p class="auth-intro">We email a one-time verification code before your account can sign in. Use an inbox you can access.</p>
     @if ($errors->any())
       <div class="auth-feedback" role="alert">{{ $errors->first() }}</div>
     @endif
@@ -41,9 +42,10 @@
       <label for="register-email">{{ $authContent['email_label'] }}</label>
       <input id="register-email" name="email" type="email" placeholder="{{ $authContent['email_placeholder'] }}" autocomplete="email" value="{{ old('email') }}" required>
       <label for="register-password">{{ $authContent['password_label'] }}</label>
-      <input id="register-password" name="password" type="password" placeholder="{{ $authContent['password_placeholder'] }}" autocomplete="new-password" minlength="8" required>
+      <input id="register-password" name="password" type="password" placeholder="{{ $authContent['password_placeholder'] }}" autocomplete="new-password" minlength="6" pattern="(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{6,}" title="At least 6 characters, with an uppercase letter, a number, and a special character." required>
       <label for="register-password-confirm">{{ $authContent['confirm_label'] }}</label>
-      <input id="register-password-confirm" name="password_confirmation" type="password" placeholder="{{ $authContent['confirm_placeholder'] }}" autocomplete="new-password" minlength="8" required>
+      <input id="register-password-confirm" name="password_confirmation" type="password" placeholder="{{ $authContent['confirm_placeholder'] }}" autocomplete="new-password" minlength="6" required>
+      <small>Password must be at least 6 characters and include an uppercase letter, a number, and a special character.</small>
       <label class="auth-check"><input type="checkbox" name="terms" required><span>{{ $authContent['terms_intro'] }} <a href="#terms">{{ $authContent['terms_label'] }}</a> {{ $authContent['privacy_connector'] }} <a href="#privacy">{{ $authContent['privacy_label'] }}</a>.</span></label>
       <button class="auth-submit" type="submit">{{ $authContent['submit_label'] }} <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
       <p class="auth-feedback" role="status" aria-live="polite" hidden></p>

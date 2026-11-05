@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Image;
+use App\Support\EmailVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -20,7 +22,7 @@ class UserProfileController extends Controller
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request, EmailVerification $emailVerification): RedirectResponse
     {
         $user = $request->user();
         $validated = $request->validate([
@@ -87,6 +89,17 @@ class UserProfileController extends Controller
             }
         }
 
+        if ($user->wasChanged('email')) {
+            $request->session()->put('email_verification_user_id', $user->id);
+            Auth::logout();
+            $request->session()->regenerate();
+            $sent = $emailVerification->sendCode($user, false);
+
+            return redirect()->route('verification.notice')->with('status', $sent
+                ? 'A verification code was sent to your new email address.'
+                : 'A verification code could not be sent. Please request a new one.');
+        }
+
         return redirect()
             ->route('user.profile-settings')
             ->with('status', 'Your profile has been updated.');
@@ -96,7 +109,7 @@ class UserProfileController extends Controller
     {
         $validated = $request->validate([
             'current_password' => ['required', 'current_password'],
-            'new_password' => ['required', 'string', 'min:8', 'max:128', 'confirmed', 'different:current_password'],
+            'new_password' => ['required', 'string', 'min:6', 'max:128', 'confirmed', 'different:current_password', 'regex:/[A-Z]/', 'regex:/[0-9]/', 'regex:/[^A-Za-z0-9]/'],
         ]);
 
         $request->user()->forceFill([

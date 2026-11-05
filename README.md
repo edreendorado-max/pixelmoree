@@ -25,18 +25,20 @@ php artisan serve
 
 Before running migrations, update `.env` with the MySQL connection values below. Adding XAMPP's PHP directory to the front of `PATH` ensures `php artisan serve` launches the same PHP runtime as the Artisan commands. Open <http://127.0.0.1:8000/> for the guest homepage. Registration is at `/register`; profile and image management is at `/user/profile-settings`. The public marketplace is at `/week12`; admin routes at `/admin`, `/week12/admin`, and `/week12/admin/artworks` require an admin account.
 
-## Password reset and social sign-in
+## Email verification, password reset, and social sign-in
 
-Password reset is available from the login page. Local development defaults to `MAIL_MAILER=log`, so reset messages are written to `storage/logs/laravel.log`; configure SMTP mail settings in `.env` to deliver email. Reset tokens expire after 60 minutes.
+Email/password registration sends a six-digit verification code to the supplied email address. New accounts cannot sign in until the code is confirmed. Codes expire after 10 minutes, are stored as hashes, allow at most five guesses, and can be resent after a 60-second cooldown. Login attempts for existing unverified accounts also send or re-send the code. Code delivery is handled through Laravel's configured SMTP mailer; local `log` and `array` mailers are rejected for verification because they do not deliver to the mailbox. Configure `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SCHEME`, and `MAIL_FROM_ADDRESS` in `.env` with a real SMTP mailbox before enabling account registration. A successful code check verifies that the user can receive messages at that address; it does not certify the person's legal identity.
 
-To enable Google and Facebook OAuth, create OAuth apps with each provider and set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `FACEBOOK_CLIENT_ID`, and `FACEBOOK_CLIENT_SECRET` in `.env`. Register these callback URLs with the providers:
+Password reset is available from the login page and reset links expire after 60 minutes. New passwords, including reset and profile password changes, must be at least six characters and include an uppercase letter, a number, and a special character.
+
+Google and Facebook OAuth sign-in do not charge an API usage fee for basic sign-in, but require developer app credentials and provider setup. Social sign-ups also require the Pixmoree email verification code before login. To enable them, create OAuth apps with each provider and set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `FACEBOOK_CLIENT_ID`, and `FACEBOOK_CLIENT_SECRET` in `.env`. Register these callback URLs with the providers:
 
 ```text
 http://127.0.0.1:8000/auth/google/callback
 http://127.0.0.1:8000/auth/facebook/callback
 ```
 
-The callback base uses `APP_URL`; update it for another host or production domain. Keep provider secrets out of Git. Social sign-in creates regular user accounts and does not automatically link to an existing password account with the same email.
+The callback base uses `APP_URL`; update it for another host or production domain. Keep provider secrets out of Git. Social sign-in does not automatically link to an existing password account with the same email. If you do not want OAuth or cannot configure the provider credentials, remove the social links from the login and registration pages; email/password verification does not depend on OAuth.
 
 ## MySQL Workbench connection
 
@@ -56,7 +58,7 @@ DB_PASSWORD=
 
 The same values are provided in `.env.example`. After configuring Laravel, run `php artisan migrate --seed` to create an empty marketplace schema. The default seeder does not create demo users or artwork; the supplied images remain available as files in `public/assets/nfts` for creators to use when they choose.
 
-The `users` table stores account and editable profile fields. Users can update their display name, email, phone, bio, and profile photo in `/user/profile-settings`, and change their password after confirming the current password. New passwords must be at least 8 characters; users may choose an easy-to-remember password. The `images` table stores each signed-in user's uploaded image path, MIME type, size, and description; deleting a user cascades to their image records. Uploaded files are stored on Laravel's public disk. Run `php artisan storage:link` once so their thumbnails can be displayed.
+The `users` table stores account and editable profile fields. Users can update their display name, email, phone, bio, and profile photo in `/user/profile-settings`, and change their password after confirming the current password. Changing the email address requires verifying the new mailbox. The `email_verification_codes` table stores only a hash of the time-limited code and is deleted after successful verification. The `images` table stores each signed-in user's uploaded image path, MIME type, size, and description; deleting a user cascades to their image records. Uploaded files are stored on Laravel's public disk. Run `php artisan storage:link` once so their thumbnails can be displayed.
 
 ### Share a safe local database snapshot with collaborators
 

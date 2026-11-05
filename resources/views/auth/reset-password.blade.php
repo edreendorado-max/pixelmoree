@@ -15,7 +15,7 @@
     </a>
     <p class="auth-eyebrow">ACCOUNT RECOVERY</p>
     <h1 id="auth-title">Choose a new password</h1>
-    <p class="auth-intro">Use at least 8 characters for your new password.</p>
+    <p class="auth-intro">Use at least 6 characters, including an uppercase letter, a number, and a special character.</p>
 
     @if ($errors->any())
       <div class="auth-feedback" role="alert">{{ $errors->first() }}</div>
@@ -27,9 +27,9 @@
       <label for="reset-email">Email</label>
       <input id="reset-email" name="email" type="email" autocomplete="email" value="{{ old('email', $email) }}" required>
       <label for="reset-password">New password</label>
-      <input id="reset-password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+      <input id="reset-password" name="password" type="password" autocomplete="new-password" minlength="6" pattern="(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{6,}" required>
       <label for="reset-password-confirmation">Confirm new password</label>
-      <input id="reset-password-confirmation" name="password_confirmation" type="password" autocomplete="new-password" minlength="8" required>
+      <input id="reset-password-confirmation" name="password_confirmation" type="password" autocomplete="new-password" minlength="6" required>
       <button class="auth-submit" type="submit">Update password</button>
     </form>
     <a class="auth-back" href="{{ route('login') }}">Back to log in</a>

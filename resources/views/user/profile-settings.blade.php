@@ -130,13 +130,13 @@
                     </div>
                     <div class="profile-settings-field">
                         <label for="new-password">New password</label>
-                        <input id="new-password" name="new_password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required>
+                        <input id="new-password" name="new_password" type="password" minlength="6" maxlength="128" pattern="(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{6,}" title="At least 6 characters, with an uppercase letter, a number, and a special character." autocomplete="new-password" required>
                     </div>
                     <div class="profile-settings-field">
                         <label for="new-password-confirmation">Confirm new password</label>
-                        <input id="new-password-confirmation" name="new_password_confirmation" type="password" minlength="8" maxlength="128" autocomplete="new-password" required>
+                        <input id="new-password-confirmation" name="new_password_confirmation" type="password" minlength="6" maxlength="128" autocomplete="new-password" required>
                     </div>
-                    <small class="profile-settings-help">Use at least 8 characters.</small>
+                    <small class="profile-settings-help">Use at least 6 characters, including an uppercase letter, a number, and a special character.</small>
                     <button class="profile-settings-secondary-button" type="submit">Update password</button>
                 </form>
             </section>

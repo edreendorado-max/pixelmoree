@@ -430,3 +430,16 @@ CREATE TABLE IF NOT EXISTS `ownership_transfers` (
     CONSTRAINT `ownership_transfers_to_user_id_foreign` FOREIGN KEY (`to_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
     CONSTRAINT `ownership_transfers_purchase_id_foreign` FOREIGN KEY (`purchase_id`) REFERENCES `payment_orders` (`purchase_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `email_verification_codes` (
+    `user_id` BIGINT UNSIGNED NOT NULL,
+    `code_hash` CHAR(64) NOT NULL,
+    `expires_at` TIMESTAMP NOT NULL,
+    `last_sent_at` TIMESTAMP NOT NULL,
+    `attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (`user_id`),
+    CONSTRAINT `email_verification_codes_user_id_foreign`
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

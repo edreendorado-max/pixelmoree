@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\EmailVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,7 +29,7 @@ class SocialAuthController extends Controller
         return Socialite::driver($provider)->redirect();
     }
 
-    public function callback(Request $request, string $provider): RedirectResponse
+    public function callback(Request $request, string $provider, EmailVerification $emailVerification): RedirectResponse
     {
         abort_unless(in_array($provider, self::PROVIDERS, true), 404);
 
@@ -73,7 +74,15 @@ class SocialAuthController extends Controller
                 'password' => Str::random(64),
                 $providerColumn => $providerId,
             ]);
-            $user->forceFill(['role' => 'user'])->save();
+        }
+
+        if (! $user->hasVerifiedEmail()) {
+            $request->session()->put('email_verification_user_id', $user->id);
+            $sent = $emailVerification->sendCode($user);
+
+            return redirect()->route('verification.notice')->with('status', $sent
+                ? 'A verification code was sent to your email address.'
+                : 'A code was sent recently. Check your inbox before requesting another.');
         }
 
         Auth::login($user);
