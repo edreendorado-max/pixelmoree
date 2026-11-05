@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Artwork;
 use App\Models\User;
+use App\Support\ArtworkPriceDashboard;
 use App\Support\ArtworkMarketValue;
 use Carbon\CarbonImmutable;
 use Database\Seeders\ArtworkFixtureSeeder;
@@ -43,7 +45,7 @@ class PixmoreePagesTest extends TestCase
         }
     }
 
-    public function test_member_home_recommends_live_listed_artwork_in_for_you_section(): void
+    public function test_member_home_recommends_listed_artwork_and_shows_empty_daily_movers_without_history(): void
     {
         $user = User::create([
             'name' => 'For You Creator',
@@ -69,7 +71,179 @@ class PixmoreePagesTest extends TestCase
             ->assertOk()
             ->assertSee('For You')
             ->assertSee('For You Artwork')
-            ->assertSee('/week12/artworks/for-you-artwork');
+            ->assertSee('based on your likes, purchases, and artwork views')
+            ->assertSee('Daily NFT price dashboard')
+            ->assertSee('Top 10 price increases')
+            ->assertSee('Top 10 price decreases')
+            ->assertSee('Daily price history is being collected')
+            ->assertDontSee('<a class="member-price-mover-row"', false);
+    }
+
+    public function test_for_you_recommendations_refresh_from_the_users_latest_interests(): void
+    {
+        $user = User::create([
+            'name' => 'Interested User',
+            'email' => 'interested-user@example.test',
+            'password' => 'secret-password',
+        ]);
+        $creator = User::create([
+            'name' => 'Recommendation Creator',
+            'email' => 'recommendation-creator@example.test',
+            'password' => 'secret-password',
+        ]);
+
+        foreach ([
+            ['id' => 'photo-interest', 'title' => 'Photo Interest', 'category' => 'Photography'],
+            ['id' => 'photo-pick', 'title' => 'Photography Pick', 'category' => 'Photography'],
+            ['id' => 'sculpture-interest', 'title' => 'Sculpture Interest', 'category' => '3D Art'],
+            ['id' => 'sculpture-pick', 'title' => 'Sculpture Pick', 'category' => '3D Art'],
+        ] as $item) {
+            DB::table('artworks')->insert([
+                'id' => $item['id'],
+                'user_id' => $creator->id,
+                'title' => $item['title'],
+                'creator' => $creator->name,
+                'category' => $item['category'],
+                'price' => 1.00,
+                'item_count' => 10,
+                'image' => $item['id'] . '.png',
+                'description' => 'A recommendation listing.',
+                'status' => 'Listed',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        DB::table('artwork_likes')->insert([
+            'user_id' => $user->id,
+            'artwork_id' => 'photo-interest',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $firstResponse = $this->actingAs($user)->get('/user')->assertOk();
+        $firstFeed = substr($firstResponse->getContent(), strpos($firstResponse->getContent(), 'id="memberForYouItems"'));
+        $this->assertLessThan(strpos($firstFeed, 'Sculpture Pick'), strpos($firstFeed, 'Photography Pick'));
+
+        DB::table('artwork_likes')->where('user_id', $user->id)->delete();
+        DB::table('artwork_likes')->insert([
+            'user_id' => $user->id,
+            'artwork_id' => 'sculpture-interest',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $secondResponse = $this->get('/user')->assertOk();
+        $secondFeed = substr($secondResponse->getContent(), strpos($secondResponse->getContent(), 'id="memberForYouItems"'));
+        $this->assertLessThan(strpos($secondFeed, 'Photography Pick'), strpos($secondFeed, 'Sculpture Pick'));
+    }
+
+    public function test_member_home_shows_daily_price_gainers_and_decliners(): void
+    {
+        $user = User::create([
+            'name' => 'Market Creator',
+            'email' => 'market-creator@example.test',
+            'password' => 'secret-password',
+        ]);
+        $yesterday = today()->subDay()->toDateString();
+
+        foreach ([
+            ['id' => 'daily-price-gainer', 'title' => 'Daily Price Gainer', 'price' => 2.00, 'previous' => 1.00],
+            ['id' => 'daily-price-decliner', 'title' => 'Daily Price Decliner', 'price' => 0.50, 'previous' => 1.00],
+        ] as $item) {
+            DB::table('artworks')->insert([
+                'id' => $item['id'],
+                'user_id' => $user->id,
+                'title' => $item['title'],
+                'creator' => $user->name,
+                'category' => 'Digital Art',
+                'price' => $item['price'],
+                'item_count' => 10,
+                'image' => $item['id'] . '.png',
+                'description' => 'A daily market listing.',
+                'status' => 'Listed',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            DB::table('artwork_price_snapshots')->insert([
+                'artwork_id' => $item['id'],
+                'snapshot_date' => $yesterday,
+                'price' => $item['previous'],
+                'created_at' => now()->subDay(),
+                'updated_at' => now()->subDay(),
+            ]);
+        }
+
+        $this->actingAs($user)
+            ->get('/user')
+            ->assertOk()
+            ->assertSee('For You')
+            ->assertSee('Top 10 price increases')
+            ->assertSee('Top 10 price decreases')
+            ->assertSee('Daily Price Gainer')
+            ->assertSee('Daily Price Decliner')
+            ->assertSee('+100.00%')
+            ->assertSee('-50.00%');
+    }
+
+    public function test_daily_price_movers_are_limited_to_the_top_ten_in_each_direction(): void
+    {
+        $user = User::create([
+            'name' => 'Top Movers Creator',
+            'email' => 'top-movers@example.test',
+            'password' => 'secret-password',
+        ]);
+        $yesterday = today()->subDay()->toDateString();
+        $artworkIds = [];
+
+        for ($rank = 1; $rank <= 11; $rank++) {
+            foreach ([
+                ['direction' => 'gainer', 'price' => 1 + $rank],
+                ['direction' => 'decliner', 'price' => 1 - $rank / 100],
+            ] as $movement) {
+                $id = $movement['direction'] . '-' . str_pad((string) $rank, 2, '0', STR_PAD_LEFT);
+                $artworkIds[] = $id;
+                DB::table('artworks')->insert([
+                    'id' => $id,
+                    'user_id' => $user->id,
+                    'title' => $id,
+                    'creator' => $user->name,
+                    'category' => 'Digital Art',
+                    'price' => $movement['price'],
+                    'item_count' => 10,
+                    'image' => $id . '.png',
+                    'description' => 'A daily market listing.',
+                    'status' => 'Listed',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                DB::table('artwork_price_snapshots')->insert([
+                    'artwork_id' => $id,
+                    'snapshot_date' => $yesterday,
+                    'price' => 1,
+                    'created_at' => now()->subDay(),
+                    'updated_at' => now()->subDay(),
+                ]);
+            }
+        }
+
+        $artworks = Artwork::query()->whereIn('id', $artworkIds)->get();
+        foreach ($artworks as $artwork) {
+            $artwork->setAttribute('creator_sold_count', 0);
+            $artwork->setAttribute('likes_count', 0);
+            $artwork->setAttribute('views_count', 0);
+            $artwork->setAttribute('recent_market_sales_count', 0);
+            $artwork->setAttribute('last_market_sale_at', null);
+        }
+
+        $movers = (new ArtworkPriceDashboard())->dailyMovers($artworks);
+
+        $this->assertCount(10, $movers['gainers']);
+        $this->assertCount(10, $movers['decliners']);
+        $this->assertSame('gainer-11', $movers['gainers']->first()->id);
+        $this->assertSame('decliner-11', $movers['decliners']->first()->id);
+        $this->assertFalse($movers['gainers']->contains('id', 'gainer-01'));
+        $this->assertFalse($movers['decliners']->contains('id', 'decliner-01'));
     }
 
     public function test_default_seeding_does_not_create_demo_accounts_or_artwork(): void
@@ -111,7 +285,7 @@ class PixmoreePagesTest extends TestCase
         $this->get('/user/pixel-coin')
             ->assertOk()
             ->assertSee('Pixel Coin wallet')
-            ->assertSee('No real GCash, PayPal, or prepaid-load payment is connected.')
+        ->assertSee('No payment provider is integrated.')
             ->assertSee('data-pixel-topup="500"', false)
             ->assertSee('member-pixel-coin-link');
 
@@ -301,12 +475,12 @@ class PixmoreePagesTest extends TestCase
 
         $this->get('/')
             ->assertOk()
-            ->assertSee('data-market-value="0.90"', false);
+            ->assertSee('data-market-value="1.00"', false);
         $this->assertDatabaseHas('artworks', ['id' => 'neon-wanderer', 'price' => '0.86']);
 
         $this->get('/week12/artworks/neon-wanderer')
             ->assertOk()
-            ->assertSee('0.90 ETH');
+            ->assertSee('1.00 ETH');
 
         $this->postJson('/api/pixel-coins/purchases', ['artwork_id' => 'neon-wanderer'])
             ->assertStatus(409);

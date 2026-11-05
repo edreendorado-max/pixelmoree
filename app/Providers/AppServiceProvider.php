@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Models\User;
 use App\Models\Artwork;
+use App\Support\ArtworkPriceDashboard;
+use App\Support\ArtworkRecommendations;
 use App\Support\SitePageContent;
 use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Support\Facades\Auth;
@@ -53,14 +55,15 @@ class AppServiceProvider extends ServiceProvider
             foreach ($homeArtworks as $artwork) {
                 $artwork->setAttribute('creator_sold_count', (int) ($creatorSales[$artwork->user_id] ?? 0));
             }
+            $dailyPriceMovers = (new ArtworkPriceDashboard())->dailyMovers($homeArtworks);
 
             $view->with('homeContent', SitePageContent::get('home'));
             $view->with('aboutContent', SitePageContent::get('about'));
             $view->with('homeArtworks', $homeArtworks);
-            $view->with('forYouArtworks', $homeArtworks
-                ->sortByDesc(static fn (Artwork $artwork): int => (int) $artwork->likes_count * 3 + (int) $artwork->views_count)
-                ->take(4)
-                ->values());
+            $view->with('dailyPriceGainers', $dailyPriceMovers['gainers']);
+            $view->with('dailyPriceDecliners', $dailyPriceMovers['decliners']);
+            $view->with('priceComparisonDate', $dailyPriceMovers['comparison_date']);
+            $view->with('forYouArtworks', (new ArtworkRecommendations())->forUser($homeArtworks, $account));
             $view->with('topCreators', User::query()
                 ->where(static fn ($query) => $query->where('role', '<>', 'admin')->orWhereNull('role'))
                 ->whereHas('artworks', static fn ($query) => $query->where('status', 'Listed'))
@@ -76,6 +79,42 @@ class AppServiceProvider extends ServiceProvider
                 ->get());
             $view->with('likedArtworkIds', $account?->likedArtworks()->pluck('artworks.id')->all() ?? []);
             $view->with('userArtworks', $account?->artworks()->latest()->get() ?? collect());
+            $view->with('purchaseOrders', $account?->paymentOrders()
+                ->where('type', 'nft_purchase')
+                ->with('artwork')
+                ->latest()
+                ->limit(50)
+                ->get() ?? collect());
+            $ownedArtworks = collect();
+            if ($account !== null) {
+                $latestListings = DB::table('resale_listings')
+                    ->selectRaw('MAX(id) AS id, artwork_id')
+                    ->where('seller_id', $account->id)
+                    ->groupBy('artwork_id');
+                $ownedArtworks = DB::table('artwork_ownerships')
+                    ->join('artworks', 'artworks.id', '=', 'artwork_ownerships.artwork_id')
+                    ->leftJoinSub($latestListings, 'latest_listing', static fn ($join) => $join
+                        ->on('latest_listing.artwork_id', '=', 'artworks.id'))
+                    ->leftJoin('resale_listings as listing', 'listing.id', '=', 'latest_listing.id')
+                    ->where('artwork_ownerships.owner_id', $account->id)
+                    ->select([
+                        'artworks.id', 'artworks.product_id', 'artworks.title', 'artworks.image',
+                        'listing.status as resale_status',
+                    ])
+                    ->orderBy('artworks.title')
+                    ->get();
+            }
+            $view->with('ownedArtworks', $ownedArtworks);
+        });
+
+        View::composer('user.pixel-coin', static function (ViewContract $view): void {
+            $account = Auth::user();
+            $view->with('account', $account);
+            $view->with('cashOrders', $account?->paymentOrders()->latest()->limit(20)->get() ?? collect());
+            $view->with('cashLedger', $account === null
+                ? collect()
+                : DB::table('cash_ledger_entries')->where('user_id', $account->id)->latest()->limit(20)->get());
+            $view->with('usdRate', (float) config('payments.php_per_usd', 58));
         });
 
         View::composer('login', static function (ViewContract $view): void {

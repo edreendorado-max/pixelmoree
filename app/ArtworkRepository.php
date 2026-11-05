@@ -2,6 +2,7 @@
 
 use App\Support\ArtworkMarketValue;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Str;
 
 final class ArtworkRepository
 {
@@ -12,7 +13,7 @@ final class ArtworkRepository
     public function all(): array
     {
         $statement = $this->pdo->query(
-            'SELECT artworks.id, artworks.user_id, artworks.title,
+            'SELECT artworks.id, artworks.product_id, artworks.user_id, artworks.title,
                     COALESCE(users.name, artworks.creator) AS creator,
                     artworks.category, artworks.price, artworks.item_count, artworks.image,
                     artworks.image_hash, artworks.description, artworks.status, artworks.created_at
@@ -27,7 +28,7 @@ final class ArtworkRepository
     public function listed(): array
     {
         $statement = $this->pdo->query(
-            "SELECT artworks.id, artworks.user_id, artworks.title,
+            "SELECT artworks.id, artworks.product_id, artworks.user_id, artworks.title,
                     COALESCE(users.name, artworks.creator) AS creator,
                     artworks.category, artworks.price, artworks.item_count, artworks.image,
                     artworks.image_hash, artworks.description, artworks.status, artworks.created_at
@@ -44,7 +45,7 @@ final class ArtworkRepository
     {
         $limit = max(1, min($limit, 50));
         $statement = $this->pdo->query(
-            'SELECT artworks.id, artworks.user_id, artworks.title,
+            'SELECT artworks.id, artworks.product_id, artworks.user_id, artworks.title,
                     COALESCE(users.name, artworks.creator) AS creator,
                     artworks.category, artworks.price, artworks.item_count, artworks.image,
                     artworks.image_hash, artworks.description, artworks.status, artworks.created_at
@@ -60,7 +61,7 @@ final class ArtworkRepository
     public function find(string $id): ?array
     {
         $statement = $this->pdo->prepare(
-            'SELECT artworks.id, artworks.user_id, artworks.title,
+            'SELECT artworks.id, artworks.product_id, artworks.user_id, artworks.title,
                     COALESCE(users.name, artworks.creator) AS creator,
                     artworks.category, artworks.price, artworks.item_count, artworks.image,
                     artworks.image_hash, artworks.description, artworks.status, artworks.created_at
@@ -193,11 +194,12 @@ final class ArtworkRepository
 
         $id = $this->slug($artwork['title']) . '-' . bin2hex(random_bytes(3));
         $statement = $this->pdo->prepare(
-            'INSERT INTO artworks (id, user_id, title, creator, category, price, item_count, image, image_hash, description, status)
-             VALUES (:id, :user_id, :title, :creator, :category, :price, :item_count, :image, :image_hash, :description, :status)'
+            'INSERT INTO artworks (id, product_id, user_id, title, creator, category, price, item_count, image, image_hash, description, status)
+             VALUES (:id, :product_id, :user_id, :title, :creator, :category, :price, :item_count, :image, :image_hash, :description, :status)'
         );
         $statement->execute([
             'id' => $id,
+            'product_id' => (string) Str::uuid(),
             'user_id' => $artwork['user_id'],
             'title' => $artwork['title'],
             'creator' => $artwork['creator'],

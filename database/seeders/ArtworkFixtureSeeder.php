@@ -110,6 +110,7 @@ class ArtworkFixtureSeeder extends Seeder
             $owner = $creators[$artwork['owner_email']];
             $artwork['user_id'] = $owner->id;
             $artwork['creator'] = $owner->name;
+            $artwork['product_id'] = (string) Str::uuid();
             $artwork['image_hash'] = hash_file('sha256', public_path('assets/' . $artwork['image']));
             if ($artwork['image_hash'] === false) {
                 throw new \RuntimeException('A supplied artwork image could not be verified: ' . $artwork['image']);

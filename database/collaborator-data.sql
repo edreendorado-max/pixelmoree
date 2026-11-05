@@ -6,10 +6,11 @@
 USE `pixmoreedb`;
 
 INSERT IGNORE INTO `artworks`
-    (`id`, `user_id`, `title`, `creator`, `category`, `price`, `image`, `image_hash`, `description`, `status`, `created_at`, `updated_at`)
+    (`id`, `product_id`, `user_id`, `title`, `creator`, `category`, `price`, `image`, `image_hash`, `description`, `status`, `created_at`, `updated_at`)
 VALUES
     (
         'anime-b3182ae1',
+        UUID(),
         NULL,
         'anime',
         'Pixmoree Creator',

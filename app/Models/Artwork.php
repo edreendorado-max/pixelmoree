@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use App\Support\ArtworkMarketValue;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class Artwork extends Model
 {
@@ -20,6 +21,7 @@ class Artwork extends Model
 
     protected $fillable = [
         'id',
+        'product_id',
         'user_id',
         'title',
         'creator',
@@ -31,6 +33,13 @@ class Artwork extends Model
         'description',
         'status',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(static function (self $artwork): void {
+            $artwork->product_id ??= (string) Str::uuid();
+        });
+    }
 
     public function user(): BelongsTo
     {

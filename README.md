@@ -1,6 +1,6 @@
 # Pixmoree
 
-Pixmoree is a Laravel 12 application for the guest-facing marketplace prototype and its Week 12 artwork screens. User registration, login, profile details, uploaded images, and artwork listings are stored in MySQL. Google and Facebook sign-in are supported when provider credentials are configured. Payments are not implemented.
+Pixmoree is a Laravel 12 marketplace prototype with account, artwork, wallet, and ownership records stored in MySQL. Google and Facebook sign-in are supported when provider credentials are configured. GCash, Maya, PayPal, and prepaid-load submissions use manual proof review only; the app does not connect to payment-provider APIs or move money automatically.
 
 ## Requirements
 
@@ -64,7 +64,9 @@ The Git repository shares schema and project files, not a live MySQL server. Eac
 
 Admins can update the homepage, About page, marketplace, log-in, and registration pages from the Content Studio at `/admin/content`. Text and supported page images can be edited in the matching page editor; marketplace and gallery artwork is managed from the admin artwork screen. The About page's “people behind Pixmoree” section is a separate, editable developer team, not the marketplace creator list. Developer cards support a section, quote, and validated social URLs. Admin screens share the Pixmoree visual theme. Signed-in creators can upload original artwork from `/user/create`; artwork metadata and the stored image path are saved in MySQL, while the actual image is stored on Laravel's public disk. Users can edit or delete their own artwork, and duplicate image files are rejected by SHA-256. Admins can manage all listings. Creator profile images are stored in `users.avatar_path` and can be changed in profile settings. The supplied artwork and developer photos are kept in `public/assets/nfts` and `public/assets/creators`, separate from the site background and logo.
 
-Artwork cards and detail pages also show a separate demo market-value estimate; this never changes a creator's asking price or Pixel Coin checkout amount. The estimate starts at the asking price, adds 5% per recorded Pixel Coin demo purchase in the previous 30 days (up to +25%), and after 30 days without a purchase subtracts 1% for each full inactive week (down to -25%). The displayed amount is rounded to two decimals. These simulated purchases are not real market sales, and the estimate is informational only—not a financial valuation.
+Artwork cards and detail pages also show a separate demo market-value estimate; this never changes a creator's asking price or Pixel Coin checkout amount. The estimate combines recent demo purchases, logarithmically scaled artwork and creator engagement, edition scarcity, and inactivity. It is bounded to a maximum 40% increase/decrease and rounded to two decimals. These simulated purchases are not real market sales, and the estimate is informational only—not a financial valuation.
+
+The signed-in home page shows a For You feed ranked from the user's latest liked, purchased, and viewed artwork categories, followed by a daily NFT price dashboard with up to ten gainers and ten decliners. Recommendations are recomputed on each page load. Daily comparisons use stored market-estimate snapshots, not real NFT sales or exchange data. Run `php artisan schedule:run` from a system scheduler every minute to capture prices daily at 00:05, or capture a snapshot manually with `php artisan artworks:prices:snapshot`. Rankings appear after snapshots exist for consecutive days.
 
 ## Pixel Coin demo wallet
 
@@ -75,6 +77,18 @@ Authenticated users can view their account balance from the upper-right wallet l
 - `POST /api/pixel-coins/purchases` — records a demo purchase for a listed artwork using its database price and deducts the balance atomically.
 
 Wallet balances and ledger entries are stored in MySQL. Seed the database only with test fixtures explicitly when running tests; `ArtworkFixtureSeeder` is not part of the default seeding path.
+
+## Manual payments, cash balances, and resale
+
+The wallet at `/user/pixel-coin` supports submission of GCash, Maya, or PayPal transfer references and proof for admin review. These forms do not charge a payment method. Configure destination instructions in `.env` before inviting payment submissions; if no instructions are configured, users are told not to send funds. An admin must independently verify a transfer before a PHP top-up or external NFT purchase is approved. NFT ownership and seller proceeds change only after purchase approval. Never collect passwords, wallet PINs, or OTPs.
+
+PHP balances are stored as integer centavos in `users.cash_balance_minor`; pending withdrawal funds are tracked separately in `cash_reserved_minor`. A user can request a PayPal withdrawal from cleared, unreserved cash. Admin approval only marks the request ready for payout and keeps the funds reserved. An admin must send the PayPal transfer outside Pixmoree and record its payout reference to mark it paid and debit the balance. Rejection releases the reserved funds. This is a manual bookkeeping workflow, not an integrated or guaranteed payout service. The USD figure is an estimate based on `PAYMENTS_PHP_PER_USD`, not a live exchange rate.
+
+Prepaid load is accepted only as a Pixel Coin top-up, never as an NFT payment. After admin verification, the configured `PIXEL_COIN_PER_PHP` rate credits non-cash Pixel Coin. Pixel Coin is not redeemable and is separate from the PHP cash balance.
+
+Verified owners can submit resale listings from `/user/resales`. Each submission requires an ownership/authorization declaration and privately stored evidence. An admin reviews the evidence before the listing is available; this review cannot prove copyright or make a legal determination. Keep permission records and respond to rights-holder claims. Resale proceeds are credited to the seller's PHP balance after the buyer's payment is approved.
+
+The normalized account/profile structure uses `users.id` as the internal account key and a stable UUID `users.account_id` for the public account identifier; one-to-one contact/profile details are mirrored to `user_profiles`. Artwork rows keep the existing listing key and add UUID `artworks.product_id`. `payment_orders.purchase_id` is the UUID for a purchase, top-up, or withdrawal request. `cash_ledger_entries` records cleared PHP movements, `artwork_ownerships` stores current verified ownership, and `ownership_transfers` records the transfer history. Migrations backfill UUIDs/profile data for existing records. Payment and resale operations are local/manual review functionality only and require production legal, tax, fraud, privacy, and payment-provider review before a live launch.
 
 The Workbench schema remains available as `database/setup.sql` inside the project, but Apache rules deny direct web requests to the database directory and SQL files. Configure Apache to use the project's `public` directory as its document root.
 

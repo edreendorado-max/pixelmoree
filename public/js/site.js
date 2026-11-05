@@ -247,7 +247,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!isMemberPage) return;
     const count = readSavedFavorites().length;
     document.getElementById('memberWelcomeFavorites').textContent = String(count);
-    document.getElementById('memberHomeFavoriteCount').textContent = String(count);
     document.getElementById('memberFavoritePanelCount').textContent = String(count);
   }
 
@@ -354,10 +353,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('memberOwnedCount').textContent = String(collection.length);
     document.getElementById('memberCollectionCount').textContent = String(collection.length);
     document.getElementById('memberPurchaseCount').textContent = String(history.length);
-    document.getElementById('memberHomeOwnedCount').textContent = String(collection.length);
-    document.getElementById('memberHomePurchaseCount').textContent = String(history.length);
-    document.getElementById('memberHomeFavoriteCount').textContent = String(favorites.length);
-
     const collectionItems = document.getElementById('memberCollectionItems');
     collectionItems.replaceChildren(...(collection.length
       ? collection.map(item => makeArtworkTile(item, 'collection'))
@@ -580,6 +575,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const ethAmount = parseEthPrice(artwork.price);
     const coinCost = ethAmount === null ? null : Math.ceil(ethAmount * demoPixelCoinPerEth);
     const isPixelCoin = method === 'Pixel Coin (Demo)';
+    const manualReference = document.querySelector('#memberPaymentForm [name="transaction_reference"]');
+    const manualProof = document.querySelector('#memberPaymentForm [name="proof"]');
+    const needsManualProof = ['gcash', 'maya', 'paypal'].includes(method);
+    if (manualReference) manualReference.required = needsManualProof;
+    if (manualProof) manualProof.required = needsManualProof;
     rateNote.hidden = !isPixelCoin;
     insufficient.hidden = true;
     total.textContent = isPixelCoin
@@ -608,7 +608,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     submit.disabled = !termsAccepted;
     submit.innerHTML = termsAccepted
-      ? '<i class="bi bi-lock"></i> Confirm demo purchase'
+      ? method === 'cash_wallet'
+        ? '<i class="bi bi-wallet2"></i> Buy with cleared PHP balance'
+        : isPixelCoin
+          ? '<i class="bi bi-coin"></i> Confirm demo purchase'
+          : '<i class="bi bi-shield-check"></i> Submit for admin verification'
       : '<i class="bi bi-lock"></i> Review order to continue';
     if (feedback.textContent.includes('Top up')) feedback.hidden = true;
   }
@@ -936,9 +940,11 @@ document.addEventListener('DOMContentLoaded', () => {
       renderMemberNotifications();
     });
     document.getElementById('memberPaymentForm').addEventListener('submit', async event => {
-      event.preventDefault();
       const form = event.currentTarget;
       if (!form.reportValidity()) return;
+      const paymentMethod = document.getElementById('memberPaymentMethod').value;
+      if (paymentMethod !== 'Pixel Coin (Demo)') return;
+      event.preventDefault();
       const artwork = readPendingCheckout();
       const feedback = document.getElementById('memberPaymentFeedback');
       if (!artwork) {
@@ -946,7 +952,6 @@ document.addEventListener('DOMContentLoaded', () => {
         feedback.hidden = false;
         return;
       }
-      const paymentMethod = document.getElementById('memberPaymentMethod').value;
       const completed = await purchaseArtwork(artwork, feedback, paymentMethod);
       if (!completed) return;
       document.getElementById('memberPaymentTerms').checked = false;

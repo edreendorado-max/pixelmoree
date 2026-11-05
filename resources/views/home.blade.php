@@ -10,7 +10,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/site.css') }}?v=20261029-earnings" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}?v=20261105-for-you-dashboard" rel="stylesheet">
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark site-nav guest-nav">
@@ -26,6 +26,7 @@
         <a class="guest-only-nav-link" href="/about"><i class="bi bi-info-circle"></i><span>About</span></a>
         <a href="/user/purchases" class="member-only-nav-link" data-member-nav="history" hidden><i class="bi bi-receipt"></i><span>Purchases</span></a>
         <a href="/user/earnings" class="member-only-nav-link" data-member-nav="earnings" hidden><i class="bi bi-graph-up-arrow"></i><span>Earnings</span></a>
+        <a href="/user/resales" class="member-only-nav-link" data-member-nav="resales" hidden><i class="bi bi-arrow-left-right"></i><span>Resale Artworks</span></a>
         <a href="/user/terms" class="member-only-nav-link" data-member-nav="terms" hidden><i class="bi bi-shield-check"></i><span>Terms &amp; Originality</span></a>
         <a href="/user/notifications" class="member-only-nav-link" data-member-nav="notifications" hidden><i class="bi bi-bell"></i><span>Notifications <small class="member-nav-badge" id="memberNotificationBadge" hidden>0</small></span></a>
         <a href="/user/profile-settings" class="member-only-nav-link" data-member-nav="profile-settings" hidden><i class="bi bi-person-gear"></i><span>Profile Settings</span></a>
@@ -134,25 +135,43 @@
       <div class="member-dashboard-layout">
         <div class="member-dashboard-content">
           <section class="member-dashboard-panel" data-member-panel-content="home">
-            <div class="member-home-heading"><div><span class="member-welcome-kicker"><i class="bi bi-stars"></i> YOUR CREATIVE SPACE</span><h1>Make room for imagination.</h1><p>Explore art, track your collection, and share something of your own.</p></div></div>
-            <div class="member-stat-grid member-home-stat-grid">
-              <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-images"></i></span><div><small>My Collection</small><strong id="memberHomeOwnedCount">0</strong></div><a href="/user/me?tab=owned" aria-label="Open My Collection"><i class="bi bi-arrow-up-right"></i></a></article>
-              <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-receipt"></i></span><div><small>Purchases</small><strong id="memberHomePurchaseCount">0</strong></div><a href="/user/purchases" aria-label="Open purchases"><i class="bi bi-arrow-up-right"></i></a></article>
-              <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-heart-fill"></i></span><div><small>Favorites</small><strong id="memberHomeFavoriteCount">0</strong></div><a href="/user/favorites" aria-label="Open favorites"><i class="bi bi-arrow-up-right"></i></a></article>
-            </div>
-            <div class="member-panel-card">
-              <div class="member-panel-heading"><div><h3>For You</h3><p>Popular and recently listed work from Pixmoree creators.</p></div><a href="/user#explore">Explore <i class="bi bi-arrow-up-right"></i></a></div>
-              <div class="member-recent-grid" id="memberForYouItems">
+            <section class="member-panel-card member-for-you-panel">
+              <div class="member-panel-heading"><div><h3>For You</h3><p>Recommendations based on your likes, purchases, and artwork views. Updated with your latest activity.</p></div><a href="/user#explore">Explore <i class="bi bi-arrow-up-right"></i></a></div>
+              <div class="member-recent-grid member-for-you-grid" id="memberForYouItems">
                 @forelse ($forYouArtworks as $artwork)
                   <a class="member-art-tile member-for-you-tile" href="{{ route('week12.client.artwork', ['id' => $artwork->id]) }}">
-                    <span class="member-art-tile-image"><img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}"></span>
+                    <span class="member-art-tile-image"><img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}" loading="lazy"></span>
                     <span class="member-art-tile-details"><strong>{{ $artwork->title }}</strong><small>By {{ $artwork->creator }}</small><span>{{ number_format((float) $artwork->price, 2) }} ETH</span><small class="member-for-you-engagement"><i class="bi bi-eye" aria-label="Views"></i> {{ number_format($artwork->views_count) }} <i class="bi bi-heart" aria-label="Likes"></i> {{ number_format($artwork->likes_count) }}</small></span>
                   </a>
                 @empty
                   <p class="member-empty-state">New artwork will appear here as creators publish listings.</p>
                 @endforelse
               </div>
-            </div>
+            </section>
+            <section class="member-panel-card member-price-dashboard">
+              <div class="member-panel-heading"><div><h3>Daily NFT price dashboard</h3><p>Top 10 gainers and top 10 decliners · comparing {{ \Illuminate\Support\Carbon::parse($priceComparisonDate)->format('M j') }} with today</p></div><span class="member-demo-label">20 NFTs</span></div>
+              <div class="member-price-movers">
+                @foreach ([
+                  ['title' => 'Top 10 price increases', 'icon' => 'bi-graph-up-arrow', 'items' => $dailyPriceGainers, 'direction' => 'up'],
+                  ['title' => 'Top 10 price decreases', 'icon' => 'bi-graph-down-arrow', 'items' => $dailyPriceDecliners, 'direction' => 'down'],
+                ] as $market)
+                  <section class="member-price-mover-panel" aria-label="{{ $market['title'] }}">
+                    <h4><i class="bi {{ $market['icon'] }}"></i>{{ $market['title'] }}</h4>
+                    @forelse ($market['items'] as $index => $artwork)
+                      <a class="member-price-mover-row" href="{{ route('week12.client.artwork', ['id' => $artwork->id]) }}">
+                        <span class="member-price-mover-rank">{{ $index + 1 }}</span>
+                        <img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="" loading="lazy">
+                        <span class="member-price-mover-name"><strong>{{ $artwork->title }}</strong><small>By {{ $artwork->creator }}</small></span>
+                        <span class="member-price-mover-value"><strong>{{ number_format($artwork->daily_current_price, 2) }} ETH</strong><small>from {{ number_format($artwork->daily_previous_price, 2) }} ETH</small></span>
+                        <span class="member-price-mover-change {{ $market['direction'] }}">{{ $market['direction'] === 'up' ? '+' : '' }}{{ number_format($artwork->daily_price_change_percent, 2) }}%</span>
+                      </a>
+                    @empty
+                      <p class="member-empty-state">Daily price history is being collected. Check back after the next update.</p>
+                    @endforelse
+                  </section>
+                @endforeach
+              </div>
+            </section>
           </section>
           <section class="member-dashboard-panel active" data-member-panel-content="me">
             <div class="member-panel-heading"><div><h3>Me</h3><p>Your profile, uploads, and collected artwork.</p></div><span class="member-demo-label">YOUR ACCOUNT</span></div>
@@ -194,11 +213,22 @@
             </section>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="history" hidden>
-            <div class="member-panel-heading"><div><h3>Purchases</h3><p>Demo transaction records; no real payments are processed.</p></div></div>
+            <div class="member-panel-heading"><div><h3>Purchases</h3><p>Manual payment status and verified purchase records, followed by browser-only Pixel Coin demo receipts.</p></div></div>
+            <section class="member-panel-card member-transactions-card">
+              <h4>Purchase orders</h4>
+              <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Purchase ID</th><th>Artwork</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead><tbody>
+                @forelse ($purchaseOrders as $purchaseOrder)
+                  <tr><td>{{ $purchaseOrder->purchase_id }}</td><td>{{ $purchaseOrder->artwork?->title ?? 'Artwork unavailable' }}</td><td>PHP {{ number_format($purchaseOrder->amount_minor / 100, 2) }}</td><td>{{ $purchaseOrder->payment_method }}</td><td>{{ str_replace('_', ' ', $purchaseOrder->status) }}</td></tr>
+                @empty
+                  <tr><td colspan="5" class="member-empty-state">No manual purchase orders yet.</td></tr>
+                @endforelse
+              </tbody></table></div>
+            </section>
+            <h4>Pixel Coin demo receipts</h4>
             <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Artwork</th><th>Price paid</th><th>Date</th><th>Status</th></tr></thead><tbody id="memberHistoryItems"><tr><td colspan="4" class="member-empty-state">No demo purchases yet.</td></tr></tbody></table></div>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="earnings" hidden>
-            <div class="member-panel-heading"><div><h3>Earnings balance</h3><p>Track demo Pixel Coin purchases of your artwork.</p></div><span class="member-demo-label"><i class="bi bi-info-circle"></i> DEMO SUMMARY</span></div>
+            <div class="member-panel-heading"><div><h3>Earnings balance</h3><p>Track demo Pixel Coin activity; verified PHP sale proceeds are available in your cash wallet.</p></div><span class="member-demo-label"><i class="bi bi-info-circle"></i> DEMO SUMMARY</span></div>
             <article class="member-panel-card member-earnings-hero" data-earnings-total="{{ $creatorEarnings['totalPixelCoins'] ?? 0 }}">
               <span class="member-earnings-icon"><i class="bi bi-stars"></i></span>
               <div>
@@ -246,9 +276,31 @@
               <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Activity</th><th>Change</th><th>Balance after</th><th>Date</th></tr></thead><tbody id="memberPixelCoinActivity"><tr><td colspan="4" class="member-empty-state">Loading wallet activity…</td></tr></tbody></table></div>
             </section>
           </section>
+          <section class="member-dashboard-panel" data-member-panel-content="resales" hidden>
+            <div class="member-panel-heading"><div><h3>Resale artworks</h3><p>Only verified owners can submit a resale. Submissions require proof and manual copyright review; review is not a legal determination.</p></div><span class="member-demo-label">MANUAL REVIEW</span></div>
+            @if (session('status'))<p role="status">{{ session('status') }}</p>@endif
+            @if ($errors->any())<p role="alert">{{ $errors->first() }}</p>@endif
+            @forelse ($ownedArtworks as $ownedArtwork)
+              <article class="member-panel-card mb-3">
+                <strong>{{ $ownedArtwork->title }}</strong>
+                <p>Product ID: {{ $ownedArtwork->product_id }} · Resale status: {{ $ownedArtwork->resale_status ?? 'Not listed' }}</p>
+                @if (!in_array($ownedArtwork->resale_status, ['pending_review', 'listed'], true))
+                  <form method="post" action="{{ route('user.artworks.resale', $ownedArtwork->id) }}" enctype="multipart/form-data">
+                    @csrf
+                    <label>Resale price (PHP)<input name="price_php" type="number" min="1" max="10000000" required></label>
+                    <label>Ownership/authorization evidence<input name="evidence" type="file" accept="image/png,image/jpeg,application/pdf" required></label>
+                    <label class="member-policy-accept"><input name="ownership_declaration" type="checkbox" value="1" required> I own or am authorized to resell this artwork and the submission is accurate.</label>
+                    <button class="member-profile-save" type="submit">Submit for review</button>
+                  </form>
+                @endif
+              </article>
+            @empty
+              <p class="member-empty-state">Verified purchases will appear here when the payment is approved.</p>
+            @endforelse
+          </section>
           <section class="member-dashboard-panel" data-member-panel-content="payment" hidden>
-            <div class="member-payment-heading"><div><span class="member-welcome-kicker"><i class="bi bi-shield-check"></i> PIXMOREE CHECKOUT</span><h3>Payment &amp; Transactions</h3><p>Review your order and choose a demo payment method.</p></div><span class="member-demo-label"><i class="bi bi-info-circle"></i> SIMULATION ONLY</span></div>
-            <div class="member-payment-safety"><i class="bi bi-shield-lock"></i><span><strong>Safe demo checkout</strong> Payment providers are not connected. This page never asks for card/account numbers, passwords, PINs, or OTPs; no payment is sent or charged. Never share an OTP or wallet PIN in chat or with a seller.</span></div>
+            <div class="member-payment-heading"><div><span class="member-welcome-kicker"><i class="bi bi-shield-check"></i> PIXMOREE CHECKOUT</span><h3>Payment &amp; Transactions</h3><p>Manual GCash, Maya, or PayPal payment; NFT delivery follows admin verification.</p></div><span class="member-demo-label">MANUAL REVIEW</span></div>
+            <div class="member-payment-safety"><i class="bi bi-shield-lock"></i><span><strong>Never share passwords, PINs, or OTPs.</strong> Transfer externally using official apps only. Submit the transaction reference and proof; an admin must verify receipt before NFT ownership changes.</span></div>
             <section class="member-panel-card member-pixel-wallet" aria-labelledby="memberPaymentWalletHeading">
               <div class="member-wallet-overview"><span class="member-wallet-icon"><i class="bi bi-coin"></i></span><div><small id="memberPaymentWalletHeading">PIXMOREE DEMO WALLET</small><strong><span data-pixelcoin-balance>{{ number_format((int) ($account?->pixel_coin_balance ?? 0)) }}</span> <span>PIXEL COIN</span></strong><p>Demo-only credits · no cash value</p></div></div>
               <a class="member-wallet-topup-link" href="/user/pixel-coin"><i class="bi bi-plus-circle"></i> Manage wallet and add free demo credits</a>
@@ -259,7 +311,7 @@
                 <div id="memberCheckoutArtwork" class="member-checkout-artwork" aria-live="polite" hidden></div>
                 <dl class="member-payment-totals">
                   <div><dt>Item price</dt><dd id="memberCheckoutPrice">—</dd></div>
-                  <div><dt>Payment processing</dt><dd>No charge in demo</dd></div>
+                  <div><dt>Payment processing</dt><dd>Manual external transfer; no gateway</dd></div>
                   <div class="member-payment-total"><dt>Total due</dt><dd id="memberCheckoutTotal">—</dd></div>
                 </dl>
                 <p class="member-pixel-rate" id="memberPixelRateNote" hidden>Demo estimate: 1 ETH = 1,000 PIXEL COIN. This is a fixed in-app demo rate and is not a market exchange rate.</p>
@@ -267,10 +319,12 @@
                 <small class="member-payment-help">The listed ETH amount is illustrative. No fiat conversion, network fee, or live quote is calculated.</small>
               </section>
               <section class="member-panel-card member-checkout-card" aria-labelledby="memberPaymentHeading">
-                <div class="member-payment-card-heading"><span class="member-payment-step">2</span><div><h4 id="memberPaymentHeading">Payment method</h4><p>Choose a provider to record in this demo receipt.</p></div></div>
-                <form id="memberPaymentForm" class="member-payment-form">
-                  <label class="member-payment-field" for="memberPaymentMethod">Available demo methods<select id="memberPaymentMethod" name="paymentMethod"><option value="Pixel Coin (Demo)">Pixel Coin wallet</option><option value="GCash (Demo)">GCash</option><option value="Maya (Demo)">Maya</option><option value="MariBank (Demo)">MariBank</option><option value="Bank transfer (Demo)">Bank transfer</option><option value="Visa / Mastercard (Demo)">Visa / Mastercard</option><option value="Other e-wallet (Demo)">Other e-wallet</option><option value="Demo wallet">Demo wallet</option></select></label>
-                  <p class="member-payment-method-note"><i class="bi bi-info-circle"></i> Provider selection is for demonstration only. You will not be redirected to a provider or asked to enter payment credentials.</p>
+                <div class="member-payment-card-heading"><span class="member-payment-step">2</span><div><h4 id="memberPaymentHeading">Payment method</h4><p>Manual transfers require transaction details and admin verification. No gateway is connected.</p></div></div>
+                <form id="memberPaymentForm" class="member-payment-form" method="post" action="{{ route('user.purchase-orders.store') }}" enctype="multipart/form-data">
+                  @csrf<input id="memberPaymentArtworkId" type="hidden" name="artwork_id">
+                  <label class="member-payment-field" for="memberPaymentMethod">Payment method<select id="memberPaymentMethod" name="payment_method"><option value="gcash">GCash transfer</option><option value="maya">Maya transfer</option><option value="paypal">PayPal transfer</option><option value="cash_wallet">Cleared PHP wallet balance</option><option value="Pixel Coin (Demo)">Pixel Coin demo wallet</option></select></label>
+                  <label class="member-payment-field">Transaction reference<input name="transaction_reference" maxlength="120"></label>
+                  <label class="member-payment-field">Payment proof<input name="proof" type="file" accept="image/png,image/jpeg"></label>
                   <label class="member-policy-accept"><input id="memberPaymentTerms" type="checkbox" required> I have reviewed this demo order and agree to the <a href="/user/terms">demo terms</a>.</label>
                   <button class="member-profile-save" id="memberPaymentSubmit" type="submit" disabled><i class="bi bi-lock"></i> Review order to continue</button>
                   <p id="memberPaymentFeedback" class="member-profile-feedback" role="status" aria-live="polite" hidden></p>
@@ -290,7 +344,7 @@
               <h4>2. Originality and anti-plagiarism</h4><p>Only upload work you created or have clear permission and appropriate licenses to use. Do not copy, trace, repackage, or mint another creator’s artwork, photographs, characters, logos, writing, or other protected material as your own. Credit alone does not replace permission.</p>
               <p>Do not use unauthorized AI training outputs, reference material, or third-party assets in a way that infringes another person’s rights. Keep source files and permission records where appropriate. If a work includes licensed or collaborative material, disclose that clearly and follow the license terms.</p>
               <h4>3. Reports, review, and consequences</h4><p>Rights holders should provide the listing link, identify the material at issue, and explain their rights when reporting suspected copying. Pixmoree should review reports, give creators a reasonable opportunity to respond where appropriate, and may hide or remove disputed listings, restrict accounts, or refer serious matters for further review. False or abusive reports are not permitted.</p>
-              <h4>4. Purchases and demo transactions</h4><p>Pixel Coin balances and demo coin events are stored in the account database. Demo purchase receipts are saved in this browser. The service does not process payments, create blockchain tokens, transfer ownership, or provide refunds. A production marketplace would need clear sale, refund, privacy, tax, and dispute terms before launch.</p>
+              <h4>4. Purchases and manual payment review</h4><p>Pixel Coin is non-cash demo credit. GCash, Maya, PayPal, and prepaid-load submissions are not processed through provider APIs; users submit proof and administrators must independently verify funds. NFT ownership changes only after approval. No blockchain token is created, and PayPal withdrawals are sent manually outside Pixmoree. A production marketplace would need provider integration and reviewed sale, refund, privacy, tax, and dispute terms before launch.</p>
               <h4>5. Respect intellectual property</h4><p>Creators retain rights they hold in their work. A listing or demo purchase does not transfer copyright unless a separate, valid agreement says so. Collectors should not reproduce, sell, or commercially exploit artwork without the creator’s permission or a license that allows it.</p>
               <h4>6. Policy updates and contact</h4><p>These draft rules may change as the project evolves. For a real service, publish the effective date, operator identity, contact and appeal process, governing law, and privacy terms after professional review.</p>
             </article>

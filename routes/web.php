@@ -17,6 +17,8 @@ $artworkController = \App\Http\Controllers\ArtworkController::class;
 $earningsController = \App\Http\Controllers\UserEarningsController::class;
 $profileController = \App\Http\Controllers\UserProfileController::class;
 $pixelCoinController = \App\Http\Controllers\PixelCoinController::class;
+$paymentOrderController = \App\Http\Controllers\PaymentOrderController::class;
+$resaleListingController = \App\Http\Controllers\ResaleListingController::class;
 $sitePageContentController = \App\Http\Controllers\SitePageContentController::class;
 $week12ArtworkStore = static fn (): ArtworkRepository => new ArtworkRepository(DB::connection()->getPdo());
 
@@ -59,7 +61,7 @@ Route::middleware('throttle:120,1')->group(function () use ($engagementControlle
         ->name('api.creators.views');
 });
 
-Route::middleware('auth')->group(function () use ($profileController, $artworkController, $pixelCoinController, $earningsController, $engagementController): void {
+Route::middleware('auth')->group(function () use ($profileController, $artworkController, $pixelCoinController, $earningsController, $engagementController, $paymentOrderController, $resaleListingController): void {
     Route::view('/user', 'home')->name('user');
     Route::view('/user/me', 'home')->name('user.me');
     Route::view('/user/dashboard', 'home')->name('user.dashboard');
@@ -76,6 +78,10 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
     Route::redirect('/user/profile', '/user/profile-settings')->name('user.profile');
     Route::view('/user/payment', 'home')->name('user.payment');
     Route::view('/user/pixel-coin', 'user.pixel-coin')->name('user.pixel-coin');
+    Route::view('/user/resales', 'home')->name('user.resales');
+    Route::post('/user/pixel-coin/top-ups', [$paymentOrderController, 'topUp'])->name('user.cash.topups');
+    Route::post('/user/pixel-coin/prepaid-top-ups', [$paymentOrderController, 'prepaidTopUp'])->name('user.pixel.prepaid-topups');
+    Route::post('/user/pixel-coin/withdrawals', [$paymentOrderController, 'withdraw'])->name('user.cash.withdrawals');
     Route::view('/user/terms', 'home')->name('user.terms');
     Route::view('/user/nft/{id}', 'home')->where('id', '[A-Za-z0-9][A-Za-z0-9-]*')->name('user.nft.show');
     Route::get('/user/profile-settings', [$profileController, 'edit'])->name('user.profile-settings');
@@ -89,6 +95,9 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
         ->whereNumber('imageId')
         ->name('user.images.destroy');
     Route::post('/user/artworks', [$artworkController, 'store'])->name('user.artworks.store');
+    Route::post('/user/artworks/{artwork}/resale', [$resaleListingController, 'store'])
+        ->where('artwork', '[a-z0-9-]+')->name('user.artworks.resale');
+    Route::post('/user/purchase-orders', [$paymentOrderController, 'store'])->name('user.purchase-orders.store');
     Route::patch('/user/artworks/{id}', [$artworkController, 'update'])
         ->where('id', '[a-z0-9-]+')
         ->name('user.artworks.update');
@@ -111,7 +120,7 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
     });
 });
 
-Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12ArtworkStore, $sitePageContentController, $artworkController): void {
+Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12ArtworkStore, $sitePageContentController, $artworkController, $paymentOrderController, $resaleListingController): void {
     Route::redirect('/admin/content', '/admin/content/about')->name('admin.content');
     Route::get('/admin/content/{slug}', [$sitePageContentController, 'edit'])
         ->whereIn('slug', array_keys(SitePageContent::definitions()))
@@ -121,6 +130,25 @@ Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12A
         ->name('admin.content.update');
 
     Route::redirect('/admin', '/week12/admin')->name('admin');
+    Route::get('/admin/payment-orders', function () {
+        return view('admin.payment-orders', [
+            'orders' => \App\Models\PaymentOrder::query()->with(['buyer', 'seller', 'artwork'])->latest()->limit(100)->get(),
+            'resales' => DB::table('resale_listings')->join('artworks', 'artworks.id', '=', 'resale_listings.artwork_id')
+                ->join('users', 'users.id', '=', 'resale_listings.seller_id')
+                ->select('resale_listings.*', 'artworks.title', 'users.name as seller_name')->latest('resale_listings.created_at')->limit(100)->get(),
+        ]);
+    })->name('admin.payment-orders');
+    Route::get('/admin/payment-orders/{order}/proof', function (\App\Models\PaymentOrder $order) {
+        abort_unless($order->proof_path && \Illuminate\Support\Facades\Storage::disk('local')->exists($order->proof_path), 404);
+        return \Illuminate\Support\Facades\Storage::disk('local')->response($order->proof_path);
+    })->name('admin.payment-orders.proof');
+    Route::get('/admin/resales/{listing}/evidence', function (int $listing) {
+        $path = DB::table('resale_listings')->where('id', $listing)->value('evidence_path');
+        abort_unless(is_string($path) && \Illuminate\Support\Facades\Storage::disk('local')->exists($path), 404);
+        return \Illuminate\Support\Facades\Storage::disk('local')->response($path);
+    })->name('admin.resales.evidence');
+    Route::post('/admin/payment-orders/{order}/review', [$paymentOrderController, 'review'])->name('admin.payment-orders.review');
+    Route::post('/admin/resales/{listing}/review', [$resaleListingController, 'review'])->whereNumber('listing')->name('admin.resales.review');
 
     Route::get('/week12/admin', function () use ($week12ArtworkStore) {
         return view('week12.admin.dashboard', [
