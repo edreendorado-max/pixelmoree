@@ -30,6 +30,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     });
+
+    if (type === 'artwork') {
+      [...document.querySelectorAll('[data-engagement-like]')]
+        .filter(button => button.dataset.entityId === String(id))
+        .forEach(button => {
+          button.dataset.liked = String(Boolean(result.liked));
+          button.setAttribute('aria-pressed', button.dataset.liked);
+          const icon = button.querySelector('i');
+          if (icon) icon.className = `bi ${result.liked ? 'bi-heart-fill' : 'bi-heart'}`;
+        });
+      window.dispatchEvent(new Event('pixmoree:engagement-updated'));
+    }
   }
 
   function showError(button, message) {
@@ -84,6 +96,13 @@ document.addEventListener('DOMContentLoaded', () => {
       } finally {
         button.disabled = false;
       }
+    });
+
+    window.addEventListener('pixmoree:engagement-updated', () => {
+      document.querySelectorAll('#memberFavoriteItems a.member-art-tile').forEach(tile => {
+        const likeButton = tile.querySelector('[data-engagement-like]');
+        if (likeButton?.dataset.liked === 'false') tile.remove();
+      });
     });
   });
 

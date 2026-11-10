@@ -37,7 +37,7 @@ if ($week12Area === 'admin') {
                     <a class="nav-link <?= $week12Area === 'admin' ? 'active' : '' ?>" href="<?= week12_escape(week12_url('/week12/admin')) ?>">Admin</a>
                     <a class="nav-link" href="<?= week12_escape(week12_url('/admin/content/about')) ?>">Website content</a>
                 <?php endif; ?>
-                <span class="w12-demo-pill"><i class="bi bi-info-circle"></i> MySQL-backed listings</span>
+                <span class="w12-beta-pill"><i class="bi bi-info-circle"></i> Beta · database-backed listings</span>
             </div>
         </div>
     </div>
@@ -48,27 +48,11 @@ if ($week12Area === 'admin') {
 <footer class="w12-footer">
     <div class="container d-flex flex-column flex-sm-row justify-content-between gap-2">
         <span><?= week12_escape($marketplaceContent['footer']['tagline'] ?? 'Pixmoree Marketplace') ?></span>
-        <span><?= week12_escape($marketplaceContent['footer']['disclaimer'] ?? 'Sample artwork listings. No payments are processed.') ?></span>
+        <span>Purchases and payments are disabled during beta.</span>
     </div>
 </footer>
-<div class="toast-container position-fixed bottom-0 end-0 p-3">
-    <div id="demoToast" class="toast text-bg-dark border border-secondary" role="status" aria-live="polite" aria-atomic="true">
-        <div class="d-flex">
-            <div class="toast-body">Simulated action only.</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-    </div>
-</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="<?= week12_escape(week12_asset('js/marketplace.js')) ?>"></script>
 <script src="<?= week12_escape(week12_asset('js/engagement.js')) ?>?v=20261104-engagement"></script>
-<script>
-    document.querySelectorAll('[data-demo-action]').forEach((button) => {
-        button.addEventListener('click', () => {
-            const toast = document.getElementById('demoToast');
-            toast.querySelector('.toast-body').textContent = button.dataset.demoAction;
-            bootstrap.Toast.getOrCreateInstance(toast).show();
-        });
-    });
-</script>
 </body>
 </html>

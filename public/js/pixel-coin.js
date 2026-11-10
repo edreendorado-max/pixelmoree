@@ -1,10 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   const balances = [...document.querySelectorAll('[data-pixelcoin-balance]')];
-  const topupButtons = [...document.querySelectorAll('[data-pixel-topup]')];
   const activity = document.getElementById('memberPixelCoinActivity');
   const feedback = document.getElementById('memberPixelWalletFeedback');
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-  let walletLoaded = false;
   let transactions = [];
 
   function showMessage(message, isError = false) {
@@ -33,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
       label.textContent = transaction.description || 'Pixel Coin activity';
       const amount = document.createElement('td');
       const isCredit = transaction.type === 'demo_top_up';
+      if (!transaction.description && isCredit) label.textContent = 'Historical credit';
       amount.textContent = `${isCredit ? '+' : '-'}${Number(transaction.amount).toLocaleString()} PIXEL COIN`;
       const balance = document.createElement('td');
       balance.textContent = `${Number(transaction.balance_after).toLocaleString()} PIXEL COIN`;
@@ -55,23 +54,18 @@ document.addEventListener('DOMContentLoaded', () => {
       balance.textContent = payload.balance.toLocaleString();
     });
     if (Array.isArray(payload.transactions)) transactions = payload.transactions;
-    else if (payload.transaction) transactions = [payload.transaction, ...transactions].slice(0, 20);
-    walletLoaded = true;
-    topupButtons.forEach(button => { button.disabled = false; });
     renderActivity();
   }
 
-  async function requestWallet(method = 'GET', body = null) {
+  async function requestWallet() {
     if (!csrfToken) throw new Error('Secure wallet token missing. Refresh the page and try again.');
-    const response = await fetch(body === null ? '/api/pixel-coins' : '/api/pixel-coins/top-ups', {
-      method,
+    const response = await fetch('/api/pixel-coins', {
+      method: 'GET',
       credentials: 'same-origin',
       headers: {
         Accept: 'application/json',
-        'Content-Type': 'application/json',
         'X-CSRF-TOKEN': csrfToken
-      },
-      ...(body === null ? {} : { body: JSON.stringify(body) })
+      }
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
@@ -90,24 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   }
-
-  topupButtons.forEach(button => {
-    button.addEventListener('click', async () => {
-      const amount = Number(button.dataset.pixelTopup);
-      if (!Number.isSafeInteger(amount) || ![500, 1000, 2500].includes(amount) || !walletLoaded) return;
-      topupButtons.forEach(option => { option.disabled = true; });
-      feedback.hidden = true;
-      try {
-        const result = await requestWallet('POST', { amount });
-        applyWallet(result);
-        showMessage(`${amount.toLocaleString()} free demo PIXEL COIN added. No payment was made.`);
-      } catch (error) {
-        showMessage(error instanceof Error ? error.message : 'Could not add demo credits.', true);
-      } finally {
-        topupButtons.forEach(option => { option.disabled = !walletLoaded; });
-      }
-    });
-  });
 
   loadWallet();
 });

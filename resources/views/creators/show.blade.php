@@ -12,13 +12,13 @@
 <body class="creator-page">
 <header class="profile-settings-topbar">
     <div class="profile-settings-topbar-inner">
-        <a class="profile-settings-brand" href="/" aria-label="Pixmoree home">
+        <a class="profile-settings-brand" href="{{ auth()->check() ? route('user') : route('home') }}" aria-label="Pixmoree home">
             <img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree">
         </a>
         <nav class="profile-settings-nav" aria-label="Creator navigation">
             <a href="/week12"><i class="bi bi-compass" aria-hidden="true"></i> Explore</a>
-            <a class="profile-settings-back-link" href="/user"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to account</a>
             @auth
+                <a class="profile-settings-back-link" href="/user"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to account</a>
                 <form method="post" action="{{ route('logout') }}">
                     @csrf
                     <button class="profile-settings-logout" type="submit"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Log out</button>
@@ -46,7 +46,7 @@
             <div class="creator-profile-name">
                 <p class="profile-settings-eyebrow"><i class="bi bi-stars" aria-hidden="true"></i> PIXMOREE CREATOR</p>
                 <h1 id="creator-name">{{ $creator->name }}</h1>
-                <p>{{ '@'.strtolower(str_replace(' ', '-', $creator->name)) }}</p>
+                <p>{{ '@'.($creator->username ?? strtolower(str_replace(' ', '-', $creator->name))) }}</p>
             </div>
         </div>
         @if ($creator->bio)

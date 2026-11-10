@@ -6,7 +6,7 @@
                 <h1><?= week12_escape($marketplaceContent['hero']['heading_before']) ?> <span><?= week12_escape($marketplaceContent['hero']['heading_emphasis']) ?></span> <?= week12_escape($marketplaceContent['hero']['heading_after']) ?></h1>
                 <p class="w12-hero-copy"><?= week12_escape($marketplaceContent['hero']['description']) ?></p>
                 <a class="btn w12-btn-primary mt-2" href="#artwork"><?= week12_escape($marketplaceContent['hero']['cta']) ?> <i class="bi bi-arrow-down-right"></i></a>
-                <p class="w12-simulated-note mt-3 mb-0"><i class="bi bi-info-circle"></i> <?= week12_escape($marketplaceContent['hero']['note']) ?></p>
+                <p class="w12-beta-note mt-3 mb-0" role="status"><i class="bi bi-info-circle"></i> Purchases, payments, and blockchain minting are disabled during beta.</p>
             </div>
             <div class="col-lg-5">
                 <div class="w12-hero-art">
@@ -23,13 +23,34 @@
         <div>
             <p class="w12-eyebrow mb-2"><?= week12_escape($marketplaceContent['artwork']['eyebrow']) ?></p>
             <h2 class="w12-section-title"><?= week12_escape($marketplaceContent['artwork']['heading']) ?></h2>
-            <p class="text-secondary mb-0"><?= count($artworks) ?> <?= week12_escape($marketplaceContent['artwork']['count_label']) ?></p>
-            <p class="text-secondary small mt-2 mb-0">Estimates use recent demo purchases and listing inactivity. They are informational only; creators' asking prices do not change.</p>
+            <p class="text-secondary mb-0"><span id="marketplaceResultCount"><?= count($artworks) ?></span> <?= week12_escape($marketplaceContent['artwork']['count_label']) ?></p>
         </div>
-        <button class="btn w12-btn-outline" type="button" data-demo-action="Filters are a visual demo; no marketplace query was changed.">
-            <i class="bi bi-sliders"></i> <?= week12_escape($marketplaceContent['artwork']['filters_label']) ?>
-        </button>
+        <form class="w12-market-filters" id="marketplaceFilters">
+            <div class="w12-market-filter w12-market-filter-search">
+                <label for="marketplaceSearch">Search listings</label>
+                <input id="marketplaceSearch" type="search" placeholder="Title or creator">
+            </div>
+            <div class="w12-market-filter">
+                <label for="marketplaceCategory">Category</label>
+                <select id="marketplaceCategory">
+                    <option value="">All categories</option>
+                    <?php foreach (array_unique(array_column($artworks, 'category')) as $category): ?>
+                        <option value="<?= week12_escape(mb_strtolower($category)) ?>"><?= week12_escape($category) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="w12-market-filter">
+                <label for="marketplaceSort">Sort by</label>
+                <select id="marketplaceSort">
+                    <option value="newest">Newest</option>
+                    <option value="price-low">Price: low to high</option>
+                    <option value="price-high">Price: high to low</option>
+                    <option value="title">Title</option>
+                </select>
+            </div>
+        </form>
     </div>
+    <p id="marketplaceNoResults" class="w12-panel text-center py-4" hidden>No listings match those filters.</p>
     <?php if ($artworks === []): ?>
         <div class="w12-panel text-center py-5">
             <h3 class="h5"><?= week12_escape($marketplaceContent['artwork']['empty_heading']) ?></h3>
@@ -38,7 +59,7 @@
     <?php else: ?>
         <div class="row g-4">
             <?php foreach ($artworks as $artwork): ?>
-                <div class="col-sm-6 col-lg-4">
+                <div class="col-sm-6 col-lg-4" data-marketplace-item data-title="<?= week12_escape(mb_strtolower($artwork['title'])) ?>" data-creator="<?= week12_escape(mb_strtolower($artwork['creator'])) ?>" data-category="<?= week12_escape(mb_strtolower($artwork['category'])) ?>" data-price="<?= week12_escape((string) $artwork['price']) ?>" data-created="<?= week12_escape((string) ($artwork['created_at'] ?? '')) ?>">
                     <article class="card w12-art-card h-100">
                         <a href="<?= week12_escape(week12_url('/week12/artworks/' . rawurlencode($artwork['id']))) ?>" class="w12-card-image">
                             <img src="<?= week12_escape(week12_artwork_image($artwork['image'])) ?>" alt="<?= week12_escape($artwork['title']) ?>">
@@ -57,7 +78,7 @@
                                 <span><i class="bi bi-heart" aria-label="Likes"></i> <span data-engagement-likes><?= number_format((int) $artwork['likes_count']) ?></span></span>
                             </p>
                             <div class="d-flex justify-content-between align-items-center mt-auto">
-                                <span class="w12-price"><?= week12_escape($artwork['price']) ?> ETH <small>asking price</small><br><small><?= number_format((int) $artwork['item_count']) ?> items</small><br><small>Est. <?= number_format((float) $artwork['estimated_market_value'], 2) ?> ETH (<?= $artwork['market_change_percent'] >= 0 ? '+' : '' ?><?= number_format((float) $artwork['market_change_percent'], 1) ?>%)</small></span>
+                                <span class="w12-price"><?= week12_escape($artwork['price']) ?> ETH <small>asking price</small><br><small><?= number_format((int) $artwork['item_count']) ?> items</small></span>
                                 <a class="btn w12-btn-outline btn-sm" href="<?= week12_escape(week12_url('/week12/artworks/' . rawurlencode($artwork['id']))) ?>">View details</a>
                             </div>
                         </div>

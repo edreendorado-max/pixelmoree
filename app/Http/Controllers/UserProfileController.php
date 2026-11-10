@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Image;
+use App\Support\EmailDeliveryNotConfigured;
 use App\Support\EmailVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -93,7 +94,13 @@ class UserProfileController extends Controller
             $request->session()->put('email_verification_user_id', $user->id);
             Auth::logout();
             $request->session()->regenerate();
-            $sent = $emailVerification->sendCode($user, false);
+            try {
+                $sent = $emailVerification->sendCode($user, false);
+            } catch (EmailDeliveryNotConfigured) {
+                return redirect()->route('verification.notice')->withErrors([
+                    'code' => 'Your email address was changed, but we could not send a verification email. Configure MAIL_* in .env, then request a new code.',
+                ]);
+            }
 
             return redirect()->route('verification.notice')->with('status', $sent
                 ? 'A verification code was sent to your new email address.'

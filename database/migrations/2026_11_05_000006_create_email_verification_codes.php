@@ -12,7 +12,7 @@ return new class extends Migration
             $table->foreignId('user_id')->primary()->constrained()->cascadeOnDelete();
             $table->char('code_hash', 64);
             $table->timestamp('expires_at');
-            $table->timestamp('last_sent_at');
+            $table->timestamp('last_sent_at')->useCurrent();
             $table->unsignedTinyInteger('attempts')->default(0);
             $table->timestamps();
         });

@@ -11,6 +11,8 @@ class ResaleListingController extends Controller
 {
     public function store(Request $request, Artwork $artwork): RedirectResponse
     {
+        abort_unless(config('payments.enabled'), 503, 'Resales are unavailable during beta.');
+
         $validated = $request->validate([
             'price_php' => ['required', 'integer', 'min:1', 'max:10000000'],
             'evidence' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
@@ -37,6 +39,8 @@ class ResaleListingController extends Controller
 
     public function review(Request $request, int $listing): RedirectResponse
     {
+        abort_unless(config('payments.enabled'), 503, 'Resales are unavailable during beta.');
+
         $validated = $request->validate(['decision' => ['required', 'in:approve,reject']]);
         $updated = DB::table('resale_listings')->where('id', $listing)->where('status', 'pending_review')->update([
             'status' => $validated['decision'] === 'approve' ? 'listed' : 'rejected',

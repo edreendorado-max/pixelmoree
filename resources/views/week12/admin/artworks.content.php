@@ -23,7 +23,7 @@
     <?php endif; ?>
     <div class="alert w12-alert" role="note">
         <i class="bi bi-info-circle-fill"></i>
-        <span>This is a classroom demo. Listing changes persist in the local database; do not enter real personal or payment information.</span>
+        <span>Listing changes are saved to the database. Payments and payouts are disabled; never enter payment credentials.</span>
     </div>
     <section class="w12-panel mb-4" id="new-listing">
         <h2 class="h5 mb-3">Add a creator artwork listing</h2>
@@ -47,7 +47,7 @@
                 <input class="form-control" id="category" name="category" maxlength="50" required>
             </div>
             <div class="col-sm-6 col-lg-3">
-                <label class="form-label" for="price">Sample price (ETH)</label>
+                <label class="form-label" for="price">Asking price (ETH)</label>
                 <input class="form-control" id="price" name="price" type="number" min="0" max="99999999" step="0.01" required>
             </div>
             <div class="col-sm-6 col-lg-3">
@@ -107,7 +107,7 @@
                                         <input type="hidden" name="status" value="<?= $artwork['status'] === 'Listed' ? 'Review' : 'Listed' ?>">
                                         <button class="btn w12-btn-outline btn-sm" type="submit"><?= $artwork['status'] === 'Listed' ? 'Unlist' : 'Approve' ?></button>
                                     </form>
-                                    <form method="post" action="<?= week12_escape(week12_url('/week12/admin/artworks/' . rawurlencode($artwork['id']) . '/delete')) ?>" onsubmit="return confirm('Remove this fictional listing from the local database?');">
+                                    <form method="post" action="<?= week12_escape(week12_url('/week12/admin/artworks/' . rawurlencode($artwork['id']) . '/delete')) ?>" onsubmit="return confirm('Remove this artwork from the database?');">
                                         <input type="hidden" name="_token" value="<?= week12_escape($week12CsrfToken) ?>">
                                         <button class="btn w12-btn-danger btn-sm" type="submit">Delete</button>
                                     </form>
@@ -116,7 +116,7 @@
                         </tr>
                     <?php endforeach; ?>
                     <?php if ($artworks === []): ?>
-                        <tr><td colspan="6" class="text-secondary">No artwork is stored yet. Use the form above to add a demo listing.</td></tr>
+                        <tr><td colspan="7" class="text-secondary">No artwork is stored yet. Use the form above to add a listing.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>

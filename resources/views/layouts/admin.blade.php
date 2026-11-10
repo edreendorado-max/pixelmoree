@@ -21,7 +21,7 @@ $adminUser = auth()->user();
 <body class="cms-admin-page">
 <header class="cms-topbar">
     <div class="cms-topbar-inner">
-        <a class="cms-brand" href="<?= week12_escape(week12_url('/')) ?>" aria-label="Pixmoree home">
+        <a class="cms-brand" href="<?= week12_escape(week12_url('/week12/admin')) ?>" aria-label="Pixmoree admin home">
             <img src="<?= week12_escape(week12_asset('assets/Pixmoree Neon Pixel Logo.png')) ?>" alt="Pixmoree">
             <span>ADMIN STUDIO</span>
         </a>
@@ -46,7 +46,7 @@ $adminUser = auth()->user();
 </main>
 <footer class="cms-footer">
     <span>Pixmoree Admin Studio</span>
-    <a href="<?= week12_escape(week12_url('/')) ?>">Return to the website <i class="bi bi-arrow-up-right"></i></a>
+    <a href="<?= week12_escape(week12_url('/week12')) ?>">Return to the marketplace <i class="bi bi-arrow-up-right"></i></a>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

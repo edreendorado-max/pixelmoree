@@ -16,19 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const nftPreviewImage = document.getElementById('nftPreviewImage');
   const nftPreviewTitle = document.getElementById('nftPreviewTitle');
   const nftPreviewCreator = document.getElementById('nftPreviewCreator');
-  const favoritesStorageKey = 'pixmoree.user.favorites.v1';
-  const collectionStorageKey = 'pixmoree.user.collection.v1';
-  const historyStorageKey = 'pixmoree.user.purchase-history.v1';
-  const recentStorageKey = 'pixmoree.user.recent.v1';
-  const createdArtStorageKey = 'pixmoree.user.created-art.v1';
-  const nftDetailStoragePrefix = 'pixmoree.nft.detail.v1.';
-  const pendingCheckoutStorageKey = 'pixmoree.user.pending-checkout.v1';
-  const demoPixelCoinPerEth = 1000;
-  const notificationReadStorageKey = 'pixmoree.user.notifications-read.v1';
-  const resetDemoStorageKey = 'pixmoree.user.demo-data-reset.v1';
   const memberPath = window.location.pathname.replace(/\/+$/, '');
-  const nftDetailMatch = window.location.pathname.match(/^\/(?:user\/)?nft\/([a-z0-9][a-z0-9-]*)\/?$/i);
-  const isNftDetailPage = Boolean(nftDetailMatch);
   const isMemberPage = memberPath === '/user' || memberPath.startsWith('/user/');
   const requestedMemberSection = isMemberPage && memberPath !== '/user' ? memberPath.split('/').pop() : 'home';
   const memberSection = requestedMemberSection === 'purchases' ? 'history'
@@ -39,11 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const requestedCollectionTab = requestedMemberSection === 'favorites'
     ? 'favorites'
     : new URLSearchParams(window.location.search).get('tab');
-  const isMemberAccountPage = isMemberPage && memberPath !== '/user' && !isNftDetailPage;
+  const isMemberAccountPage = isMemberPage && memberPath !== '/user';
   const memberProfile = document.getElementById('memberProfile');
   const memberWelcome = document.getElementById('memberWelcome');
   const memberPanels = [...document.querySelectorAll('[data-member-panel-content]')];
-  let currentPreviewArtwork = null;
   let activeFilter = 'all';
   let activeTrendingSlide = 0;
   let visibleGalleryLimit = 8;
@@ -52,22 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let pixelCoinBalance = Number.isSafeInteger(accountPixelCoinBalance) && accountPixelCoinBalance >= 0
     ? accountPixelCoinBalance
     : 0;
-  let pixelCoinWalletLoaded = false;
   let pixelCoinTransactions = [];
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  if (memberPath === '/user/payment') {
-    let pendingCheckout = null;
-    try {
-      pendingCheckout = window.localStorage.getItem(pendingCheckoutStorageKey);
-    } catch (error) {
-      console.error('Could not verify the Pixmoree pending checkout in this browser.', error);
-    }
-    if (!pendingCheckout) {
-      window.location.replace('/user');
-      return;
-    }
-  }
 
   if (isMemberPage) {
     document.body.classList.add('member-area');
@@ -92,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('[data-member-nav="profile-settings"]').href = '/user/profile-settings';
     document.querySelector('[data-member-nav="about"]').href = '/user/about';
     document.querySelector('[data-member-nav="terms"]').href = '/user/terms';
-    document.querySelector('.member-notification-button').hidden = false;
     document.querySelector('.guest-hero .hero-content h1').textContent = 'Your creative universe.';
     document.querySelector('.guest-hero .hero-tagline').textContent = 'Discover digital art, collect what inspires you, and share your own creations.';
     document.querySelector('.guest-hero .hero-benefits li:first-child span').textContent = 'Browse new pieces from creators across the community.';
@@ -123,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     orderedCards.forEach(card => {
       const matchesSearch = card.textContent.toLowerCase().includes(query);
-      const matchesFavorites = activeFilter !== 'favorites' || card.querySelector('.heart-button')?.classList.contains('liked');
+      const matchesFavorites = activeFilter !== 'favorites' || card.querySelector('.heart-button')?.dataset.liked === 'true';
       const matchesFilters = matchesSearch && matchesFavorites;
       const isVisible = matchesFilters && (query.length > 0 || matchingCardCount < visibleGalleryLimit);
       if (matchesFilters) matchingCardCount += 1;
@@ -133,18 +105,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loadMoreButton?.parentElement) {
       loadMoreButton.parentElement.hidden = query.length > 0 || matchingCardCount <= visibleGalleryLimit;
     }
-  }
-
-  if (isMemberPage) {
-    document.getElementById('artGrid')?.addEventListener('click', event => {
-      if (!(event.target instanceof Element)) return;
-      const button = event.target.closest('[data-artwork-purchase]');
-      if (!button) return;
-      const card = button.closest('.art-column');
-      const favoriteButton = card?.querySelector('.heart-button');
-      const artwork = favoriteButton ? getFavoriteFromButton(favoriteButton) : null;
-      if (artwork) navigateToPayment(artwork);
-    });
   }
 
   filterButtons.forEach(button => {
@@ -230,291 +190,89 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  function readSavedFavorites() {
-    try {
-      const raw = window.localStorage.getItem(favoritesStorageKey);
-      if (!raw) return [];
-      const favorites = JSON.parse(raw);
-      if (!Array.isArray(favorites)) throw new TypeError('Expected an array of saved artwork.');
-      return favorites.filter(item => item && typeof item.id === 'string');
-    } catch (error) {
-      console.error('Could not read Pixmoree saved artwork from this browser.', error);
-      return [];
-    }
-  }
-
-  function updateMemberFavoriteCount() {
-    if (!isMemberPage) return;
-    const count = readSavedFavorites().length;
-    document.getElementById('memberWelcomeFavorites').textContent = String(count);
-    document.getElementById('memberFavoritePanelCount').textContent = String(count);
-  }
-
   function updateMemberProfile(profile) {
     const name = typeof profile.name === 'string' && profile.name.trim() ? profile.name.trim() : 'Account';
     document.getElementById('memberNavName').textContent = name;
     document.querySelector('#memberNavAvatar .member-avatar-initial').textContent = name.charAt(0).toUpperCase();
     document.getElementById('memberWelcomeName').textContent = name.split(/\s+/)[0];
     document.getElementById('memberDashboardProfileName').textContent = name;
-    document.getElementById('memberDashboardUsername').textContent = `@${name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g) || 'pixmoree-user'}`;
+    const username = typeof profile.username === 'string' && profile.username.trim()
+      ? profile.username.trim()
+      : name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g) || 'pixmoree-user';
+    document.getElementById('memberDashboardUsername').textContent = `@${username}`;
     document.querySelector('#memberDashboardAvatar .member-avatar-initial').textContent = name.charAt(0).toUpperCase();
   }
 
-  function readStoredList(key, label) {
-    try {
-      const raw = window.localStorage.getItem(key);
-      if (!raw) return [];
-      const value = JSON.parse(raw);
-      if (!Array.isArray(value)) throw new TypeError('Expected a list.');
-      return value.filter(item => item && typeof item === 'object' && typeof item.id === 'string');
-    } catch (error) {
-      console.error(`Could not read Pixmoree ${label} from this browser.`, error);
-      return [];
-    }
-  }
-
-  function writeStoredList(key, list, label) {
-    try {
-      window.localStorage.setItem(key, JSON.stringify(list));
-      return true;
-    } catch (error) {
-      console.error(`Could not save Pixmoree ${label} to this browser.`, error);
-      return false;
-    }
-  }
-
   function formatMemberDate(date) {
-    const parsedDate = new Date(`${date}T00:00:00`);
-    return Number.isNaN(parsedDate.valueOf()) ? 'Demo date unavailable' :
+    const parsedDate = new Date(date);
+    return Number.isNaN(parsedDate.valueOf()) ? 'Date unavailable' :
       parsedDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
   function makeArtworkTile(artwork, panel) {
-    const article = document.createElement('article');
+    const article = document.createElement('a');
     article.className = 'member-art-tile';
-    const imageButton = document.createElement('button');
-    imageButton.className = 'member-art-tile-image';
-    imageButton.type = 'button';
-    imageButton.dataset.artworkAction = 'view';
-    imageButton.setAttribute('aria-label', `Open ${artwork.title} details`);
+    article.href = `/week12/artworks/${encodeURIComponent(artwork.id)}`;
+    article.dataset.artworkId = artwork.id;
+    const imageContainer = document.createElement('span');
+    imageContainer.className = 'member-art-tile-image';
     const image = document.createElement('img');
     image.src = artwork.image;
     image.alt = artwork.alt || artwork.title;
-    imageButton.append(image);
-    const details = document.createElement('div');
+    imageContainer.append(image);
+    const details = document.createElement('span');
     details.className = 'member-art-tile-details';
     const title = document.createElement('strong');
     title.textContent = artwork.title;
     const creator = document.createElement('small');
     creator.textContent = `By ${artwork.creator || 'Pixmoree creator'}`;
     const price = document.createElement('span');
-    price.textContent = panel === 'favorites' ? (artwork.price || 'Digital artwork')
-      : panel === 'created' ? `Listed at ${artwork.price || 'Demo'}`
-        : `Paid ${artwork.price || 'Demo'}`;
+    price.textContent = artwork.price || '';
     details.append(title, creator, price);
-    if (artwork.date) {
-      const date = document.createElement('small');
-      date.textContent = `${panel === 'recent' ? 'Viewed' : panel === 'created' ? 'Listed' : 'Acquired'} ${formatMemberDate(artwork.date)}`;
-      details.append(date);
-    }
-    const actions = document.createElement('div');
-    actions.className = 'member-art-tile-actions';
-    const viewButton = document.createElement('button');
-    viewButton.type = 'button';
-    viewButton.dataset.artworkAction = 'view';
-    viewButton.textContent = 'View details';
-    actions.append(viewButton);
-    if (panel === 'favorites') {
-      const removeButton = document.createElement('button');
-      removeButton.type = 'button';
-      removeButton.dataset.artworkAction = 'remove-favorite';
-      removeButton.textContent = 'Remove';
-      actions.append(removeButton);
-    } else if (panel === 'created') {
-      const removeButton = document.createElement('button');
-      removeButton.type = 'button';
-      removeButton.dataset.artworkAction = 'remove-listing';
-      removeButton.textContent = 'Remove listing';
-      actions.append(removeButton);
-    }
-    article.append(imageButton, details, actions);
-    article.dataset.artworkId = artwork.id;
+    article.append(imageContainer, details);
     return article;
   }
 
   function renderMemberDashboard() {
     if (!isMemberPage) return;
-    const favorites = readSavedFavorites();
-    let collection = readStoredList(collectionStorageKey, 'collection');
-    let history = readStoredList(historyStorageKey, 'purchase history');
-    const createdArt = readStoredList(createdArtStorageKey, 'created artwork');
+    const favorites = [...document.querySelectorAll('#artGrid .art-column')]
+      .filter(card => card.querySelector('[data-engagement-like][data-liked="true"]'))
+      .map(card => getFavoriteFromButton(card.querySelector('.heart-button')))
+      .filter(Boolean);
+    const favoriteItems = document.getElementById('memberFavoriteItems');
+    if (favoriteItems) {
+      favoriteItems.replaceChildren(...(favorites.length
+        ? favorites.map(item => makeArtworkTile(item, 'favorites'))
+        : [Object.assign(document.createElement('p'), {
+          className: 'member-empty-state',
+          textContent: 'You have not favorited any artwork yet. Use the heart on a listing to save it to your account.'
+        })]));
+    }
     document.getElementById('memberWelcomeFavorites').textContent = String(favorites.length);
     document.getElementById('memberFavoritePanelCount').textContent = String(favorites.length);
-    document.getElementById('memberOwnedCount').textContent = String(collection.length);
-    document.getElementById('memberCollectionCount').textContent = String(collection.length);
-    document.getElementById('memberPurchaseCount').textContent = String(history.length);
-    const collectionItems = document.getElementById('memberCollectionItems');
-    collectionItems.replaceChildren(...(collection.length
-      ? collection.map(item => makeArtworkTile(item, 'collection'))
-      : [Object.assign(document.createElement('p'), { className: 'member-empty-state', textContent: 'Your collection is empty. Explore NFTs and add a demo purchase.' })]));
-    const favoriteItems = document.getElementById('memberFavoriteItems');
-    favoriteItems.replaceChildren(...(favorites.length
-      ? favorites.map(item => makeArtworkTile(item, 'favorites'))
-      : [Object.assign(document.createElement('p'), { className: 'member-empty-state', textContent: 'No favorites yet. Save artwork with the heart button while exploring.' })]));
-    const collectionUploads = document.getElementById('memberCollectionUploads');
-    collectionUploads.replaceChildren(...(createdArt.length
-      ? createdArt.map(item => makeArtworkTile(item, 'created'))
-      : [Object.assign(document.createElement('p'), { className: 'member-empty-state', textContent: 'You have not uploaded any artwork yet. Start creating to add your first upload.' })]));
-    const historyItems = document.getElementById('memberHistoryItems');
-    if (!history.length) {
-      const emptyRow = document.createElement('tr');
-      const emptyCell = document.createElement('td');
-      emptyCell.colSpan = 4;
-      emptyCell.className = 'member-empty-state';
-      emptyCell.textContent = 'No demo purchases yet.';
-      emptyRow.append(emptyCell);
-      historyItems.replaceChildren(emptyRow);
-    } else {
-      historyItems.replaceChildren(...history.map(item => {
-        const row = document.createElement('tr');
-        [item.title, item.price, formatMemberDate(item.date)].forEach(value => {
-          const cell = document.createElement('td');
-          cell.textContent = value;
-          row.append(cell);
-        });
-        const statusCell = document.createElement('td');
-        const status = document.createElement('span');
-        status.className = 'member-transaction-status';
-        status.textContent = `${item.status || 'Completed'} · Demo`;
-        statusCell.append(status);
-        row.append(statusCell);
-        return row;
-      }));
-    }
-    renderPaymentPanel(collection);
-    renderMemberNotifications();
   }
 
-  function readPendingCheckout() {
-    try {
-      const stored = window.localStorage.getItem(pendingCheckoutStorageKey);
-      if (!stored) return null;
-      const artwork = JSON.parse(stored);
-      if (!artwork || typeof artwork.id !== 'string' || typeof artwork.title !== 'string' ||
-          typeof artwork.image !== 'string') {
-        throw new TypeError('Expected an artwork for checkout.');
-      }
-      return artwork;
-    } catch (error) {
-      console.error('Could not read Pixmoree checkout details from this browser.', error);
-      return null;
-    }
-  }
-
-  function renderPaymentPanel(collection = readStoredList(collectionStorageKey, 'collection')) {
-    const checkout = document.getElementById('memberCheckoutArtwork');
-    const submit = document.getElementById('memberPaymentSubmit');
-    const paymentTerms = document.getElementById('memberPaymentTerms');
-    if (checkout && submit && paymentTerms) {
-      const artwork = readPendingCheckout();
-      if (!artwork) {
-        checkout.replaceChildren();
-        checkout.hidden = true;
-        document.getElementById('memberCheckoutPrice').textContent = '—';
-        document.getElementById('memberCheckoutTotal').textContent = '—';
-        document.getElementById('memberPixelRateNote').hidden = true;
-        document.getElementById('memberPixelInsufficient').hidden = true;
-        submit.disabled = true;
-        submit.textContent = 'No active order';
-      } else {
-        const summary = document.createElement('div');
-        summary.className = 'member-checkout-summary';
-        const image = document.createElement('img');
-        image.src = artwork.image;
-        image.alt = artwork.alt || artwork.title;
-        const details = document.createElement('div');
-        const title = document.createElement('strong');
-        title.textContent = artwork.title;
-        const creator = document.createElement('small');
-        creator.textContent = `By ${artwork.creator || 'Pixmoree creator'}`;
-        const price = document.createElement('span');
-        price.textContent = artwork.price || 'Price unavailable';
-        details.append(title, creator, price);
-        summary.append(image, details);
-        checkout.replaceChildren(summary);
-        checkout.hidden = false;
-        document.getElementById('memberCheckoutPrice').textContent = artwork.price || 'Price unavailable';
-        const alreadyOwned = collection.some(item => item.id === artwork.id);
-        updatePixelCoinCheckout(artwork, alreadyOwned, paymentTerms.checked);
-      }
-    }
-    updatePixelCoinBalance();
-    renderPixelCoinActivity();
-
-    const transactionItems = document.getElementById('memberTransactionItems');
-    if (!transactionItems) return;
-    const history = readStoredList(historyStorageKey, 'purchase history');
-    if (!history.length) {
-      const row = document.createElement('tr');
-      const cell = document.createElement('td');
-      cell.colSpan = 6;
-      cell.className = 'member-empty-state';
-      cell.textContent = 'No demo transactions yet.';
-      row.append(cell);
-      transactionItems.replaceChildren(row);
-      return;
-    }
-    transactionItems.replaceChildren(...history.map(item => {
-      const row = document.createElement('tr');
-      [item.transactionId || 'Demo record', item.title,
-        item.pixelCoinAmount ? `${item.pixelCoinAmount.toLocaleString()} PIXEL COIN` : item.price || 'Demo',
-        item.paymentMethod || 'Demo', formatMemberDate(item.date)].forEach(value => {
-        const cell = document.createElement('td');
-        cell.textContent = value;
-        row.append(cell);
-      });
-      const statusCell = document.createElement('td');
-      const status = document.createElement('span');
-      status.className = 'member-transaction-status';
-      status.textContent = `${item.status || 'Completed'} · Demo`;
-      statusCell.append(status);
-      row.append(statusCell);
-      return row;
-    }));
-  }
-
-  function parseEthPrice(price) {
-    const match = typeof price === 'string' && price.match(/([\d,]+(?:\.\d+)?)\s*ETH/i);
-    if (!match) return null;
-    const value = Number(match[1].replace(/,/g, ''));
-    return Number.isFinite(value) && value > 0 ? value : null;
-  }
-
-  function getPixelCoinBalance() {
-    return pixelCoinBalance;
-  }
+  window.addEventListener('pixmoree:engagement-updated', () => {
+    renderMemberDashboard();
+    updateGallery();
+  });
 
   function updatePixelCoinBalance() {
     document.querySelectorAll('[data-pixelcoin-balance]').forEach(balance => {
-      balance.textContent = getPixelCoinBalance().toLocaleString();
-    });
-    document.querySelectorAll('[data-pixel-topup]').forEach(button => {
-      button.disabled = !pixelCoinWalletLoaded;
+      balance.textContent = pixelCoinBalance.toLocaleString();
     });
   }
 
-  async function requestPixelCoinApi(path, method = 'GET', body = null) {
+  async function requestPixelCoinApi() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
     if (!csrfToken) throw new Error('The secure wallet request token is missing. Refresh the page and try again.');
-    const response = await fetch(path, {
-      method,
+    const response = await fetch('/api/pixel-coins', {
+      method: 'GET',
       credentials: 'same-origin',
       headers: {
         Accept: 'application/json',
-        'Content-Type': 'application/json',
         'X-CSRF-TOKEN': csrfToken
-      },
-      ...(body === null ? {} : { body: JSON.stringify(body) })
+      }
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
@@ -528,9 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function applyPixelCoinWallet(payload) {
     pixelCoinBalance = payload.balance;
-    pixelCoinWalletLoaded = true;
     if (Array.isArray(payload.transactions)) pixelCoinTransactions = payload.transactions;
-    else if (payload.transaction) pixelCoinTransactions = [payload.transaction, ...pixelCoinTransactions].slice(0, 20);
     const navStatus = document.getElementById('memberPixelCoinNavStatus');
     if (navStatus) navStatus.hidden = true;
     const walletLink = document.querySelector('.member-pixel-coin-link');
@@ -540,18 +296,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     updatePixelCoinBalance();
     renderPixelCoinActivity();
-    renderPaymentPanel();
   }
 
   async function refreshPixelCoinWallet() {
-    applyPixelCoinWallet(await requestPixelCoinApi('/api/pixel-coins'));
+    applyPixelCoinWallet(await requestPixelCoinApi());
   }
 
   function showPixelCoinWalletError(error, fallback) {
     console.error(fallback, error);
     const message = error instanceof Error ? error.message : fallback;
-    const feedback = document.getElementById('memberPixelWalletFeedback') ||
-      document.getElementById('memberPaymentFeedback');
+    const feedback = document.getElementById('memberPixelWalletFeedback');
     if (feedback) {
       feedback.textContent = message;
       feedback.hidden = false;
@@ -565,58 +319,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function updatePixelCoinCheckout(artwork, alreadyOwned, termsAccepted) {
-    const method = document.getElementById('memberPaymentMethod').value;
-    const total = document.getElementById('memberCheckoutTotal');
-    const rateNote = document.getElementById('memberPixelRateNote');
-    const insufficient = document.getElementById('memberPixelInsufficient');
-    const submit = document.getElementById('memberPaymentSubmit');
-    const feedback = document.getElementById('memberPaymentFeedback');
-    const ethAmount = parseEthPrice(artwork.price);
-    const coinCost = ethAmount === null ? null : Math.ceil(ethAmount * demoPixelCoinPerEth);
-    const isPixelCoin = method === 'Pixel Coin (Demo)';
-    const manualReference = document.querySelector('#memberPaymentForm [name="transaction_reference"]');
-    const manualProof = document.querySelector('#memberPaymentForm [name="proof"]');
-    const needsManualProof = ['gcash', 'maya', 'paypal'].includes(method);
-    if (manualReference) manualReference.required = needsManualProof;
-    if (manualProof) manualProof.required = needsManualProof;
-    rateNote.hidden = !isPixelCoin;
-    insufficient.hidden = true;
-    total.textContent = isPixelCoin
-      ? coinCost === null ? 'Unavailable' : `${coinCost.toLocaleString()} PIXEL COIN`
-      : artwork.price || 'Price unavailable';
-    if (isPixelCoin && !pixelCoinWalletLoaded) {
-      submit.disabled = true;
-      submit.innerHTML = '<i class="bi bi-arrow-repeat"></i> Checking Pixel Coin balance';
-      insufficient.textContent = 'Your account wallet balance is loading.';
-      insufficient.hidden = false;
-      return;
-    }
-    if (alreadyOwned) {
-      submit.disabled = true;
-      submit.innerHTML = '<i class="bi bi-check-circle"></i> Already in My Collection';
-      return;
-    }
-    if (isPixelCoin && (coinCost === null || getPixelCoinBalance() < coinCost)) {
-      submit.disabled = true;
-      submit.innerHTML = '<i class="bi bi-coin"></i> Top up Pixel Coin to continue';
-      insufficient.textContent = coinCost === null
-        ? 'This listing does not have a supported ETH demo price for Pixel Coin checkout.'
-        : `You need ${coinCost.toLocaleString()} PIXEL COIN, but your demo balance is ${getPixelCoinBalance().toLocaleString()}. Add demo coins above to continue.`;
-      insufficient.hidden = false;
-      return;
-    }
-    submit.disabled = !termsAccepted;
-    submit.innerHTML = termsAccepted
-      ? method === 'cash_wallet'
-        ? '<i class="bi bi-wallet2"></i> Buy with cleared PHP balance'
-        : isPixelCoin
-          ? '<i class="bi bi-coin"></i> Confirm demo purchase'
-          : '<i class="bi bi-shield-check"></i> Submit for admin verification'
-      : '<i class="bi bi-lock"></i> Review order to continue';
-    if (feedback.textContent.includes('Top up')) feedback.hidden = true;
-  }
-
   function renderPixelCoinActivity() {
     const target = document.getElementById('memberPixelCoinActivity');
     if (!target) return;
@@ -625,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const cell = document.createElement('td');
       cell.colSpan = 4;
       cell.className = 'member-empty-state';
-      cell.textContent = pixelCoinWalletLoaded ? 'No wallet activity yet.' : 'Loading wallet activity…';
+      cell.textContent = 'No wallet activity yet.';
       row.append(cell);
       target.replaceChildren(row);
       return;
@@ -633,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
     target.replaceChildren(...pixelCoinTransactions.map(item => {
       const row = document.createElement('tr');
       const label = document.createElement('td');
-      label.textContent = item.description || (item.type === 'demo_top_up' ? 'Demo credit' : 'Pixel Coin purchase');
+      label.textContent = item.description || (item.type === 'demo_top_up' ? 'Historical credit' : 'Pixel Coin purchase');
       const amount = document.createElement('td');
       const isCredit = item.type === 'demo_top_up';
       amount.textContent = `${isCredit ? '+' : '−'}${Number(item.amount).toLocaleString()} PIXEL COIN`;
@@ -643,117 +345,6 @@ document.addEventListener('DOMContentLoaded', () => {
       date.textContent = formatMemberDate(item.created_at);
       row.append(label, amount, balance, date);
       return row;
-    }));
-  }
-
-  document.querySelectorAll('[data-pixel-topup]').forEach(button => {
-    button.addEventListener('click', async () => {
-      const amount = Number(button.dataset.pixelTopup);
-      if (!Number.isSafeInteger(amount) || amount <= 0) {
-        console.error('Ignored an invalid Pixel Coin demo top-up amount.');
-        return;
-      }
-      const message = document.getElementById('memberPixelWalletFeedback');
-      button.disabled = true;
-      if (message) message.hidden = true;
-      try {
-        const result = await requestPixelCoinApi('/api/pixel-coins/top-ups', 'POST', { amount });
-        applyPixelCoinWallet(result);
-        if (message) {
-          message.textContent = `${amount.toLocaleString()} free demo PIXEL COIN added. No payment was made.`;
-          message.hidden = false;
-        }
-      } catch (error) {
-        showPixelCoinWalletError(error, 'Could not add demo credits. Please try again.');
-      } finally {
-        button.disabled = !pixelCoinWalletLoaded;
-      }
-    });
-  });
-
-  document.getElementById('memberPaymentMethod')?.addEventListener('change', () => {
-    const artwork = readPendingCheckout();
-    if (artwork) updatePixelCoinCheckout(
-      artwork,
-      readStoredList(collectionStorageKey, 'collection').some(item => item.id === artwork.id),
-      document.getElementById('memberPaymentTerms').checked
-    );
-  });
-
-  document.getElementById('memberPaymentTerms')?.addEventListener('change', () => {
-    const artwork = readPendingCheckout();
-    if (artwork) updatePixelCoinCheckout(
-      artwork,
-      readStoredList(collectionStorageKey, 'collection').some(item => item.id === artwork.id),
-      document.getElementById('memberPaymentTerms').checked
-    );
-  });
-
-  function renderMemberNotifications() {
-    const notifications = [
-      ...readStoredList(historyStorageKey, 'purchase history').map(item => ({
-        id: `purchase:${item.id}`,
-        icon: 'bi-bag-check',
-        title: `Purchase recorded: ${item.title}`,
-        detail: `${item.price || 'Demo purchase'} · ${formatMemberDate(item.date)}`,
-        date: item.date
-      })),
-      ...readStoredList(createdArtStorageKey, 'created artwork').map(item => ({
-        id: `listing:${item.id}`,
-        icon: 'bi-stars',
-        title: `Your artwork is listed: ${item.title}`,
-        detail: `Demo listing · ${formatMemberDate(item.date)}`,
-        date: item.date
-      }))
-    ].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 12);
-    let readIds = [];
-    try {
-      const stored = JSON.parse(window.localStorage.getItem(notificationReadStorageKey) || '[]');
-      if (!Array.isArray(stored) || stored.some(id => typeof id !== 'string')) {
-        throw new TypeError('Expected a list of notification identifiers.');
-      }
-      readIds = stored;
-    } catch (error) {
-      console.error('Could not read Pixmoree notification state from this browser.', error);
-    }
-    const unread = notifications.filter(item => !readIds.includes(item.id)).length;
-    const sidebarBadge = document.getElementById('memberNotificationBadge');
-    const topBadge = document.getElementById('memberTopNotificationBadge');
-    sidebarBadge.textContent = String(unread);
-    topBadge.textContent = String(unread);
-    sidebarBadge.hidden = unread === 0;
-    topBadge.hidden = unread === 0;
-    const list = document.getElementById('memberNotificationsList');
-    if (!notifications.length) {
-      const empty = document.createElement('p');
-      empty.className = 'member-empty-state';
-      empty.textContent = 'You are all caught up. New purchases and listings will appear here.';
-      list.replaceChildren(empty);
-      return;
-    }
-    list.replaceChildren(...notifications.map(item => {
-      const article = document.createElement('article');
-      article.className = `member-notification-item${readIds.includes(item.id) ? ' is-read' : ''}`;
-      const icon = document.createElement('span');
-      icon.className = 'member-notification-icon';
-      const iconGlyph = document.createElement('i');
-      iconGlyph.className = `bi ${item.icon}`;
-      icon.append(iconGlyph);
-      const copy = document.createElement('span');
-      copy.className = 'member-notification-copy';
-      const title = document.createElement('strong');
-      title.textContent = item.title;
-      const detail = document.createElement('small');
-      detail.textContent = item.detail;
-      copy.append(title, detail);
-      const markRead = document.createElement('button');
-      markRead.type = 'button';
-      markRead.className = 'member-notification-mark';
-      markRead.dataset.notificationId = item.id;
-      markRead.textContent = readIds.includes(item.id) ? 'Read' : 'Mark read';
-      markRead.disabled = readIds.includes(item.id);
-      article.append(icon, copy, markRead);
-      return article;
     }));
   }
 
@@ -779,27 +370,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileToggle = document.getElementById('memberProfileToggle');
     const profileMenu = document.getElementById('memberProfileMenu');
     updateMemberProfile(window.pixmoreeAccount ?? {});
-    try {
-      if (window.localStorage.getItem(resetDemoStorageKey) !== '1') {
-        [
-          favoritesStorageKey,
-          collectionStorageKey,
-          historyStorageKey,
-          recentStorageKey,
-          createdArtStorageKey,
-          pendingCheckoutStorageKey,
-          notificationReadStorageKey,
-          'pixmoree.user.pixel-coin-balance.v1',
-          'pixmoree.user.pixel-coin-activity.v1'
-        ].forEach(key => window.localStorage.removeItem(key));
-        Object.keys(window.localStorage)
-          .filter(key => key.startsWith(nftDetailStoragePrefix))
-          .forEach(key => window.localStorage.removeItem(key));
-        window.localStorage.setItem(resetDemoStorageKey, '1');
-      }
-    } catch (error) {
-      console.error('Could not clear previous Pixmoree browser demo data.', error);
-    }
     renderMemberDashboard();
     updatePixelCoinBalance();
     refreshPixelCoinWallet().catch(error => {
@@ -810,26 +380,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showPixelCoinWalletError(error, 'Could not refresh your Pixel Coin wallet.');
       });
     });
-    if (!isMemberAccountPage) {
-      document.querySelectorAll('.art-column').forEach(card => {
-        const artwork = getFavoriteFromButton(card.querySelector('.heart-button'));
-        const body = card.querySelector('.art-card-body');
-        if (!artwork || !body || body.querySelector('[data-artwork-purchase]')) return;
-        const purchaseButton = document.createElement('button');
-        purchaseButton.type = 'button';
-        purchaseButton.className = 'member-card-purchase';
-        purchaseButton.dataset.artworkPurchase = artwork.id;
-        purchaseButton.textContent = 'Buy NFT (demo)';
-        const feedback = document.createElement('small');
-        feedback.className = 'member-card-purchase-feedback';
-        feedback.setAttribute('role', 'status');
-        feedback.hidden = true;
-        body.append(purchaseButton, feedback);
-        updatePurchaseButton(purchaseButton, artwork.id);
-      });
-    }
-    document.getElementById('nftPreviewCollectButton').hidden = false;
-
     profileToggle.addEventListener('click', () => {
       const isExpanded = profileToggle.getAttribute('aria-expanded') === 'true';
       profileToggle.setAttribute('aria-expanded', String(!isExpanded));
@@ -884,80 +434,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = routes[panel] || '/user';
       });
     });
-    document.querySelector('.member-dashboard-content').addEventListener('click', event => {
-      if (!(event.target instanceof Element)) return;
-      const button = event.target.closest('[data-artwork-action]');
-      if (!button) return;
-      const article = button.closest('.member-art-tile');
-      if (!article) return;
-      const id = article.dataset.artworkId;
-      if (button.dataset.artworkAction === 'remove-favorite') {
-        const updatedFavorites = readSavedFavorites().filter(item => item.id !== id);
-        if (writeStoredList(favoritesStorageKey, updatedFavorites, 'saved artwork')) {
-          const favoriteIds = new Set(updatedFavorites.map(item => item.id));
-          document.querySelectorAll('.heart-button').forEach(heart => {
-            const favorite = getFavoriteFromButton(heart);
-            setFavoriteState(heart, favorite && favoriteIds.has(favorite.id));
-          });
-          renderMemberDashboard();
-          updateGallery();
-        }
-        return;
-      }
-      if (button.dataset.artworkAction === 'remove-listing') {
-        const remainingListings = readStoredList(createdArtStorageKey, 'created artwork').filter(artwork => artwork.id !== id);
-        if (writeStoredList(createdArtStorageKey, remainingListings, 'created artwork')) renderMemberDashboard();
-        return;
-      }
-      const item = [...readSavedFavorites(), ...readStoredList(collectionStorageKey, 'collection'), ...readStoredList(recentStorageKey, 'recently viewed artwork'), ...readStoredList(createdArtStorageKey, 'created artwork')].find(artwork => artwork.id === id);
-      if (item) openStoredArtworkPreview(item);
-    });
-    document.getElementById('memberMarkNotificationsRead').addEventListener('click', () => {
-      const ids = [...document.querySelectorAll('.member-notification-mark')].map(button => button.dataset.notificationId);
-      try {
-        window.localStorage.setItem(notificationReadStorageKey, JSON.stringify(ids));
-      } catch (error) {
-        console.error('Could not save Pixmoree notification state to this browser.', error);
-      }
-      renderMemberNotifications();
-    });
-    document.getElementById('memberNotificationsList').addEventListener('click', event => {
-      if (!(event.target instanceof Element)) return;
-      const button = event.target.closest('[data-notification-id]');
-      if (!button) return;
-      let readIds = [];
-      try {
-        const stored = JSON.parse(window.localStorage.getItem(notificationReadStorageKey) || '[]');
-        if (!Array.isArray(stored) || stored.some(id => typeof id !== 'string')) {
-          throw new TypeError('Expected a list of notification identifiers.');
-        }
-        readIds = stored;
-        if (!readIds.includes(button.dataset.notificationId)) readIds.push(button.dataset.notificationId);
-        window.localStorage.setItem(notificationReadStorageKey, JSON.stringify(readIds));
-      } catch (error) {
-        console.error('Could not update Pixmoree notification state in this browser.', error);
-      }
-      renderMemberNotifications();
-    });
-    document.getElementById('memberPaymentForm').addEventListener('submit', async event => {
-      const form = event.currentTarget;
-      if (!form.reportValidity()) return;
-      const paymentMethod = document.getElementById('memberPaymentMethod').value;
-      if (paymentMethod !== 'Pixel Coin (Demo)') return;
-      event.preventDefault();
-      const artwork = readPendingCheckout();
-      const feedback = document.getElementById('memberPaymentFeedback');
-      if (!artwork) {
-        feedback.textContent = 'Choose an artwork and review the order before continuing.';
-        feedback.hidden = false;
-        return;
-      }
-      const completed = await purchaseArtwork(artwork, feedback, paymentMethod);
-      if (!completed) return;
-      document.getElementById('memberPaymentTerms').checked = false;
-      renderPaymentPanel();
-    });
-
     const artworkFile = document.getElementById('memberArtworkFile');
     const artworkPreview = document.getElementById('memberArtworkPreview');
     const createFeedback = document.getElementById('memberCreateFeedback');
@@ -1002,162 +478,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  function updatePurchaseButton(button, artworkId) {
-    const owned = readStoredList(collectionStorageKey, 'collection').some(item => item.id === artworkId);
-    button.disabled = owned;
-    button.textContent = owned ? 'In My Collection' : 'Buy NFT (demo)';
-  }
-
-  async function purchaseArtwork(artwork, feedback, paymentMethod = 'Demo checkout') {
-    if (!artwork || !isMemberPage) return false;
-    const collection = readStoredList(collectionStorageKey, 'collection');
-    if (collection.some(item => item.id === artwork.id)) {
-      if (feedback) {
-        feedback.textContent = 'This NFT is already in your collection.';
-        feedback.hidden = false;
-      }
-      return false;
-    }
-    const pixelCoinAmount = paymentMethod === 'Pixel Coin (Demo)'
-      ? (() => {
-        const ethAmount = parseEthPrice(artwork.price);
-        return ethAmount === null ? null : Math.ceil(ethAmount * demoPixelCoinPerEth);
-      })()
-      : null;
-    const balance = paymentMethod === 'Pixel Coin (Demo)' ? getPixelCoinBalance() : null;
-    if (paymentMethod === 'Pixel Coin (Demo)' &&
-        (!pixelCoinWalletLoaded || pixelCoinAmount === null || balance === null || balance < pixelCoinAmount)) {
-      if (feedback) {
-        feedback.textContent = pixelCoinAmount === null
-          ? 'Pixel Coin demo checkout is unavailable because this listing has no supported ETH price.'
-          : !pixelCoinWalletLoaded
-            ? 'Your account wallet balance is still loading.'
-            : `Not enough PIXEL COIN. You need ${pixelCoinAmount.toLocaleString()} and have ${balance.toLocaleString()}. Add free demo credits to continue.`;
-        feedback.hidden = false;
-      }
-      return false;
-    }
-    const purchase = {
-      id: artwork.id,
-      title: artwork.title,
-      creator: artwork.creator,
-      image: artwork.image,
-      alt: artwork.alt || artwork.title,
-      price: artwork.price || 'Demo purchase',
-      date: new Date().toISOString().slice(0, 10),
-      transactionId: `PM-DEMO-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
-      paymentMethod,
-      ...(pixelCoinAmount !== null ? { pixelCoinAmount } : {}),
-      status: 'Completed'
-    };
-    const history = readStoredList(historyStorageKey, 'purchase history');
-    if (!writeStoredList(collectionStorageKey, [...collection, purchase], 'collection')) {
-      if (feedback) {
-        feedback.textContent = 'Unable to complete this demo purchase. Check browser storage settings.';
-        feedback.hidden = false;
-      }
-      return false;
-    }
-    if (!writeStoredList(historyStorageKey, [purchase, ...history], 'purchase history')) {
-      writeStoredList(collectionStorageKey, collection, 'collection rollback');
-      if (feedback) {
-        feedback.textContent = 'The purchase record could not be saved, so the collection update was rolled back.';
-        feedback.hidden = false;
-      }
-      return false;
-    }
-    if (pixelCoinAmount !== null) {
-      try {
-        applyPixelCoinWallet(await requestPixelCoinApi('/api/pixel-coins/purchases', 'POST', {
-          artwork_id: artwork.id
-        }));
-      } catch (error) {
-        if (!writeStoredList(collectionStorageKey, collection, 'collection rollback')) {
-          console.error('Could not restore the browser collection after a failed Pixel Coin purchase.');
-        }
-        if (!writeStoredList(historyStorageKey, history, 'purchase history rollback')) {
-          console.error('Could not restore browser purchase history after a failed Pixel Coin purchase.');
-        }
-        if (feedback) {
-          feedback.textContent = error instanceof Error ? error.message : 'Pixel Coin checkout failed. No purchase was recorded.';
-          feedback.hidden = false;
-        }
-        showPixelCoinWalletError(error, 'Pixel Coin checkout failed.');
-        return false;
-      }
-    }
-    if (feedback) {
-      feedback.textContent = 'Demo purchase complete. No payment was processed.';
-      feedback.hidden = false;
-    }
-    renderMemberDashboard();
-    document.querySelectorAll('[data-artwork-purchase]').forEach(button => {
-      updatePurchaseButton(button, button.dataset.artworkPurchase);
-    });
-    return true;
-  }
-
-  function navigateToPayment(artwork) {
-    if (!isMemberPage || !artwork) return;
-    try {
-      window.localStorage.setItem(pendingCheckoutStorageKey, JSON.stringify(artwork));
-      window.location.href = '/user/payment';
-    } catch (error) {
-      console.error('Could not save Pixmoree checkout details in this browser.', error);
-      window.alert('Checkout could not be opened because browser storage is unavailable. Check your browser storage settings and try again.');
-    }
-  }
-
-  function setFavoriteState(button, isFavorite) {
-    isFavorite = Boolean(isFavorite);
-    button.classList.toggle('liked', isFavorite);
-    button.setAttribute('aria-pressed', String(isFavorite));
-    const icon = button.querySelector('i');
-    icon.classList.toggle('bi-heart', !isFavorite);
-    icon.classList.toggle('bi-heart-fill', isFavorite);
-    const favorite = getFavoriteFromButton(button);
-    if (favorite) button.setAttribute('aria-label', `${isFavorite ? 'Remove' : 'Add'} ${favorite.title} ${isFavorite ? 'from' : 'to'} favorites`);
-  }
-
-  const savedFavoriteIds = new Set(readSavedFavorites().map(item => item.id));
-  document.querySelectorAll('.heart-button').forEach(button => {
-    const favorite = getFavoriteFromButton(button);
-    setFavoriteState(button, favorite && savedFavoriteIds.has(favorite.id));
-    button.addEventListener('click', () => {
-      const favorite = getFavoriteFromButton(button);
-      if (!favorite) return;
-      const favorites = readSavedFavorites().filter(item => item.id !== favorite.id);
-      const isFavorite = !button.classList.contains('liked');
-      if (isFavorite) favorites.push(favorite);
-      try {
-        window.localStorage.setItem(favoritesStorageKey, JSON.stringify(favorites));
-      } catch (error) {
-        console.error('Could not save Pixmoree favorites to this browser.', error);
-      }
-      setFavoriteState(button, isFavorite);
-      updateMemberFavoriteCount();
-      renderMemberDashboard();
-      if (button.closest('#artGrid')) updateGallery();
-    });
-  });
-
-  window.addEventListener('storage', event => {
-    if (event.key !== favoritesStorageKey) return;
-    const favoriteIds = new Set(readSavedFavorites().map(item => item.id));
-    document.querySelectorAll('.heart-button').forEach(button => {
-      const favorite = getFavoriteFromButton(button);
-      setFavoriteState(button, favorite && favoriteIds.has(favorite.id));
-    });
-    updateMemberFavoriteCount();
-    renderMemberDashboard();
-    updateGallery();
-  });
-
-  function openNftPreview(source) {
-    const artwork = getArtworkFromSource(source);
-    if (artwork) openStoredArtworkPreview(artwork);
-  }
-
   function getArtworkFromSource(source) {
     if (!source) return;
     const image = source.querySelector('.art-image-wrap img, .trending-feature-slide img, img');
@@ -1185,58 +505,23 @@ document.addEventListener('DOMContentLoaded', () => {
       image: image.getAttribute('src'),
       alt: image.alt || title,
       price: price || 'Digital artwork',
-      marketValue: source.dataset.marketValue || '',
-      marketChangePercent: source.dataset.marketChange || '0',
       items,
       rank,
       category: source.dataset.category || 'Digital art'
     };
   }
 
-  function getNftSlug(title) {
-    return title.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'digital-artwork';
-  }
-
-  function saveNftDetails(artwork) {
-    if (!isMemberPage) return null;
-    let hash = 2166136261;
-    for (const character of String(artwork.id || artwork.title || 'digital-artwork')) {
-      hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
-    }
-    const slug = `${getNftSlug(artwork.title || 'digital-artwork')}-${(hash >>> 0).toString(36)}`;
-    const detail = {
-      ...artwork,
-      slug,
-      description: artwork.description || `A digital collectible by ${artwork.creator || 'a Pixmoree creator'}. No additional creator notes are available for this demo listing.`,
-      category: artwork.category || 'Digital art',
-      collection: artwork.collection || `${artwork.creator || 'Pixmoree'} Collection`,
-      token: artwork.token || artwork.title.match(/#\S+/)?.[0] || `PM-${slug.toUpperCase()}`,
-      items: artwork.items || '1'
-    };
-    try {
-      window.localStorage.setItem(`${nftDetailStoragePrefix}${slug}`, JSON.stringify(detail));
-      return slug;
-    } catch (error) {
-      console.error('Could not save Pixmoree NFT details in this browser.', error);
-      window.alert('NFT details could not be opened because browser storage is unavailable. Check your browser storage settings and try again.');
-      return null;
-    }
-  }
-
   function navigateToNftDetail(artwork) {
-    if (!isMemberPage) {
+    if (typeof artwork?.id !== 'string' || artwork.id === '') {
       openStoredArtworkPreview(artwork);
       return;
     }
-    const slug = saveNftDetails(artwork);
-    if (!slug) return;
-    window.location.href = `/user/nft/${encodeURIComponent(slug)}`;
+
+    window.location.href = `/week12/artworks/${encodeURIComponent(artwork.id)}`;
   }
 
   function openStoredArtworkPreview(artwork) {
     if (!nftPreview || !artwork) return;
-    currentPreviewArtwork = artwork;
     nftPreviewImage.src = artwork.image;
     nftPreviewImage.alt = artwork.alt || artwork.title;
     nftPreviewTitle.textContent = artwork.title;
@@ -1244,24 +529,17 @@ document.addEventListener('DOMContentLoaded', () => {
     nftPreviewCreator.hidden = !artwork.creator;
     document.getElementById('nftPreviewRankRow').hidden = !artwork.rank;
     document.getElementById('nftPreviewPriceRow').hidden = !artwork.price;
-    document.getElementById('nftPreviewMarketValueRow').hidden = !artwork.marketValue;
     document.getElementById('nftPreviewItemsRow').hidden = !artwork.items;
     document.getElementById('nftPreviewRank').textContent = artwork.rank || '';
     document.getElementById('nftPreviewPrice').textContent = artwork.price || '';
-    document.getElementById('nftPreviewMarketValue').textContent = artwork.marketValue
-      ? `${artwork.marketValue} ETH (${Number(artwork.marketChangePercent) >= 0 ? '+' : ''}${Number(artwork.marketChangePercent).toFixed(1)}%)`
-      : '';
     document.getElementById('nftPreviewItems').textContent = artwork.items || '';
     const fullDetailsLink = document.getElementById('nftPreviewFullDetails');
-    const detailSlug = isMemberPage ? saveNftDetails(artwork) : null;
     if (fullDetailsLink) {
-      fullDetailsLink.hidden = !isMemberPage || !detailSlug;
-      if (detailSlug) fullDetailsLink.href = `/user/nft/${encodeURIComponent(detailSlug)}`;
+      fullDetailsLink.hidden = typeof artwork.id !== 'string';
+      if (typeof artwork.id === 'string') {
+        fullDetailsLink.href = `/week12/artworks/${encodeURIComponent(artwork.id)}`;
+      }
     }
-    const collectButton = document.getElementById('nftPreviewCollectButton');
-    if (collectButton) collectButton.hidden = !isMemberPage;
-    const collectFeedback = document.getElementById('nftPreviewCollectFeedback');
-    collectFeedback.hidden = true;
     const engagementPanel = document.getElementById('nftPreviewEngagement');
     if (engagementPanel && typeof artwork.id === 'string') {
       engagementPanel.dataset.entityId = artwork.id;
@@ -1270,173 +548,11 @@ document.addEventListener('DOMContentLoaded', () => {
       window.dispatchEvent(new CustomEvent('pixmoree:artwork-view', { detail: { id: artwork.id } }));
     }
 
-    if (isMemberPage) {
-      const recent = readStoredList(recentStorageKey, 'recently viewed artwork')
-        .filter(item => item.id !== artwork.id);
-      recent.unshift({
-        id: artwork.id,
-        title: artwork.title,
-        creator: artwork.creator,
-        image: artwork.image,
-        alt: artwork.alt || artwork.title,
-        price: artwork.price,
-        date: new Date().toISOString().slice(0, 10)
-      });
-      if (writeStoredList(recentStorageKey, recent.slice(0, 8), 'recently viewed artwork')) renderMemberDashboard();
-    }
     nftPreview.showModal();
   }
 
-  document.getElementById('nftPreviewCollectButton')?.addEventListener('click', () => {
-    if (!currentPreviewArtwork) return;
-    navigateToPayment(currentPreviewArtwork);
-  });
-
-  function initializeNftDetailPage() {
-    if (!isNftDetailPage) return;
-    document.body.classList.add('nft-detail-page-active');
-    const page = document.getElementById('nftDetailPage');
-    const layout = document.getElementById('nftDetailLayout');
-    const error = document.getElementById('nftDetailError');
-    const slug = decodeURIComponent(nftDetailMatch[1]).toLowerCase();
-    page.hidden = false;
-    if (!isMemberPage) {
-      document.title = 'Account required — Pixmoree';
-      const backLink = document.getElementById('nftDetailBack');
-      backLink.href = '/login';
-      backLink.innerHTML = '<i class="bi bi-arrow-left"></i> Log in to view NFT details';
-      error.querySelector('h1').textContent = 'Account required';
-      error.querySelector('p').textContent = 'Full NFT information is available to account users. Log in or create an account to view complete listing details.';
-      const errorLink = document.getElementById('nftDetailErrorLink');
-      errorLink.href = '/login';
-      errorLink.textContent = 'Log in or create an account';
-      error.hidden = false;
-      return;
-    }
-    let artwork = null;
-    try {
-      const storedArtwork = window.localStorage.getItem(`${nftDetailStoragePrefix}${slug}`);
-      artwork = storedArtwork ? JSON.parse(storedArtwork) : null;
-    } catch (storageError) {
-      console.error('Could not read Pixmoree NFT details from this browser.', storageError);
-    }
-
-    document.title = artwork?.title ? `${artwork.title} — Pixmoree` : 'NFT details — Pixmoree';
-    const backLink = document.getElementById('nftDetailBack');
-    backLink.href = '/user#explore';
-    backLink.innerHTML = '<i class="bi bi-arrow-left"></i> Back to Pixmoree';
-    if (!artwork || typeof artwork.title !== 'string' || typeof artwork.image !== 'string') {
-      document.getElementById('nftDetailErrorLink').href = '/user#explore';
-      error.hidden = false;
-      return;
-    }
-
-    layout.hidden = false;
-    const engagementPanel = document.getElementById('nftDetailEngagement');
-    const engagementLike = document.getElementById('nftDetailLike');
-    if (typeof artwork.id === 'string') {
-      engagementPanel.dataset.entityId = artwork.id;
-      if (engagementLike) engagementLike.dataset.entityId = artwork.id;
-      window.dispatchEvent(new CustomEvent('pixmoree:artwork-view', { detail: { id: artwork.id } }));
-    } else {
-      engagementPanel.hidden = true;
-    }
-    document.getElementById('nftDetailImage').src = artwork.image;
-    document.getElementById('nftDetailImage').alt = artwork.alt || artwork.title;
-    document.getElementById('nftDetailTitle').textContent = artwork.title;
-    document.getElementById('nftDetailCreator').textContent = artwork.creator || 'Pixmoree creator';
-    document.getElementById('nftDetailDescription').textContent = artwork.description || 'No creator description is available for this demo listing.';
-    document.getElementById('nftDetailPrice').textContent = artwork.price || 'Not listed';
-    const marketValue = document.getElementById('nftDetailMarketValue');
-    const marketChange = document.getElementById('nftDetailMarketChange');
-    marketValue.textContent = artwork.marketValue ? `${artwork.marketValue} ETH` : 'Not enough data yet';
-    marketChange.textContent = artwork.marketValue
-      ? `${Number(artwork.marketChangePercent) >= 0 ? '+' : ''}${Number(artwork.marketChangePercent).toFixed(1)}% vs. asking price · demo estimate only`
-      : 'Demo estimate will appear when this listing has activity.';
-    document.getElementById('nftDetailCollection').textContent = artwork.collection || `${artwork.creator || 'Pixmoree'} Collection`;
-    document.getElementById('nftDetailCategory').textContent = artwork.category || 'Digital art';
-    document.getElementById('nftDetailToken').textContent = artwork.token || artwork.title.match(/#\S+/)?.[0] || `PM-${slug.toUpperCase()}`;
-    document.getElementById('nftDetailItems').textContent = artwork.items || '1';
-    const rank = document.getElementById('nftDetailRank');
-    rank.hidden = !artwork.rank;
-    rank.textContent = artwork.rank ? `TRENDING ${artwork.rank}` : '';
-    const favoriteId = typeof artwork.id === 'string' ? artwork.id : `${artwork.image}|${artwork.title}`;
-    const favoriteButton = document.getElementById('nftDetailFavorite');
-    favoriteButton.hidden = false;
-    const isFavorite = () => readSavedFavorites().some(item => item.id === favoriteId);
-    const updateFavoriteButton = () => {
-      const favorite = isFavorite();
-      favoriteButton.classList.toggle('is-favorite', favorite);
-      favoriteButton.querySelector('i').className = `bi ${favorite ? 'bi-heart-fill' : 'bi-heart'}`;
-      favoriteButton.querySelector('span').textContent = favorite ? 'Favorited' : 'Favorite';
-      favoriteButton.setAttribute('aria-pressed', String(favorite));
-    };
-    updateFavoriteButton();
-    favoriteButton.addEventListener('click', () => {
-      const favorites = readSavedFavorites().filter(item => item.id !== favoriteId);
-      if (!isFavorite()) {
-        favorites.push({
-          id: favoriteId,
-          title: artwork.title,
-          creator: artwork.creator || 'Pixmoree creator',
-          image: artwork.image,
-          alt: artwork.alt || artwork.title,
-          price: artwork.price || 'Digital artwork'
-        });
-      }
-      try {
-        window.localStorage.setItem(favoritesStorageKey, JSON.stringify(favorites));
-        updateFavoriteButton();
-        updateMemberFavoriteCount();
-        if (isMemberPage) renderMemberDashboard();
-      } catch (storageError) {
-        console.error('Could not save Pixmoree favorites to this browser.', storageError);
-        document.getElementById('nftDetailFeedback').textContent = 'Could not save this favorite. Check browser storage settings.';
-        document.getElementById('nftDetailFeedback').hidden = false;
-      }
-    });
-
-    const buyButton = document.getElementById('nftDetailBuy');
-    const feedback = document.getElementById('nftDetailFeedback');
-    if (isMemberPage) {
-      buyButton.hidden = false;
-      const owned = readStoredList(collectionStorageKey, 'collection').some(item => item.id === favoriteId);
-      buyButton.disabled = owned;
-      if (owned) {
-        buyButton.textContent = 'Already in My Collection';
-        buyButton.disabled = true;
-      }
-      buyButton.addEventListener('click', () => {
-        const purchaseArtworkData = {
-          id: favoriteId,
-          title: artwork.title,
-          creator: artwork.creator || 'Pixmoree creator',
-          image: artwork.image,
-          alt: artwork.alt || artwork.title,
-          price: artwork.price || 'Demo purchase'
-        };
-        navigateToPayment(purchaseArtworkData);
-      });
-    }
-
-    if (isMemberPage) {
-      const recent = readStoredList(recentStorageKey, 'recently viewed artwork')
-        .filter(item => item.id !== favoriteId);
-      recent.unshift({
-        id: favoriteId,
-        title: artwork.title,
-        creator: artwork.creator || 'Pixmoree creator',
-        image: artwork.image,
-        alt: artwork.alt || artwork.title,
-        price: artwork.price || 'Digital artwork',
-        date: new Date().toISOString().slice(0, 10)
-      });
-      if (writeStoredList(recentStorageKey, recent.slice(0, 8), 'recently viewed artwork')) renderMemberDashboard();
-    }
-  }
-
   document.addEventListener('click', event => {
-    if (!(event.target instanceof Element) || event.target.closest('.heart-button, .art-engagement-like, .trending-feature-arrow, .trending-nft-pagination, [data-artwork-purchase], [data-engagement-like], [data-engagement-follow]')) return;
+    if (!(event.target instanceof Element) || event.target.closest('.heart-button, .art-engagement-like, .trending-feature-arrow, .trending-nft-pagination, [data-engagement-like], [data-engagement-follow]')) return;
     const feature = event.target.closest('.trending-feature');
     const source = event.target.closest('.art-column, .trending-nft-item, .trending-feature-slide.active') ||
       feature?.querySelector('.trending-feature-slide.active');
@@ -1469,26 +585,12 @@ document.addEventListener('DOMContentLoaded', () => {
       else openStoredArtworkPreview(artwork);
     }
   });
-  document.querySelector('.member-dashboard-content')?.addEventListener('click', event => {
-    if (!(event.target instanceof Element)) return;
-    const button = event.target.closest('[data-artwork-action="view"]');
-    const article = button?.closest('.member-art-tile');
-    if (!article) return;
-    const id = article.dataset.artworkId;
-    const artwork = [...readSavedFavorites(), ...readStoredList(collectionStorageKey, 'collection'), ...readStoredList(recentStorageKey, 'recently viewed artwork'), ...readStoredList(createdArtStorageKey, 'created artwork')].find(item => item.id === id);
-    if (artwork) {
-      event.stopImmediatePropagation();
-      navigateToNftDetail(artwork);
-    }
-  }, true);
   nftPreview?.querySelector('.nft-preview-close')?.addEventListener('click', () => nftPreview.close());
   nftPreview?.addEventListener('click', event => {
     if (event.target === nftPreview) nftPreview.close();
   });
   nftPreview?.querySelector('.nft-preview-explore')?.addEventListener('click', () => nftPreview.close());
   nftPreview?.addEventListener('close', scheduleTrendingAutoplay);
-  initializeNftDetailPage();
-
   function updateCreatorCarousel() {
     if (!creatorTrack) return;
     const maxScroll = Math.max(0, creatorTrack.scrollWidth - creatorTrack.clientWidth);

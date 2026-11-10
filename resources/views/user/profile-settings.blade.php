@@ -11,7 +11,7 @@
 <body class="profile-settings-page">
 <header class="profile-settings-topbar">
     <div class="profile-settings-topbar-inner">
-        <a class="profile-settings-brand" href="/" aria-label="Pixmoree home">
+        <a class="profile-settings-brand" href="{{ route('user') }}" aria-label="Pixmoree account home">
             <img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree">
         </a>
         <nav class="profile-settings-nav" aria-label="Account navigation">

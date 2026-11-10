@@ -22,21 +22,25 @@ $resaleListingController = \App\Http\Controllers\ResaleListingController::class;
 $sitePageContentController = \App\Http\Controllers\SitePageContentController::class;
 $week12ArtworkStore = static fn (): ArtworkRepository => new ArtworkRepository(DB::connection()->getPdo());
 
-Route::view('/', 'home')->name('home');
+Route::get('/', static fn () => auth()->check()
+    ? redirect()->route('user')
+    : view('home'))->name('home');
 Route::view('/about', 'about')->name('about');
-Route::view('/nft/{id}', 'home')->where('id', '[A-Za-z0-9][A-Za-z0-9-]*')->name('nft.guest');
+Route::get('/nft/{id}', static fn (string $id) => auth()->check()
+    ? redirect()->route('user.nft.show', ['id' => $id])
+    : view('home'))->where('id', '[A-Za-z0-9][A-Za-z0-9-]*')->name('nft.guest');
 Route::view('/login', 'login')->name('login');
-Route::post('/login', [$authController, 'login'])->name('login.store');
 Route::get('/register', [$authController, 'create'])->name('register');
-Route::post('/register', [$authController, 'store'])->name('register.store');
 Route::get('/create-account', [$authController, 'create'])->name('create-account');
-Route::get('/email/verify', [$authController, 'verificationNotice'])->name('verification.notice');
-Route::post('/email/verify', [$authController, 'verifyEmail'])->middleware('throttle:10,1')->name('verification.verify');
-Route::post('/email/verification/resend', [$authController, 'resendVerification'])->middleware('throttle:3,1')->name('verification.resend');
 Route::get('/forgot-password', [$passwordResetController, 'createLink'])->name('password.request');
 Route::post('/forgot-password', [$passwordResetController, 'sendLink'])->middleware('throttle:5,1')->name('password.email');
 Route::get('/reset-password/{token}', [$passwordResetController, 'createForm'])->name('password.reset');
 Route::post('/reset-password', [$passwordResetController, 'reset'])->middleware('throttle:5,1')->name('password.update');
+Route::post('/login', [$authController, 'login'])->middleware('throttle:10,1')->name('login.store');
+Route::post('/register', [$authController, 'store'])->name('register.store');
+Route::get('/email/verify', [$authController, 'verificationNotice'])->name('verification.notice');
+Route::post('/email/verify', [$authController, 'verifyEmail'])->middleware('throttle:10,1')->name('verification.verify');
+Route::post('/email/verification/resend', [$authController, 'resendVerification'])->middleware('throttle:3,1')->name('verification.resend');
 Route::middleware(['guest', 'throttle:10,1'])->group(function () use ($socialAuthController): void {
     Route::get('/auth/{provider}/redirect', [$socialAuthController, 'redirect'])
         ->whereIn('provider', ['google', 'facebook'])
@@ -72,21 +76,24 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
     Route::view('/user/notifications', 'home')->name('user.notifications');
     Route::view('/user/about', 'home')->name('user.about');
     Route::view('/user/purchases', 'home')->name('user.purchases');
-    Route::view('/user/nft-management', 'home')->name('user.nft-management');
+    Route::get('/user/nft-management', [$artworkController, 'index'])->name('user.nft-management');
     Route::view('/user/collection', 'home')->name('user.collection');
     Route::view('/user/favorites', 'home')->name('user.favorites');
     Route::view('/user/history', 'home')->name('user.history');
     Route::get('/user/earnings', $earningsController)->name('user.earnings');
     Route::redirect('/user/settings', '/user/profile-settings')->name('user.settings');
     Route::redirect('/user/profile', '/user/profile-settings')->name('user.profile');
-    Route::view('/user/payment', 'home')->name('user.payment');
+    Route::get('/user/payment', static fn () => redirect()->route('user.purchases')
+        ->with('status', 'Purchases and payments are disabled during beta.'))->name('user.payment');
     Route::view('/user/pixel-coin', 'user.pixel-coin')->name('user.pixel-coin');
     Route::view('/user/resales', 'home')->name('user.resales');
     Route::post('/user/pixel-coin/top-ups', [$paymentOrderController, 'topUp'])->name('user.cash.topups');
     Route::post('/user/pixel-coin/prepaid-top-ups', [$paymentOrderController, 'prepaidTopUp'])->name('user.pixel.prepaid-topups');
     Route::post('/user/pixel-coin/withdrawals', [$paymentOrderController, 'withdraw'])->name('user.cash.withdrawals');
     Route::view('/user/terms', 'home')->name('user.terms');
-    Route::view('/user/nft/{id}', 'home')->where('id', '[A-Za-z0-9][A-Za-z0-9-]*')->name('user.nft.show');
+    Route::get('/user/nft/{id}', static fn (string $id) => redirect()->route('week12.client.artwork', ['id' => $id]))
+        ->where('id', '[A-Za-z0-9][A-Za-z0-9-]*')
+        ->name('user.nft.show');
     Route::get('/user/profile-settings', [$profileController, 'edit'])->name('user.profile-settings');
     Route::post('/user/profile', [$profileController, 'update'])->name('user.profile.update');
     Route::put('/user/password', [$profileController, 'updatePassword'])->name('user.password.update');
@@ -98,6 +105,10 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
         ->whereNumber('imageId')
         ->name('user.images.destroy');
     Route::post('/user/artworks', [$artworkController, 'store'])->name('user.artworks.store');
+    Route::get('/user/artworks', [$artworkController, 'index'])->name('user.artworks.index');
+    Route::get('/user/artworks/{id}/edit', [$artworkController, 'edit'])
+        ->where('id', '[a-z0-9-]+')
+        ->name('user.artworks.edit');
     Route::post('/user/artworks/{artwork}/resale', [$resaleListingController, 'store'])
         ->where('artwork', '[a-z0-9-]+')->name('user.artworks.resale');
     Route::post('/user/purchase-orders', [$paymentOrderController, 'store'])->name('user.purchase-orders.store');

@@ -9,13 +9,13 @@
     </div>
     <div class="alert w12-alert" role="note">
         <i class="bi bi-exclamation-triangle-fill"></i>
-        <span><strong>Class demo:</strong> artwork changes are saved locally. All creator, price, and artwork records are fictional.</span>
+        <span><strong>Beta status:</strong> artwork changes are saved to the database. Payment and payout actions are disabled.</span>
     </div>
     <div class="row g-3 mb-4">
         <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Total artwork</span><strong><?= week12_escape($counts['total']) ?></strong><small><i class="bi bi-image"></i> Database records</small></article></div>
-        <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Listed</span><strong><?= week12_escape($counts['listed']) ?></strong><small><i class="bi bi-check-circle"></i> Active demo listings</small></article></div>
-        <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Pending review</span><strong><?= week12_escape($counts['review']) ?></strong><small><i class="bi bi-hourglass-split"></i> Awaiting demo review</small></article></div>
-        <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Payments</span><strong>0</strong><small><i class="bi bi-receipt"></i> Not implemented</small></article></div>
+        <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Listed</span><strong><?= week12_escape($counts['listed']) ?></strong><small><i class="bi bi-check-circle"></i> Active database listings</small></article></div>
+        <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Pending review</span><strong><?= week12_escape($counts['review']) ?></strong><small><i class="bi bi-hourglass-split"></i> Awaiting admin review</small></article></div>
+        <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Payments</span><strong>Disabled</strong><small><i class="bi bi-receipt"></i> Beta feature gate</small></article></div>
     </div>
     <div class="row g-4">
         <div class="col-lg-8">
@@ -51,7 +51,7 @@
                 <p class="text-secondary small">Artwork-management actions update the local database.</p>
                 <div class="d-grid gap-2">
                     <a href="<?= week12_escape(week12_url('/admin/content/about')) ?>" class="btn w12-btn-outline text-start"><i class="bi bi-pencil-square"></i> Edit website content</a>
-                    <a href="<?= week12_escape(week12_url('/week12/admin/artworks#new-listing')) ?>" class="btn w12-btn-outline text-start"><i class="bi bi-plus-circle"></i> Add demo listing</a>
+                    <a href="<?= week12_escape(week12_url('/week12/admin/artworks#new-listing')) ?>" class="btn w12-btn-outline text-start"><i class="bi bi-plus-circle"></i> Add listing</a>
                     <a href="<?= week12_escape(week12_url('/week12/admin/artworks')) ?>" class="btn w12-btn-outline text-start"><i class="bi bi-card-list"></i> Review artwork list</a>
                 </div>
             </section>

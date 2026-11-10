@@ -8,10 +8,25 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 use Throwable;
 
 class ArtworkController extends Controller
 {
+    public function index(Request $request): View
+    {
+        return view('user.artworks.index', [
+            'artworks' => $request->user()->artworks()->latest()->paginate(12),
+        ]);
+    }
+
+    public function edit(Request $request, string $id): View
+    {
+        return view('user.artworks.edit', [
+            'artwork' => $request->user()->artworks()->findOrFail($id),
+        ]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([

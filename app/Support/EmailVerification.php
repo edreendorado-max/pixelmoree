@@ -7,7 +7,6 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
-use RuntimeException;
 
 class EmailVerification
 {
@@ -18,7 +17,7 @@ class EmailVerification
         if (in_array($mailer, ['log', 'array'], true)
             || ($mailer === 'smtp' && in_array($smtpHost, ['', 'localhost', '127.0.0.1', '::1'], true))
             || blank(config('mail.from.address'))) {
-            throw new RuntimeException('Email delivery is not configured. Set a real mail transport, SMTP host, and sender address before creating or verifying accounts.');
+            throw new EmailDeliveryNotConfigured('Email delivery is not configured. Set a real mail transport, SMTP host, and sender address before creating or verifying accounts.');
         }
 
         return DB::transaction(function () use ($user, $respectCooldown): bool {

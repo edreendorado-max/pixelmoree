@@ -11,25 +11,33 @@
     <link href="{{ asset('css/site.css') }}" rel="stylesheet">
 </head>
 <body class="about-page">
+@php($accountHomeUrl = auth()->check() ? route('user') : route('home'))
+@php($accountGalleryUrl = auth()->check() ? route('user').'#explore' : route('home').'#explore')
 <nav class="navbar navbar-expand-lg navbar-dark site-nav guest-nav">
   <div class="container-fluid px-3 px-lg-5">
-    <a class="navbar-brand" href="/" aria-label="Pixmoree home"><img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree" class="brand-logo"></a>
+    <a class="navbar-brand" href="{{ $accountHomeUrl }}" aria-label="Pixmoree home"><img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree" class="brand-logo"></a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
     <div class="collapse navbar-collapse" id="mainNav">
       <div class="guest-links mx-lg-auto my-3 my-lg-0">
-        <a href="/">Home</a><a href="/#explore">Gallery</a><a href="/#trending">Trending</a><a class="active" href="/about" aria-current="page">About</a>
+        <a href="{{ $accountHomeUrl }}">Home</a><a href="{{ $accountGalleryUrl }}">Gallery</a><a href="{{ $accountGalleryUrl }}">Trending</a><a class="active" href="/about" aria-current="page">About</a>
       </div>
-      <div class="nav-actions"><a class="login-link" href="/login">Log in</a></div>
+      <div class="nav-actions">
+        @auth
+          <a class="login-link" href="{{ route('user') }}">My account</a>
+        @else
+          <a class="login-link" href="/login">Log in</a>
+        @endauth
+      </div>
     </div>
   </div>
 </nav>
 <main>
-  @include('partials.about-content', ['aboutContent' => $aboutContent, 'galleryUrl' => '/#explore'])
+  @include('partials.about-content', ['aboutContent' => $aboutContent, 'galleryUrl' => $accountGalleryUrl])
 </main>
 <footer class="site-footer about-footer">
-  <a href="/"><img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree" class="footer-logo"></a>
+  <a href="{{ $accountHomeUrl }}"><img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree" class="footer-logo"></a>
   <p>{{ $aboutContent['footer_tagline'] }}</p>
-  <div class="footer-links"><a href="/#explore">{{ $aboutContent['footer_links'][0] }}</a><a href="/#creators">{{ $aboutContent['footer_links'][1] }}</a><a href="/about" aria-current="page">{{ $aboutContent['footer_links'][2] }}</a></div>
+  <div class="footer-links"><a href="{{ $accountGalleryUrl }}">{{ $aboutContent['footer_links'][0] }}</a><a href="{{ $accountGalleryUrl }}">{{ $aboutContent['footer_links'][1] }}</a><a href="/about" aria-current="page">{{ $aboutContent['footer_links'][2] }}</a></div>
   <small>© {{ date('Y') }} Pixmoree. {{ $aboutContent['footer_note'] }}</small>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

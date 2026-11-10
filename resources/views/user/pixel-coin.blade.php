@@ -35,7 +35,7 @@
     <header class="pixel-wallet-heading">
         <p class="profile-settings-eyebrow"><i class="bi bi-coin" aria-hidden="true"></i> PIXMOREE ACCOUNT</p>
         <h1>Pixel Coin wallet</h1>
-        <p>Manage your in-app demo credits and review wallet activity.</p>
+        <p>Review your account's legacy Pixel Coin balance and transaction history.</p>
     </header>
 
     <section class="pixel-wallet-summary" aria-labelledby="pixel-wallet-balance-heading">
@@ -44,22 +44,17 @@
             <div>
                 <small id="pixel-wallet-balance-heading">YOUR PIXEL COIN BALANCE</small>
                 <strong><span data-pixelcoin-balance>0</span> <span>PIXEL COIN</span></strong>
-                <p class="pixel-wallet-note">Free demo credits. No cash value or withdrawal.</p>
+                <p class="pixel-wallet-note">Pixel Coin is disabled during beta and has no cash value.</p>
             </div>
         </div>
         <div>
-            <strong>Add free demo credits</strong>
-            <div class="pixel-wallet-options" aria-label="Demo credit amounts">
-                <button type="button" data-pixel-topup="500" disabled><i class="bi bi-plus-lg" aria-hidden="true"></i> 500</button>
-                <button type="button" data-pixel-topup="1000" disabled><i class="bi bi-plus-lg" aria-hidden="true"></i> 1,000</button>
-                <button type="button" data-pixel-topup="2500" disabled><i class="bi bi-plus-lg" aria-hidden="true"></i> 2,500</button>
-            </div>
-            <p class="pixel-wallet-note">Credits are recorded to your account balance and ledger.</p>
+            <strong>Wallet actions unavailable</strong>
+            <p class="pixel-wallet-note">Top-ups, purchases, and payouts are disabled until a payment provider is integrated.</p>
         </div>
         <p class="pixel-wallet-feedback" id="memberPixelWalletFeedback" role="status" aria-live="polite" hidden></p>
     </section>
     <section class="pixel-wallet-activity">
-        <h2>Real-money PHP balance</h2>
+        <h2>PHP balance</h2>
         <p>Only admin-verified payments and completed resale proceeds are cleared. USD display is an estimate, not an exchange quote.</p>
         @php($cashPhp = ((int) ($account?->cash_balance_minor ?? 0)) / 100)
         @php($reservedPhp = ((int) ($account?->cash_reserved_minor ?? 0)) / 100)
@@ -67,39 +62,15 @@
         <p>Reserved for pending withdrawals: PHP {{ number_format($reservedPhp, 2) }} · available: PHP {{ number_format(max(0, $cashPhp - $reservedPhp), 2) }}</p>
         @if (session('status'))<p role="status">{{ session('status') }}</p>@endif
         @if ($errors->any())<p role="alert">{{ $errors->first() }}</p>@endif
-        <p><strong>Payment destination instructions</strong></p>
-        <ul>
-            @foreach (['gcash' => 'GCash', 'maya' => 'Maya', 'paypal' => 'PayPal'] as $method => $label)
-                @if (config("payments.instructions.{$method}"))
-                    <li>{{ $label }}: {{ config("payments.instructions.{$method}") }}</li>
-                @endif
-            @endforeach
-        </ul>
-        @if (collect(config('payments.instructions', []))->filter()->isEmpty())
-            <p>No payment destination has been configured. Do not send money; the forms only record submissions for manual review.</p>
-        @endif
-        <form method="post" action="{{ route('user.cash.topups') }}" enctype="multipart/form-data">@csrf
-            <label>Top up PHP <select name="amount_php"><option>100</option><option>500</option><option>1000</option></select></label>
-            <label>Method <select name="payment_method"><option value="gcash">GCash</option><option value="maya">Maya</option><option value="paypal">PayPal</option></select></label>
-            <label>Transaction reference <input name="transaction_reference" required maxlength="120"></label>
-            <label>Proof <input name="proof" type="file" accept="image/png,image/jpeg" required></label><button>Submit for verification</button>
-        </form>
-        <form method="post" action="{{ route('user.pixel.prepaid-topups') }}" enctype="multipart/form-data">@csrf
-            <h3>Prepaid load → Pixel Coin only</h3><p>Conversion: PHP 1 = {{ number_format((int) config('payments.pixel_coin_per_php', 100)) }} PIXEL COIN. Cannot be used for NFT checkout as a prepaid-load payment.</p><label>Amount PHP <select name="amount_php"><option>50</option><option>100</option><option>300</option></select></label>
-            <label>Reference <input name="transaction_reference" required maxlength="120"></label><label>Proof <input name="proof" type="file" accept="image/png,image/jpeg" required></label><button>Submit prepaid-load top-up</button>
-        </form>
-        <form method="post" action="{{ route('user.cash.withdrawals') }}">@csrf
-            <h3>Request a PayPal withdrawal</h3>
-            <p>Requests reserve cleared funds. Admin approval does not send money; the request is marked paid only after a manual PayPal transfer is made and its payout reference recorded.</p>
-            <label>Amount PHP <input name="amount_php" type="number" min="100" max="100000" step="1" required></label>
-            <label>PayPal account email <input name="paypal_email" type="email" maxlength="254" required></label>
-            <button type="submit">Request withdrawal</button>
-        </form>
+        <div class="pixel-wallet-safety" role="status">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            <span>Top-ups, artwork purchases, and withdrawals are disabled during beta. Do not send funds or submit payment information.</span>
+        </div>
     </section>
 
     <aside class="pixel-wallet-safety" aria-label="Payment information">
         <i class="bi bi-shield-check" aria-hidden="true"></i>
-        <span><strong>No payment provider is integrated.</strong> Pixmoree does not charge a payment method; any transfer is made externally and reviewed manually. Never enter a wallet PIN, password, or OTP on this page.</span>
+        <span><strong>No payment provider is integrated.</strong> Payment, payout, resale, and Pixel Coin checkout actions are disabled. Never enter a wallet PIN, password, or OTP on this page.</span>
     </aside>
 
     <section class="pixel-wallet-activity" aria-labelledby="pixel-wallet-activity-heading">

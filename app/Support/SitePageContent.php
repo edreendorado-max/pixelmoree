@@ -323,7 +323,7 @@ class SitePageContent
                     'heading_after' => 'world.',
                     'description' => 'Browse imaginative digital art from independent creators.',
                     'cta' => 'Explore the gallery',
-                    'note' => 'Artwork listings are stored in MySQL. Purchases and blockchain transactions are not enabled.',
+                    'note' => 'Artwork listings are stored in MySQL. Purchases, payments, and blockchain transactions are disabled during beta.',
                     'image' => 'assets/guest-hero-background.png',
                     'image_alt' => 'Colorful Pixmoree digital art collage',
                 ],
@@ -337,7 +337,7 @@ class SitePageContent
                 ],
                 'footer' => [
                     'tagline' => 'Pixmoree Marketplace',
-                    'disclaimer' => 'Sample artwork listings. No payments are processed.',
+                    'disclaimer' => 'Purchases and payments are disabled during beta.',
                 ],
             ],
             'about' => [

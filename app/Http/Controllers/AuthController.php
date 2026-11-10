@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\EmailDeliveryNotConfigured;
 use App\Support\EmailVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -22,19 +24,38 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
+            'username' => ['sometimes', 'nullable', 'string', 'max:30', 'regex:/^[A-Za-z0-9._-]+$/', 'unique:users,username'],
             'email' => ['required', 'string', 'email', 'max:254', 'unique:users,email'],
             'password' => ['required', 'confirmed', 'string', 'min:6', 'max:128', 'regex:/[A-Z]/', 'regex:/[0-9]/', 'regex:/[^A-Za-z0-9]/'],
             'terms' => ['accepted'],
         ]);
 
+        $username = trim($validated['username'] ?? '');
+        if ($username !== '' && User::query()->whereRaw('LOWER(username) = ?', [mb_strtolower($username)])->exists()) {
+            throw ValidationException::withMessages([
+                'username' => 'This username is already taken.',
+            ]);
+        }
+
+        if ($username === '') {
+            $username = $this->availableUsername(Str::slug($validated['name'], '') ?: 'creator');
+        }
+
         $user = User::create([
             'name' => $validated['name'],
+            'username' => $username,
             'email' => mb_strtolower(trim($validated['email'])),
             'password' => $validated['password'],
         ]);
 
-        $emailVerification->sendCode($user, false);
         $request->session()->put('email_verification_user_id', $user->id);
+        try {
+            $emailVerification->sendCode($user, false);
+        } catch (EmailDeliveryNotConfigured) {
+            return redirect()->route('verification.notice')->withErrors([
+                'code' => 'Your account was created, but we could not send a verification email. Configure MAIL_* in .env, then request a new code.',
+            ]);
+        }
 
         return redirect()->route('verification.notice')
             ->with('status', 'A verification code was sent to your email address. Verify it before signing in.');
@@ -43,11 +64,17 @@ class AuthController extends Controller
     public function login(Request $request, EmailVerification $emailVerification): RedirectResponse
     {
         $credentials = $request->validate([
-            'email' => ['required', 'string', 'email'],
+            'email' => ['required', 'string', 'max:254'],
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::query()->where('email', $credentials['email'])->first();
+        $identity = trim($credentials['email']);
+        $normalizedEmail = mb_strtolower($identity);
+        $user = User::query()
+            ->where(static fn ($query) => $query
+                ->whereRaw('LOWER(email) = ?', [$normalizedEmail])
+                ->orWhereRaw('LOWER(username) = ?', [$normalizedEmail]))
+            ->first();
         if ($user === null || ! Hash::check($credentials['password'], $user->password)) {
             return back()
                 ->withErrors(['email' => 'These credentials do not match our records.'])
@@ -56,7 +83,13 @@ class AuthController extends Controller
 
         if (! $user->hasVerifiedEmail()) {
             $request->session()->put('email_verification_user_id', $user->id);
-            $sent = $emailVerification->sendCode($user);
+            try {
+                $sent = $emailVerification->sendCode($user);
+            } catch (EmailDeliveryNotConfigured) {
+                return back()->withErrors([
+                    'email' => 'This account needs email verification, but email delivery is not configured. Configure MAIL_* in .env, then sign in again.',
+                ])->onlyInput('email');
+            }
 
             return redirect()->route('verification.notice')->with('status', $sent
                 ? 'A verification code was sent to your email address.'
@@ -107,7 +140,13 @@ class AuthController extends Controller
             return redirect()->route('login')->with('status', 'Your email is already verified.');
         }
 
-        $sent = $emailVerification->sendCode($user);
+        try {
+            $sent = $emailVerification->sendCode($user);
+        } catch (EmailDeliveryNotConfigured) {
+            return back()->withErrors([
+                'code' => 'Email delivery is not configured. Configure MAIL_* in .env, then request a new code.',
+            ]);
+        }
 
         return back()->with('status', $sent
             ? 'A new verification code was sent to your email address.'
@@ -121,5 +160,18 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
+    }
+
+    private function availableUsername(string $base): string
+    {
+        $username = Str::limit($base, 30, '');
+        $suffix = 1;
+
+        while (User::query()->whereRaw('LOWER(username) = ?', [mb_strtolower($username)])->exists()) {
+            $ending = (string) $suffix++;
+            $username = Str::limit($base, 30 - strlen($ending), '').$ending;
+        }
+
+        return $username;
     }
 }

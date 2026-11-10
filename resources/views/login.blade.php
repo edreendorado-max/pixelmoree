@@ -27,8 +27,8 @@
     @endif
     <form class="auth-form" data-auth-form method="post" action="{{ route('login.store') }}">
       @csrf
-      <label for="login-email">{{ $authContent['email_label'] }}</label>
-      <input id="login-email" name="email" type="email" placeholder="{{ $authContent['email_placeholder'] }}" autocomplete="email" value="{{ old('email') }}" required>
+      <label for="login-email">Email or username</label>
+      <input id="login-email" name="email" type="text" placeholder="Email or username" autocomplete="username" value="{{ old('email') }}" required>
       <div class="auth-password-label"><label for="login-password">{{ $authContent['password_label'] }}</label><a href="{{ route('password.request') }}">{{ $authContent['forgot_password'] }}</a></div>
       <input id="login-password" name="password" type="password" placeholder="{{ $authContent['password_placeholder'] }}" autocomplete="current-password" required>
       <button class="auth-submit" type="submit">{{ $authContent['submit_label'] }} <i class="bi bi-arrow-right" aria-hidden="true"></i></button>

@@ -78,6 +78,11 @@ class AppServiceProvider extends ServiceProvider
                 ->limit(12)
                 ->get());
             $view->with('likedArtworkIds', $account?->likedArtworks()->pluck('artworks.id')->all() ?? []);
+            $view->with('likedArtworks', $account?->likedArtworks()
+                ->where('status', 'Listed')
+                ->withCount(['views', 'likes'])
+                ->latest('artworks.created_at')
+                ->get() ?? collect());
             $view->with('userArtworks', $account?->artworks()->latest()->get() ?? collect());
             $view->with('purchaseOrders', $account?->paymentOrders()
                 ->where('type', 'nft_purchase')

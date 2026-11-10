@@ -46,13 +46,14 @@ class ManualPaymentsAndResaleTest extends TestCase
             ->assertSee('PHP 222.22')
             ->assertSee('approximately USD 3.83')
             ->assertSee('PHP 10.00')
-            ->assertSee('Request a PayPal withdrawal')
-            ->assertSee('name="paypal_email"', false)
+            ->assertSee('Top-ups, artwork purchases, and withdrawals are disabled during beta.')
+            ->assertDontSee('name="paypal_email"', false)
             ->assertSee('Cash ledger');
     }
 
     public function test_manual_nft_payment_does_not_transfer_ownership_before_admin_approval(): void
     {
+        config(['payments.enabled' => true]);
         Storage::fake('local');
         $seller = $this->user('seller@example.test');
         $buyer = $this->user('buyer@example.test');
@@ -90,6 +91,7 @@ class ManualPaymentsAndResaleTest extends TestCase
 
     public function test_withdrawal_reserves_funds_until_transfer_is_recorded_and_releases_after_rejection(): void
     {
+        config(['payments.enabled' => true]);
         $user = $this->user('withdrawal@example.test');
         $user->cash_balance_minor = 30000;
         $user->save();
@@ -146,6 +148,7 @@ class ManualPaymentsAndResaleTest extends TestCase
 
     public function test_prepaid_load_credits_pixel_coin_only_after_review_at_configured_rate(): void
     {
+        config(['payments.enabled' => true]);
         Storage::fake('local');
         config(['payments.pixel_coin_per_php' => 100]);
         $user = $this->user('prepaid@example.test');
@@ -175,6 +178,7 @@ class ManualPaymentsAndResaleTest extends TestCase
 
     public function test_owned_artwork_requires_manual_resale_review_and_transfers_to_the_next_buyer(): void
     {
+        config(['payments.enabled' => true]);
         Storage::fake('local');
         $creator = $this->user('creator@example.test');
         $seller = $this->user('reseller@example.test');
@@ -258,5 +262,31 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->assertIsString($contents);
 
         return UploadedFile::fake()->createWithContent($filename, $contents);
+    }
+
+    public function test_purchase_top_up_withdrawal_and_resale_actions_are_rejected_during_beta(): void
+    {
+        config(['payments.enabled' => false]);
+        $user = $this->user('disabled-payments@example.test');
+        $seller = $this->user('disabled-seller@example.test');
+        $artwork = $this->artwork($seller);
+
+        $this->actingAs($user)->post(route('user.purchase-orders.store'), [
+            'artwork_id' => $artwork->id,
+            'payment_method' => 'gcash',
+            'transaction_reference' => 'UNUSED-BETA-REF',
+        ])->assertStatus(503);
+        $this->post(route('user.cash.topups'))->assertStatus(503);
+        $this->post(route('user.pixel.prepaid-topups'))->assertStatus(503);
+        $this->post(route('user.cash.withdrawals'))->assertStatus(503);
+        $this->post(route('user.artworks.resale', $artwork))->assertStatus(503);
+        $this->postJson('/api/pixel-coins/top-ups', ['amount' => 1000])->assertStatus(503);
+        $this->postJson('/api/pixel-coins/purchases', ['artwork_id' => $artwork->id])->assertStatus(503);
+
+        $this->assertDatabaseCount('payment_orders', 0);
+        $this->assertDatabaseCount('resale_listings', 0);
+        $this->assertDatabaseCount('pixel_coin_transactions', 0);
+        $this->assertSame(0, (int) $user->fresh()->cash_reserved_minor);
+        $this->assertSame(0, (int) $user->fresh()->pixel_coin_balance);
     }
 }

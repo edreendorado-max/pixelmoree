@@ -43,6 +43,7 @@ class AccountAndImageCrudTest extends TestCase
         ])->assertRedirect('/email/verify');
 
         $user = User::where('email', 'artist@example.test')->firstOrFail();
+        $this->assertSame('pixelartist', $user->username);
         $this->assertGuest();
         $this->assertFalse($user->hasVerifiedEmail());
         $this->post('/login', [
@@ -93,6 +94,43 @@ class AccountAndImageCrudTest extends TestCase
         $this->assertAuthenticated();
 
         $this->post('/logout')->assertRedirect('/login');
+        $this->assertGuest();
+    }
+
+    public function test_unverified_login_shows_a_mail_configuration_error_instead_of_crashing(): void
+    {
+        config(['mail.default' => 'array']);
+        $user = User::create([
+            'name' => 'Unverified Artist',
+            'email' => 'unverified@example.test',
+            'password' => 'secret-password',
+        ]);
+
+        $this->from('/login')->post('/login', [
+            'email' => $user->email,
+            'password' => 'secret-password',
+        ])->assertRedirect('/login')
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+        $this->assertFalse($user->fresh()->hasVerifiedEmail());
+    }
+
+    public function test_registration_with_unconfigured_mailer_keeps_the_account_and_shows_a_recoverable_error(): void
+    {
+        config(['mail.default' => 'array']);
+
+        $this->post('/register', [
+            'name' => 'New Artist',
+            'email' => 'new-artist@example.test',
+            'password' => 'StrongPass1!',
+            'password_confirmation' => 'StrongPass1!',
+            'terms' => '1',
+        ])->assertRedirect('/email/verify')
+            ->assertSessionHasErrors('code');
+
+        $user = User::where('email', 'new-artist@example.test')->firstOrFail();
+        $this->assertFalse($user->hasVerifiedEmail());
         $this->assertGuest();
     }
 

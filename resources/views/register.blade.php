@@ -39,6 +39,8 @@
       @csrf
       <label for="register-name">{{ $authContent['name_label'] }}</label>
       <input id="register-name" name="name" type="text" placeholder="{{ $authContent['name_placeholder'] }}" autocomplete="name" value="{{ old('name') }}" maxlength="120" required>
+      <label for="register-username">Username <small>(optional)</small></label>
+      <input id="register-username" name="username" type="text" placeholder="Choose a username" autocomplete="username" value="{{ old('username') }}" maxlength="30" pattern="[A-Za-z0-9._-]+" title="Use letters, numbers, periods, underscores, or hyphens.">
       <label for="register-email">{{ $authContent['email_label'] }}</label>
       <input id="register-email" name="email" type="email" placeholder="{{ $authContent['email_placeholder'] }}" autocomplete="email" value="{{ old('email') }}" required>
       <label for="register-password">{{ $authContent['password_label'] }}</label>

@@ -18,6 +18,8 @@ class PaymentOrderController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $this->ensurePaymentsEnabled();
+
         $validated = $request->validate([
             'artwork_id' => ['required', 'string', 'exists:artworks,id'],
             'payment_method' => ['required', 'in:gcash,maya,paypal,cash_wallet'],
@@ -75,6 +77,8 @@ class PaymentOrderController extends Controller
 
     public function topUp(Request $request): RedirectResponse
     {
+        $this->ensurePaymentsEnabled();
+
         $validated = $request->validate([
             'amount_php' => ['required', 'integer', 'in:100,500,1000'],
             'payment_method' => ['required', 'in:gcash,maya,paypal'],
@@ -91,6 +95,8 @@ class PaymentOrderController extends Controller
 
     public function prepaidTopUp(Request $request): RedirectResponse
     {
+        $this->ensurePaymentsEnabled();
+
         $validated = $request->validate([
             'amount_php' => ['required', 'integer', 'in:50,100,300'],
             'transaction_reference' => ['required', 'string', 'max:120'],
@@ -106,6 +112,8 @@ class PaymentOrderController extends Controller
 
     public function withdraw(Request $request): RedirectResponse
     {
+        $this->ensurePaymentsEnabled();
+
         $validated = $request->validate([
             'amount_php' => ['required', 'integer', 'min:100', 'max:100000'],
             'paypal_email' => ['required', 'email', 'max:254'],
@@ -134,6 +142,8 @@ class PaymentOrderController extends Controller
 
     public function review(Request $request, PaymentOrder $order): RedirectResponse
     {
+        $this->ensurePaymentsEnabled();
+
         $validated = $request->validate([
             'decision' => ['required', 'in:approve,reject,mark_paid'],
             'payout_reference' => ['required_if:decision,mark_paid', 'nullable', 'string', 'max:120'],
@@ -232,6 +242,11 @@ class PaymentOrderController extends Controller
                 'transaction_reference' => 'This transaction reference has already been submitted.',
             ]);
         }
+    }
+
+    private function ensurePaymentsEnabled(): void
+    {
+        abort_unless(config('payments.enabled'), 503, 'Payments and payouts are disabled during beta.');
     }
 
     private function acquire(PaymentOrder $order): void

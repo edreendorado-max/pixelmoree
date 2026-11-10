@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\EmailDeliveryNotConfigured;
 use App\Support\EmailVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,7 +79,13 @@ class SocialAuthController extends Controller
 
         if (! $user->hasVerifiedEmail()) {
             $request->session()->put('email_verification_user_id', $user->id);
-            $sent = $emailVerification->sendCode($user);
+            try {
+                $sent = $emailVerification->sendCode($user);
+            } catch (EmailDeliveryNotConfigured) {
+                return redirect()->route('verification.notice')->withErrors([
+                    'code' => 'Your account needs email verification, but email delivery is not configured. Configure MAIL_* in .env, then request a new code.',
+                ]);
+            }
 
             return redirect()->route('verification.notice')->with('status', $sent
                 ? 'A verification code was sent to your email address.'
