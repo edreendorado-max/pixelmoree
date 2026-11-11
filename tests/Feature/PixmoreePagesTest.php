@@ -26,6 +26,68 @@ class PixmoreePagesTest extends TestCase
         $this->get('/about')->assertOk();
         $this->get('/login')->assertOk();
         $this->get('/register')->assertOk();
+        $this->get('/store')->assertRedirect('/login');
+        $this->get('/week12')->assertRedirect('/store');
+    }
+
+    public function test_store_lists_only_listed_artworks_and_prompts_unverified_users_on_purchase(): void
+    {
+        $user = User::create([
+            'name' => 'Store Buyer',
+            'email' => 'store-buyer@example.test',
+            'password' => 'secret-password',
+        ]);
+        DB::table('artworks')->insert([
+            [
+                'id' => 'store-listed-artwork',
+                'user_id' => $user->id,
+                'title' => 'Store Listed Artwork',
+                'creator' => $user->name,
+                'category' => 'Digital Art',
+                'price' => 1.25,
+                'image' => 'store-listed.png',
+                'description' => 'A listed piece.',
+                'status' => 'Listed',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 'store-draft-artwork',
+                'user_id' => $user->id,
+                'title' => 'Store Draft Artwork',
+                'creator' => $user->name,
+                'category' => 'Digital Art',
+                'price' => 2.50,
+                'image' => 'store-draft.png',
+                'description' => 'A draft piece.',
+                'status' => 'Draft',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $this->get('/store')->assertRedirect('/login');
+        $this->get('/week12')->assertRedirect('/store');
+
+        $this->withSession(['email_verification_user_id' => $user->id])
+            ->actingAs($user)
+            ->get('/store')
+            ->assertOk()
+            ->assertSee('Store Listed Artwork')
+            ->assertDontSee('Store Draft Artwork')
+            ->assertSee('Buy NFT');
+
+        $this->post(route('user.purchase-orders.store'), [
+            'artwork_id' => 'store-listed-artwork',
+            'payment_method' => 'cash_wallet',
+        ])
+            ->assertRedirect(route('verification.notice'));
+
+        $this->get(route('verification.notice'))
+            ->assertOk()
+            ->assertSee('Verify your email before buying NFTs.')
+            ->assertSee($user->email);
+        $this->assertDatabaseCount('payment_orders', 0);
     }
 
     public function test_me_page_combines_profile_and_collection_sections(): void
@@ -582,7 +644,7 @@ class PixmoreePagesTest extends TestCase
         ])->assertSessionHasErrors('content.team.members.0.socials.instagram');
     }
 
-    public function test_week12_marketplace_and_admin_screens_render_seeded_artwork(): void
+    public function test_store_and_admin_screens_render_seeded_artwork(): void
     {
         $this->seed(ArtworkFixtureSeeder::class);
         $this->assertDatabaseCount('users', 4);
@@ -599,7 +661,7 @@ class PixmoreePagesTest extends TestCase
         ]);
         $admin->forceFill(['role' => 'admin'])->save();
 
-        $this->get('/week12')->assertOk()->assertSee('Ethereal Life');
+        $this->get('/week12')->assertRedirect('/store');
         $this->get('/week12/artworks/neon-wanderer')->assertOk()->assertSee('Ethereal Life');
         $home = $this->get('/');
         $home->assertOk()->assertSee('Trending Creators');
@@ -693,7 +755,8 @@ class PixmoreePagesTest extends TestCase
             'content' => ['hero' => ['heading_before' => 'Discover a refreshed']],
             'images' => ['hero' => ['image' => UploadedFile::fake()->createWithContent('marketplace-hero.png', $imageContent)]],
         ])->assertRedirect('/admin/content/marketplace');
-        $this->get('/week12')->assertOk()->assertSee('Discover a refreshed');
+        $this->get('/week12')->assertRedirect('/store');
+        $this->assertDatabaseHas('site_pages', ['slug' => 'marketplace']);
         $this->get('/admin/content/login')->assertOk()->assertSee('Log-in page copy');
         $this->post('/admin/content/login', [
             'content' => ['heading' => 'Sign in to Pixmoree'],
@@ -706,29 +769,31 @@ class PixmoreePagesTest extends TestCase
         $this->get('/register')->assertOk()->assertSee('Join Pixmoree');
     }
 
-    public function test_admin_can_create_update_and_delete_an_artwork(): void
+    public function test_admin_can_moderate_and_delete_creator_artwork(): void
     {
-        $this->seed(ArtworkFixtureSeeder::class);
         $admin = User::create([
             'name' => 'Beta Admin',
             'email' => 'admin@example.test',
             'password' => 'secret-password',
         ]);
         $admin->forceFill(['role' => 'admin'])->save();
-        $this->actingAs($admin);
-
-        $this->post('/week12/admin/artworks', [
+        $creator = User::create([
+            'name' => 'Test Creator',
+            'email' => 'test-creator@example.test',
+            'password' => 'secret-password',
+        ]);
+        $artwork = Artwork::create([
+            'id' => 'creator-test-artwork',
+            'user_id' => $creator->id,
             'title' => 'Test Artwork',
-            'creator' => 'test.creator',
+            'creator' => $creator->name,
             'category' => 'Space',
             'price' => '2.50',
-            'image' => 'anime-style-character-space.jpg',
-            'description' => 'A test listing for the Laravel feature suite.',
-        ])->assertRedirect();
-
-        $artwork = DB::table('artworks')->where('title', 'Test Artwork')->first();
-        $this->assertNotNull($artwork);
-        $this->assertSame('Review', $artwork->status);
+            'image' => 'nfts/ethereal-life.png',
+            'description' => 'A creator listing for the Laravel feature suite.',
+            'status' => 'Review',
+        ]);
+        $this->actingAs($admin);
 
         $this->post("/week12/admin/artworks/{$artwork->id}/status", ['status' => 'Listed'])
             ->assertRedirect('/week12/admin/artworks');
@@ -768,10 +833,10 @@ class PixmoreePagesTest extends TestCase
         $this->assertNotNull($saved->image_hash);
         Storage::disk('public')->assertExists(substr($saved->image, strlen('storage/')));
         $this->get('/user')->assertOk()->assertSee('Noah Original');
-        $this->get('/week12')
+        $this->get('/store')
             ->assertOk()
             ->assertSee('Noah Original')
-            ->assertSee('id="marketplaceResultCount">8</span>', false);
+            ->assertSee('class="store-card"', false);
 
         $listing['image'] = UploadedFile::fake()->createWithContent('same-original.png', $imageContent);
         $this->post('/user/artworks', $listing)->assertSessionHasErrors('image');

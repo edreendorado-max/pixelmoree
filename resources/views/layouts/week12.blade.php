@@ -24,7 +24,7 @@ if ($week12Area === 'admin') {
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark w12-navbar">
     <div class="container">
-        <a class="navbar-brand" href="<?= week12_escape(week12_url('/week12')) ?>" aria-label="Pixmoree marketplace">
+        <a class="navbar-brand" href="<?= week12_escape(week12_url('/store')) ?>" aria-label="Pixmoree store">
             <img src="<?= week12_escape(week12_asset('assets/Pixmoree Neon Pixel Logo.png')) ?>" alt="Pixmoree">
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#week12Nav" aria-controls="week12Nav" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,7 +32,7 @@ if ($week12Area === 'admin') {
         </button>
         <div class="collapse navbar-collapse" id="week12Nav">
             <div class="navbar-nav ms-auto align-items-lg-center gap-lg-2 py-3 py-lg-0">
-                <a class="nav-link <?= $week12Area === 'client' ? 'active' : '' ?>" href="<?= week12_escape(week12_url('/week12')) ?>">Marketplace</a>
+                <a class="nav-link <?= $week12Area === 'client' ? 'active' : '' ?>" href="<?= week12_escape(week12_url('/store')) ?>">Store</a>
                 <?php if (auth()->check() && auth()->user()->isAdmin()): ?>
                     <a class="nav-link <?= $week12Area === 'admin' ? 'active' : '' ?>" href="<?= week12_escape(week12_url('/week12/admin')) ?>">Admin</a>
                     <a class="nav-link" href="<?= week12_escape(week12_url('/admin/content/about')) ?>">Website content</a>

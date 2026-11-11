@@ -2,7 +2,7 @@
 $previewPaths = [
     'home' => '/',
     'about' => '/about',
-    'marketplace' => '/week12',
+    'marketplace' => '/store',
     'login' => '/login',
     'register' => '/register',
 ];

@@ -15,7 +15,7 @@
             <img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree">
         </a>
         <nav class="profile-settings-nav" aria-label="Account navigation">
-            <a href="/week12"><i class="bi bi-compass" aria-hidden="true"></i> Explore</a>
+            <a href="{{ route('store') }}"><i class="bi bi-compass" aria-hidden="true"></i> Store</a>
             <a class="profile-settings-back-link" href="/user"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to account</a>
             <form method="post" action="{{ route('logout') }}">
                 @csrf

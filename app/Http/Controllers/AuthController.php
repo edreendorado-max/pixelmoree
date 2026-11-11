@@ -61,7 +61,7 @@ class AuthController extends Controller
             ->with('status', 'A verification code was sent to your email address. Verify it before signing in.');
     }
 
-    public function login(Request $request, EmailVerification $emailVerification): RedirectResponse
+    public function login(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
             'email' => ['required', 'string', 'max:254'],
@@ -83,17 +83,6 @@ class AuthController extends Controller
 
         if (! $user->hasVerifiedEmail()) {
             $request->session()->put('email_verification_user_id', $user->id);
-            try {
-                $sent = $emailVerification->sendCode($user);
-            } catch (EmailDeliveryNotConfigured) {
-                return back()->withErrors([
-                    'email' => 'This account needs email verification, but email delivery is not configured. Configure MAIL_* in .env, then sign in again.',
-                ])->onlyInput('email');
-            }
-
-            return redirect()->route('verification.notice')->with('status', $sent
-                ? 'A verification code was sent to your email address.'
-                : 'A code was sent recently. Check your inbox before requesting another.');
         }
 
         Auth::login($user);

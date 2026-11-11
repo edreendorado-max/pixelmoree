@@ -26,7 +26,7 @@ body {
 .py-lg-6 { padding-top: 5rem !important; padding-bottom: 5rem !important; }
 .w12-eyebrow { color: var(--w12-cyan); font-size: .72rem; font-weight: 800; letter-spacing: .15em; }
 .w12-eyebrow .bi { color: var(--w12-pink); }
-.w12-hero h1 { max-width: 650px; font-family: "Pixelify Sans", Inter, sans-serif; font-size: clamp(2.5rem, 5.5vw, 4.5rem); line-height: 1.05; }
+.w12-hero h1 { max-width: 650px; font-family: Inter, system-ui, sans-serif; font-size: clamp(2.5rem, 5.5vw, 4.5rem); line-height: 1.05; }
 .w12-hero h1 span { color: var(--w12-pink); }
 .w12-hero-copy { max-width: 490px; color: #c2bfd0; font-size: 1.05rem; line-height: 1.7; }
 .w12-hero-art { position: relative; height: 290px; overflow: hidden; border: 1px solid var(--w12-border); border-radius: 1.25rem; background: var(--w12-surface); box-shadow: 0 24px 70px rgba(0, 0, 0, .3); }

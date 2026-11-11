@@ -16,7 +16,7 @@
     </a>
     <p class="auth-eyebrow"><i class="bi bi-envelope-check" aria-hidden="true"></i> EMAIL VERIFICATION</p>
     <h1 id="auth-title">Check your inbox</h1>
-    <p class="auth-intro">Enter the 6-digit code sent to <strong>{{ $user->email }}</strong>. It expires in 10 minutes.</p>
+    <p class="auth-intro">Verify your email before buying NFTs. Enter the 6-digit code sent to <strong>{{ $user->email }}</strong>. It expires in 10 minutes.</p>
     @if ($errors->any())
       <div class="auth-feedback" role="alert">{{ $errors->first() }}</div>
     @endif

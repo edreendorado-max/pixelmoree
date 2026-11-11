@@ -16,7 +16,7 @@
             <img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree">
         </a>
         <nav class="profile-settings-nav" aria-label="Account navigation">
-            <a href="/week12"><i class="bi bi-compass" aria-hidden="true"></i> Explore</a>
+            <a href="{{ route('store') }}"><i class="bi bi-compass" aria-hidden="true"></i> Store</a>
             <a class="profile-settings-back-link" href="/user"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to account</a>
             <a href="/user/pixel-coin" class="member-pixel-coin-link" aria-label="Pixel Coin wallet">
                 <i class="bi bi-coin" aria-hidden="true"></i>

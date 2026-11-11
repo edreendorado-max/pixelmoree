@@ -61,6 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
     collectionLink.href = '/user/me';
     collectionLink.querySelector('span').textContent = 'Me';
     collectionLink.querySelector('i').className = 'bi bi-person-circle';
+    const storeLink = document.querySelector('[data-member-nav="store"]');
+    storeLink.href = '/store';
     document.querySelector('[data-member-nav="pixel-coin"]').href = '/user/pixel-coin';
     document.querySelector('[data-member-nav="profile-settings"]').href = '/user/profile-settings';
     document.querySelector('[data-member-nav="about"]').href = '/user/about';

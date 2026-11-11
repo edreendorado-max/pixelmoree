@@ -46,25 +46,6 @@ class ArtworkController extends Controller
             ->with('status', 'Your original artwork has been listed.');
     }
 
-    public function storeAdmin(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:120'],
-            'description' => ['required', 'string', 'max:500'],
-            'category' => ['required', 'string', 'max:50'],
-            'price' => ['required', 'numeric', 'min:0', 'max:99999999', 'decimal:0,2'],
-            'item_count' => ['sometimes', 'integer', 'min:1', 'max:100000'],
-            'user_id' => ['required', 'integer', 'exists:users,id'],
-            'image_upload' => ['required', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:20480'],
-        ]);
-
-        $this->createArtwork($validated, \App\Models\User::findOrFail($validated['user_id']));
-
-        return redirect()
-            ->route('week12.admin.artworks')
-            ->with('status', 'Artwork listing has been added.');
-    }
-
     public function update(Request $request, string $id): RedirectResponse
     {
         $artwork = $request->user()->artworks()->findOrFail($id);

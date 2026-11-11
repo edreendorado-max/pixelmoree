@@ -10,7 +10,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/site.css') }}?v=20261105-for-you-dashboard" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}?v=20261111-store" rel="stylesheet">
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark site-nav guest-nav">
@@ -22,6 +22,7 @@
         <a class="member-create-link member-only-nav-link" href="/user/create" data-member-nav="create" hidden><i class="bi bi-plus-lg"></i><span>Create</span></a>
         <a class="active" href="#home" data-member-nav="home"><i class="bi bi-house-door"></i><span>Home</span></a>
         <a href="#explore" data-member-nav="collection"><i class="bi bi-images"></i><span>Gallery</span></a>
+        <a href="{{ route('store') }}" class="member-only-nav-link" data-member-nav="store" hidden><i class="bi bi-shop-window"></i><span>Store</span></a>
         <a class="guest-only-nav-link" href="#trending" data-member-nav="trending"><i class="bi bi-graph-up-arrow"></i><span>Trending</span></a>
         <a class="guest-only-nav-link" href="/about"><i class="bi bi-info-circle"></i><span>About</span></a>
         <a href="/user/purchases" class="member-only-nav-link" data-member-nav="history" hidden><i class="bi bi-receipt"></i><span>Purchases</span></a>

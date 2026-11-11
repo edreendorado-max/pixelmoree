@@ -51,6 +51,16 @@ class ManualPaymentsAndResaleTest extends TestCase
             ->assertSee('Cash ledger');
     }
 
+    public function test_payment_review_uses_the_admin_theme(): void
+    {
+        $this->actingAs($this->admin())
+            ->get(route('admin.payment-orders'))
+            ->assertOk()
+            ->assertSee('class="cms-admin-page payment-review-page"', false)
+            ->assertSee('ADMIN STUDIO')
+            ->assertSee('Payment and resale review');
+    }
+
     public function test_manual_nft_payment_does_not_transfer_ownership_before_admin_approval(): void
     {
         config(['payments.enabled' => true]);
@@ -87,6 +97,30 @@ class ManualPaymentsAndResaleTest extends TestCase
             'product_id' => $artwork->product_id,
             'purchase_id' => $order->purchase_id,
         ]);
+    }
+
+    public function test_unverified_user_can_sign_in_but_cannot_submit_an_nft_purchase(): void
+    {
+        config(['payments.enabled' => true]);
+        $seller = $this->user('seller@example.test');
+        $buyer = User::create([
+            'name' => 'Unverified buyer',
+            'email' => 'unverified-buyer@example.test',
+            'password' => 'secret-password',
+        ]);
+        $artwork = $this->artwork($seller);
+
+        $this->withSession(['email_verification_user_id' => $buyer->id])
+            ->actingAs($buyer)
+            ->post(route('user.purchase-orders.store'), [
+                'artwork_id' => $artwork->id,
+                'payment_method' => 'gcash',
+                'transaction_reference' => 'UNVERIFIED-BUYER-001',
+            ])
+            ->assertRedirect(route('verification.notice'));
+
+        $this->assertDatabaseCount('payment_orders', 0);
+        $this->get(route('verification.notice'))->assertOk()->assertSee($buyer->email);
     }
 
     public function test_withdrawal_reserves_funds_until_transfer_is_recorded_and_releases_after_rejection(): void
@@ -228,7 +262,10 @@ class ManualPaymentsAndResaleTest extends TestCase
 
     private function user(string $email): User
     {
-        return User::create(['name' => 'Test user', 'email' => $email, 'password' => 'secret-password']);
+        $user = User::create(['name' => 'Test user', 'email' => $email, 'password' => 'secret-password']);
+        $user->markEmailAsVerified();
+
+        return $user;
     }
 
     private function admin(): User

@@ -49,8 +49,9 @@ class AccountAndImageCrudTest extends TestCase
         $this->post('/login', [
             'email' => $user->email,
             'password' => 'StrongPass1!',
-        ])->assertRedirect('/email/verify')->assertSessionHas('status');
-        $this->assertGuest();
+        ])->assertRedirect('/user');
+        $this->assertAuthenticatedAs($user);
+        $this->get('/user')->assertOk()->assertDontSee('Verify your email before buying NFTs.');
         $this->get('/email/verify')->assertOk()->assertSee('artist@example.test');
         $this->post('/email/verify', ['code' => $this->verificationCodeFor($user)])
             ->assertRedirect('/user/profile-settings');
@@ -97,7 +98,7 @@ class AccountAndImageCrudTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_unverified_login_shows_a_mail_configuration_error_instead_of_crashing(): void
+    public function test_unverified_user_can_log_in_without_email_delivery_or_an_unrequested_prompt(): void
     {
         config(['mail.default' => 'array']);
         $user = User::create([
@@ -109,11 +110,11 @@ class AccountAndImageCrudTest extends TestCase
         $this->from('/login')->post('/login', [
             'email' => $user->email,
             'password' => 'secret-password',
-        ])->assertRedirect('/login')
-            ->assertSessionHasErrors('email');
+        ])->assertRedirect('/user');
 
-        $this->assertGuest();
+        $this->assertAuthenticatedAs($user);
         $this->assertFalse($user->fresh()->hasVerifiedEmail());
+        $this->get('/user')->assertOk()->assertDontSee('Verify your email');
     }
 
     public function test_registration_with_unconfigured_mailer_keeps_the_account_and_shows_a_recoverable_error(): void

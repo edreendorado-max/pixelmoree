@@ -95,7 +95,7 @@ body.cms-admin-page {
 .cms-editor-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 23px; }
 .cms-overline { margin: 0 0 8px; color: #e182ed; font-size: 8px; font-weight: 800; letter-spacing: 1.4px; }
 .cms-overline i { margin-right: 4px; color: #50dcff; }
-.cms-editor-heading h1 { margin: 0; color: #fbf8ff; font-family: "Pixelify Sans", Inter, sans-serif; font-size: clamp(25px, 3vw, 35px); font-weight: 600; letter-spacing: -.5px; }
+.cms-editor-heading h1 { margin: 0; color: #fbf8ff; font-family: Inter, system-ui, sans-serif; font-size: clamp(25px, 3vw, 35px); font-weight: 700; letter-spacing: -.5px; }
 .cms-editor-heading > div > p:last-child { max-width: 680px; margin: 8px 0 0; color: #a09caf; font-size: 11px; line-height: 1.6; }
 .cms-preview-button { min-height: 38px; display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; padding: 0 13px; border: 1px solid rgba(69, 217, 255, .24); border-radius: 8px; background: rgba(69, 217, 255, .055); color: #b8f1ff; font-size: 10px; text-decoration: none; }
 .cms-preview-button:hover { border-color: rgba(69, 217, 255, .5); background: rgba(69, 217, 255, .1); color: #fff; }
@@ -141,10 +141,27 @@ body.cms-admin-page {
 .cms-footer a { color: #a9a4b8; text-decoration: none; }
 .cms-footer a:hover { color: #79e4ff; }
 
-.cms-admin-page .w12-section-title { color: #fbf8ff; font-family: "Pixelify Sans", Inter, sans-serif; }
+.cms-admin-page .w12-section-title { color: #fbf8ff; font-family: Inter, system-ui, sans-serif; }
 .cms-admin-page .w12-panel, .cms-admin-page .w12-stat-card { border-color: rgba(255, 255, 255, .085); background: linear-gradient(145deg, #14141e, #111119); }
 .cms-admin-page .w12-table { color: #e8e6f0; }
 .cms-admin-page .w12-footer { display: none; }
+.payment-review-main { width: min(1280px, 100%); padding: 32px 30px 60px; margin: 0 auto; }
+.payment-review-heading { margin-bottom: 22px; }
+.payment-review-heading h1 { margin: 0; color: #fbf8ff; font-size: clamp(24px, 3vw, 32px); font-weight: 700; letter-spacing: -.5px; }
+.payment-review-section { display: grid; gap: 12px; margin: 0 0 26px; }
+.payment-review-section h2 { margin: 0; color: #f3f0fa; font-size: 16px; font-weight: 650; }
+.payment-review-card { padding: 16px; border: 1px solid rgba(255,255,255,.085); border-radius: 11px; background: linear-gradient(145deg,#14141e,#111119); color: #e8e6f0; }
+.payment-review-card>strong { color: #fbf8ff; font-size: 13px; }
+.payment-review-card p { margin: 9px 0 0; color: #aaa7b9; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
+.payment-review-card>a { display: inline-block; margin-top: 9px; color: #83dff5; font-size: 11px; }
+.payment-review-actions { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin-top: 13px; }
+.payment-review-actions button { min-height: 34px; padding: 7px 10px; border-radius: 7px; font: 600 10px Inter,system-ui,sans-serif; }
+.payment-review-actions label { display: grid; gap: 5px; color: #cbc6d4; font-size: 10px; }
+.payment-review-actions input { min-height: 34px; padding: 7px 9px; border: 1px solid rgba(255,255,255,.13); border-radius: 7px; outline: 0; background: #0c0c14; color: #f4f2f8; font: 11px Inter,system-ui,sans-serif; }
+.payment-review-actions input:focus { border-color: rgba(69,217,255,.52); box-shadow: 0 0 0 3px rgba(69,217,255,.08); }
+.payment-review-empty { margin: 0; padding: 18px; border: 1px dashed rgba(255,255,255,.13); border-radius: 9px; color: #aaa7b9; font-size: 11px; }
+.payment-review-page .cms-account { color: #ded9e6; font-size: 10px; text-decoration: none; }
+.payment-review-page .cms-account:hover { color: #79e4ff; }
 
 @media (max-width: 1050px) {
     .cms-topbar-inner { gap: 14px; padding: 0 18px; }
@@ -161,6 +178,7 @@ body.cms-admin-page {
     .cms-topnav a { padding: 7px 9px; font-size: 9px; }
     .cms-account { margin-left: auto; }
     .cms-account-name { display: none; }
+    .payment-review-main { padding: 24px 14px 40px; }
     .cms-editor-shell { grid-template-columns: 1fr; gap: 20px; padding: 20px 14px 40px; }
     .cms-sidebar { position: static; padding: 12px; }
     .cms-sidebar-heading { padding-bottom: 11px; }

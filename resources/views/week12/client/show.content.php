@@ -1,5 +1,5 @@
 <section class="container py-4 py-lg-5">
-    <a class="w12-back-link" href="<?= week12_escape(week12_url('/week12')) ?>"><i class="bi bi-arrow-left"></i> Back to marketplace</a>
+    <a class="w12-back-link" href="<?= week12_escape(week12_url('/store')) ?>"><i class="bi bi-arrow-left"></i> Back to store</a>
     <div class="row g-4 g-lg-5 mt-1 align-items-start">
         <div class="col-lg-6">
             <div class="w12-detail-image">

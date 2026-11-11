@@ -20,11 +20,13 @@ $pixelCoinController = \App\Http\Controllers\PixelCoinController::class;
 $paymentOrderController = \App\Http\Controllers\PaymentOrderController::class;
 $resaleListingController = \App\Http\Controllers\ResaleListingController::class;
 $sitePageContentController = \App\Http\Controllers\SitePageContentController::class;
+$adminController = \App\Http\Controllers\AdminController::class;
 $week12ArtworkStore = static fn (): ArtworkRepository => new ArtworkRepository(DB::connection()->getPdo());
 
 Route::get('/', static fn () => auth()->check()
     ? redirect()->route('user')
     : view('home'))->name('home');
+Route::redirect('/week12', '/store')->name('week12.client');
 Route::view('/about', 'about')->name('about');
 Route::get('/nft/{id}', static fn (string $id) => auth()->check()
     ? redirect()->route('user.nft.show', ['id' => $id])
@@ -69,6 +71,15 @@ Route::middleware('throttle:120,1')->group(function () use ($engagementControlle
 });
 
 Route::middleware('auth')->group(function () use ($profileController, $artworkController, $pixelCoinController, $earningsController, $engagementController, $paymentOrderController, $resaleListingController): void {
+    Route::get('/store', static fn () => view('store', [
+        'artworks' => Artwork::query()
+            ->where('status', 'Listed')
+            ->with('user')
+            ->withCount(['likes', 'views'])
+            ->latest()
+            ->get(),
+    ]))->name('store');
+
     Route::view('/user', 'home')->name('user');
     Route::view('/user/me', 'home')->name('user.me');
     Route::view('/user/dashboard', 'home')->name('user.dashboard');
@@ -111,7 +122,7 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
         ->name('user.artworks.edit');
     Route::post('/user/artworks/{artwork}/resale', [$resaleListingController, 'store'])
         ->where('artwork', '[a-z0-9-]+')->name('user.artworks.resale');
-    Route::post('/user/purchase-orders', [$paymentOrderController, 'store'])->name('user.purchase-orders.store');
+    Route::post('/user/purchase-orders', [$paymentOrderController, 'store'])->middleware('verified')->name('user.purchase-orders.store');
     Route::patch('/user/artworks/{id}', [$artworkController, 'update'])
         ->where('id', '[a-z0-9-]+')
         ->name('user.artworks.update');
@@ -134,7 +145,7 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
     });
 });
 
-Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12ArtworkStore, $sitePageContentController, $artworkController, $paymentOrderController, $resaleListingController): void {
+Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12ArtworkStore, $sitePageContentController, $paymentOrderController, $resaleListingController, $adminController): void {
     Route::redirect('/admin/content', '/admin/content/about')->name('admin.content');
     Route::get('/admin/content/{slug}', [$sitePageContentController, 'edit'])
         ->whereIn('slug', array_keys(SitePageContent::definitions()))
@@ -164,33 +175,30 @@ Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12A
     Route::post('/admin/payment-orders/{order}/review', [$paymentOrderController, 'review'])->name('admin.payment-orders.review');
     Route::post('/admin/resales/{listing}/review', [$resaleListingController, 'review'])->whereNumber('listing')->name('admin.resales.review');
 
+    Route::get('/admin/users', [$adminController, 'users'])->name('admin.users');
+    Route::post('/admin/users/{user}/role', [$adminController, 'updateRole'])->whereNumber('user')->name('admin.users.role');
+    Route::post('/admin/artworks/{id}/price', [$adminController, 'updateArtworkPrice'])
+        ->where('id', '[a-z0-9-]+')->name('admin.artworks.price');
+
     Route::get('/week12/admin', function () use ($week12ArtworkStore) {
         return view('week12.admin.dashboard', [
             'counts' => $week12ArtworkStore()->counts(),
             'artworks' => $week12ArtworkStore()->recent(),
+            'userCount' => \App\Models\User::query()->count(),
+            'unverifiedUserCount' => \App\Models\User::query()->whereNull('email_verified_at')->count(),
+            'paymentCounts' => \App\Models\PaymentOrder::query()
+                ->selectRaw('status, COUNT(*) AS total')
+                ->groupBy('status')
+                ->pluck('total', 'status'),
+            'pendingResaleCount' => DB::table('resale_listings')->where('status', 'pending_review')->count(),
         ]);
     })->name('week12.admin');
 
     Route::get('/week12/admin/artworks', function () use ($week12ArtworkStore) {
         return view('week12.admin.artworks', [
             'artworks' => $week12ArtworkStore()->all(),
-            'creators' => DB::table('users')->orderBy('name')->get(['id', 'name']),
         ]);
     })->name('week12.admin.artworks');
-
-    Route::post('/week12/admin/artworks', function () use ($week12ArtworkStore, $artworkController) {
-        if (request()->hasFile('image_upload')) {
-            return app($artworkController)->storeAdmin(request());
-        }
-
-        try {
-            $id = $week12ArtworkStore()->create(request()->all());
-        } catch (InvalidArgumentException $exception) {
-            return back()->withErrors(['listing' => $exception->getMessage()])->withInput();
-        }
-
-        return redirect()->route('week12.client.artwork', ['id' => $id]);
-    })->name('week12.admin.artworks.store');
 
     Route::post('/week12/admin/artworks/{id}/status', function (string $id) use ($week12ArtworkStore) {
         try {
@@ -214,12 +222,6 @@ Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12A
         return redirect()->route('week12.admin.artworks');
     })->where('id', '[a-z0-9-]+')->name('week12.admin.artworks.delete');
 });
-
-Route::get('/week12', function () use ($week12ArtworkStore) {
-    return view('week12.client.index', [
-        'artworks' => $week12ArtworkStore()->listed(),
-    ]);
-})->name('week12.client');
 
 Route::get('/week12/artworks/{id}', function (string $id) use ($week12ArtworkStore, $engagementController) {
     $artwork = $week12ArtworkStore()->find($id);
