@@ -9,6 +9,7 @@ require_once base_path('app/Week12Helpers.php');
 require_once base_path('app/ArtworkRepository.php');
 
 $authController = \App\Http\Controllers\AuthController::class;
+$notificationController = \App\Http\Controllers\NotificationController::class;
 $passwordResetController = \App\Http\Controllers\PasswordResetController::class;
 $socialAuthController = \App\Http\Controllers\SocialAuthController::class;
 $creatorController = \App\Http\Controllers\CreatorController::class;
@@ -72,7 +73,7 @@ Route::middleware('throttle:120,1')->group(function () use ($engagementControlle
         ->name('api.creators.views');
 });
 
-Route::middleware('auth')->group(function () use ($profileController, $artworkController, $pixelCoinController, $earningsController, $engagementController, $paymentOrderController, $resaleListingController): void {
+Route::middleware('auth')->group(function () use ($profileController, $artworkController, $pixelCoinController, $earningsController, $engagementController, $paymentOrderController, $resaleListingController, $notificationController): void {
     Route::get('/store', static fn () => view('store', [
         'artworks' => Artwork::query()
             ->where('status', 'Listed')
@@ -86,7 +87,9 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
     Route::view('/user/me', 'home')->name('user.me');
     Route::view('/user/dashboard', 'home')->name('user.dashboard');
     Route::view('/user/create', 'home')->name('user.create');
-    Route::view('/user/notifications', 'home')->name('user.notifications');
+    Route::get('/user/notifications', [$notificationController, 'index'])->name('user.notifications');
+    Route::post('/user/notifications/read-all', [$notificationController, 'markAllAsRead'])->name('user.notifications.read-all');
+    Route::post('/user/notifications/{notification}/read', [$notificationController, 'markAsRead'])->name('user.notifications.read');
     Route::view('/user/about', 'home')->name('user.about');
     Route::view('/user/purchases', 'home')->name('user.purchases');
     Route::get('/user/nft-management', [$artworkController, 'index'])->name('user.nft-management');

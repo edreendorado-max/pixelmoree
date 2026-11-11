@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Notifications\AccountWelcomeNotification;
 use App\Support\EmailDeliveryNotConfigured;
 use App\Support\EmailVerification;
 use Illuminate\Http\RedirectResponse;
@@ -47,6 +48,7 @@ class AuthController extends Controller
             'email' => mb_strtolower(trim($validated['email'])),
             'password' => $validated['password'],
         ]);
+        $user->notify(new AccountWelcomeNotification());
 
         $request->session()->put('email_verification_user_id', $user->id);
         try {
