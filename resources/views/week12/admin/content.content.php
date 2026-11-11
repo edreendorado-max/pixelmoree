@@ -2,11 +2,10 @@
 $previewPaths = [
     'home' => '/',
     'about' => '/about',
-    'marketplace' => '/store',
     'login' => '/login',
     'register' => '/register',
 ];
-$previewPath = $previewPaths[$slug];
+$previewPath = $previewPaths[$slug] ?? null;
 ?>
 <div class="cms-editor-shell">
     <aside class="cms-sidebar">
@@ -44,7 +43,11 @@ $previewPath = $previewPaths[$slug];
                 <h1>Edit <?= week12_escape($definition['label']) ?></h1>
                 <p>Update page copy and imagery in one place. Changes are saved to Pixmoree and published immediately.</p>
             </div>
-            <a class="cms-preview-button" href="<?= week12_escape(week12_url($previewPath)) ?>" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Preview page</a>
+            <?php if ($previewPath !== null): ?>
+                <a class="cms-preview-button" href="<?= week12_escape(week12_url($previewPath)) ?>" target="_blank" rel="noopener"><i class="bi bi-eye"></i> Preview page</a>
+            <?php else: ?>
+                <span class="cms-field-help">Store previews are not available in the administrator workspace.</span>
+            <?php endif; ?>
         </header>
 
         <?php if (session('status')): ?>
@@ -99,7 +102,7 @@ $previewPath = $previewPaths[$slug];
             <?php endforeach; ?>
             <div class="cms-form-actions">
                 <button class="cms-save-button" type="submit"><i class="bi bi-check2-circle"></i> Save and publish</button>
-                <a href="<?= week12_escape(week12_url($previewPath)) ?>" target="_blank" rel="noopener">Preview public page <i class="bi bi-arrow-up-right"></i></a>
+                <?php if ($previewPath !== null): ?><a href="<?= week12_escape(week12_url($previewPath)) ?>" target="_blank" rel="noopener">Preview public page <i class="bi bi-arrow-up-right"></i></a><?php endif; ?>
                 <span><i class="bi bi-shield-lock"></i> Admin-only editing</span>
             </div>
         </form>

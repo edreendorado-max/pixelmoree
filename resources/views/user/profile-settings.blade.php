@@ -7,6 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ asset('css/site.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/payment-checkout.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/typography.css') }}?v=20261111" rel="stylesheet">
 </head>
 <body class="profile-settings-page">
 <header class="profile-settings-topbar">
@@ -116,6 +118,29 @@
         </section>
 
         <div class="profile-settings-side-column">
+            <section class="profile-settings-panel" aria-labelledby="payment-qr-heading">
+                <div class="profile-settings-panel-heading">
+                    <span class="profile-settings-panel-icon"><i class="bi bi-qr-code" aria-hidden="true"></i></span>
+                    <div><h2 id="payment-qr-heading">Creator payment QR codes</h2><p>Buyers pay you directly. Your QR images stay private and are shown only on a verified buyer's checkout.</p></div>
+                </div>
+                <form class="profile-settings-form" method="post" action="{{ route('user.payment-qr.update') }}" enctype="multipart/form-data">
+                    @csrf
+                    @foreach (['gcash' => 'GCash', 'maya' => 'Maya'] as $method => $label)
+                        <div class="profile-settings-field">
+                            <label for="{{ $method }}-qr">{{ $label }} QR image</label>
+                            @if ($user->{$method . '_qr_path'})
+                                <img class="profile-payment-qr-preview" src="{{ route('user.payment-qr.preview', $method) }}" alt="Your {{ $label }} payment QR">
+                                <label class="profile-payment-qr-remove"><input type="checkbox" name="remove_{{ $method }}_qr" value="1"> Remove saved {{ $label }} QR</label>
+                            @else
+                                <small>No {{ $label }} QR configured.</small>
+                            @endif
+                            <input id="{{ $method }}-qr" name="{{ $method }}_qr" type="file" accept=".jpg,.jpeg,.png,.webp">
+                            <small>JPG, PNG, or WebP; maximum 5 MB.</small>
+                        </div>
+                    @endforeach
+                    <button class="profile-settings-secondary-button" type="submit">Save payment QR codes</button>
+                </form>
+            </section>
             <section class="profile-settings-panel" aria-labelledby="password-heading">
                 <div class="profile-settings-panel-heading">
                     <span class="profile-settings-panel-icon profile-settings-icon-cyan"><i class="bi bi-shield-lock" aria-hidden="true"></i></span>

@@ -35,18 +35,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeTrendingSlide = 0;
   let visibleGalleryLimit = 8;
   let trendingAutoplayTimer;
-  const accountPixelCoinBalance = Number(window.pixmoreeAccount?.pixel_coin_balance ?? 0);
-  let pixelCoinBalance = Number.isSafeInteger(accountPixelCoinBalance) && accountPixelCoinBalance >= 0
-    ? accountPixelCoinBalance
-    : 0;
-  let pixelCoinTransactions = [];
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   if (isMemberPage) {
     document.body.classList.add('member-area');
     if (isMemberAccountPage) document.body.classList.add('member-account-page');
     document.title = isMemberAccountPage
-      ? `${memberSection === 'me' ? 'Me' : memberSection === 'history' ? 'Purchases' : memberSection === 'earnings' ? 'Earnings Balance' : memberSection === 'payment' ? 'Payment & Transactions' : memberSection === 'pixel-coin' ? 'Pixel Coin Wallet' : memberSection === 'terms' ? 'Terms & Originality' : memberSection === 'create' ? 'Create' : memberSection === 'profile' ? 'Profile Settings' : memberSection === 'notifications' ? 'Notifications' : memberSection === 'about' ? 'About Pixmoree' : 'Dashboard'} — Pixmoree`
+      ? `${memberSection === 'me' ? 'Me' : memberSection === 'history' ? 'Purchases' : memberSection === 'earnings' ? 'Earnings' : memberSection === 'payment' ? 'Payment & Transactions' : memberSection === 'terms' ? 'Terms & Originality' : memberSection === 'create' ? 'Create' : memberSection === 'profile' ? 'Profile Settings' : memberSection === 'notifications' ? 'Notifications' : memberSection === 'about' ? 'About Pixmoree' : 'Dashboard'} — Pixmoree`
       : 'Pixmoree — Your Creative Space';
     document.querySelector('.navbar-brand').href = '/user';
     memberProfile.hidden = false;
@@ -63,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
     collectionLink.querySelector('i').className = 'bi bi-person-circle';
     const storeLink = document.querySelector('[data-member-nav="store"]');
     storeLink.href = '/store';
-    document.querySelector('[data-member-nav="pixel-coin"]').href = '/user/pixel-coin';
     document.querySelector('[data-member-nav="profile-settings"]').href = '/user/profile-settings';
     document.querySelector('[data-member-nav="about"]').href = '/user/about';
     document.querySelector('[data-member-nav="terms"]').href = '/user/terms';
@@ -259,97 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateGallery();
   });
 
-  function updatePixelCoinBalance() {
-    document.querySelectorAll('[data-pixelcoin-balance]').forEach(balance => {
-      balance.textContent = pixelCoinBalance.toLocaleString();
-    });
-  }
-
-  async function requestPixelCoinApi() {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-    if (!csrfToken) throw new Error('The secure wallet request token is missing. Refresh the page and try again.');
-    const response = await fetch('/api/pixel-coins', {
-      method: 'GET',
-      credentials: 'same-origin',
-      headers: {
-        Accept: 'application/json',
-        'X-CSRF-TOKEN': csrfToken
-      }
-    });
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-      throw new Error(payload?.message || `Wallet request failed with status ${response.status}.`);
-    }
-    if (!payload || !Number.isSafeInteger(payload.balance) || payload.balance < 0) {
-      throw new Error('The wallet API returned an invalid balance. Refresh the page and try again.');
-    }
-    return payload;
-  }
-
-  function applyPixelCoinWallet(payload) {
-    pixelCoinBalance = payload.balance;
-    if (Array.isArray(payload.transactions)) pixelCoinTransactions = payload.transactions;
-    const navStatus = document.getElementById('memberPixelCoinNavStatus');
-    if (navStatus) navStatus.hidden = true;
-    const walletLink = document.querySelector('.member-pixel-coin-link');
-    if (walletLink) {
-      walletLink.removeAttribute('title');
-      walletLink.setAttribute('aria-label', 'Pixel Coin wallet');
-    }
-    updatePixelCoinBalance();
-    renderPixelCoinActivity();
-  }
-
-  async function refreshPixelCoinWallet() {
-    applyPixelCoinWallet(await requestPixelCoinApi());
-  }
-
-  function showPixelCoinWalletError(error, fallback) {
-    console.error(fallback, error);
-    const message = error instanceof Error ? error.message : fallback;
-    const feedback = document.getElementById('memberPixelWalletFeedback');
-    if (feedback) {
-      feedback.textContent = message;
-      feedback.hidden = false;
-    }
-    const navStatus = document.getElementById('memberPixelCoinNavStatus');
-    const walletLink = document.querySelector('.member-pixel-coin-link');
-    if (navStatus) navStatus.hidden = false;
-    if (walletLink) {
-      walletLink.title = message;
-      walletLink.setAttribute('aria-label', `Pixel Coin balance unavailable: ${message}`);
-    }
-  }
-
-  function renderPixelCoinActivity() {
-    const target = document.getElementById('memberPixelCoinActivity');
-    if (!target) return;
-    if (!pixelCoinTransactions.length) {
-      const row = document.createElement('tr');
-      const cell = document.createElement('td');
-      cell.colSpan = 4;
-      cell.className = 'member-empty-state';
-      cell.textContent = 'No wallet activity yet.';
-      row.append(cell);
-      target.replaceChildren(row);
-      return;
-    }
-    target.replaceChildren(...pixelCoinTransactions.map(item => {
-      const row = document.createElement('tr');
-      const label = document.createElement('td');
-      label.textContent = item.description || (item.type === 'demo_top_up' ? 'Historical credit' : 'Pixel Coin purchase');
-      const amount = document.createElement('td');
-      const isCredit = item.type === 'demo_top_up';
-      amount.textContent = `${isCredit ? '+' : '−'}${Number(item.amount).toLocaleString()} PIXEL COIN`;
-      const balance = document.createElement('td');
-      balance.textContent = `${Number(item.balance_after).toLocaleString()} PIXEL COIN`;
-      const date = document.createElement('td');
-      date.textContent = formatMemberDate(item.created_at);
-      row.append(label, amount, balance, date);
-      return row;
-    }));
-  }
-
   function showMemberPanel(panelName, shouldScroll = true) {
     const selectedPanel = memberPanels.find(panel => panel.dataset.memberPanelContent === panelName);
     if (!selectedPanel) return;
@@ -373,15 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileMenu = document.getElementById('memberProfileMenu');
     updateMemberProfile(window.pixmoreeAccount ?? {});
     renderMemberDashboard();
-    updatePixelCoinBalance();
-    refreshPixelCoinWallet().catch(error => {
-      showPixelCoinWalletError(error, 'Could not load your Pixel Coin wallet.');
-    });
-    window.addEventListener('focus', () => {
-      refreshPixelCoinWallet().catch(error => {
-        showPixelCoinWalletError(error, 'Could not refresh your Pixel Coin wallet.');
-      });
-    });
     profileToggle.addEventListener('click', () => {
       const isExpanded = profileToggle.getAttribute('aria-expanded') === 'true';
       profileToggle.setAttribute('aria-expanded', String(!isExpanded));

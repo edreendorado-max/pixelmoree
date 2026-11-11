@@ -163,6 +163,116 @@ body.cms-admin-page {
 .payment-review-page .cms-account { color: #ded9e6; font-size: 10px; text-decoration: none; }
 .payment-review-page .cms-account:hover { color: #79e4ff; }
 
+.cms-admin-page {
+    --bs-body-font-family: Inter, system-ui, sans-serif;
+    --bs-body-color: #e8e6f0;
+    --bs-body-bg: #080811;
+    --bs-border-color: rgba(255, 255, 255, .14);
+    --bs-secondary-color: #aaa7bd;
+    --bs-tertiary-bg: #11111b;
+}
+
+.cms-admin-page .cms-brand > span,
+.cms-admin-page .w12-section-title,
+.cms-admin-page .cms-editor-heading h1,
+.cms-admin-page .payment-review-heading h1 {
+    font-family: "Pixelify Sans", Inter, system-ui, sans-serif;
+    letter-spacing: 0;
+}
+
+.cms-admin-page .w12-section-title { font-size: clamp(1.8rem, 3.2vw, 2.6rem); }
+.cms-admin-page .cms-editor-heading h1,
+.cms-admin-page .payment-review-heading h1 { font-size: clamp(1.7rem, 3vw, 2.35rem); }
+.cms-admin-page .cms-brand > span { font-size: .75rem; }
+.cms-admin-page .cms-topnav a { font-size: .875rem; }
+.cms-admin-page .cms-account-name { font-size: .875rem; }
+.cms-admin-page .cms-account-name small { font-size: .72rem; }
+.cms-admin-page .cms-footer { font-size: .8rem; }
+.cms-admin-page .w12-table td { font-size: .9rem; }
+.cms-admin-page .w12-table thead th { font-size: .78rem; }
+
+.cms-admin-page .form-control,
+.cms-admin-page .form-select,
+.cms-admin-page .cms-input,
+.cms-admin-page .payment-review-actions input {
+    min-height: 44px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: .65rem;
+    background-color: #0e0e18;
+    color: #f4f2f8;
+    font: 400 .95rem/1.45 Inter, system-ui, sans-serif;
+    box-shadow: none;
+}
+
+.cms-admin-page .form-control::placeholder,
+.cms-admin-page .cms-input::placeholder { color: #88859a; opacity: 1; }
+
+.cms-admin-page .form-control:focus,
+.cms-admin-page .form-select:focus,
+.cms-admin-page .cms-input:focus,
+.cms-admin-page .payment-review-actions input:focus {
+    border-color: #55dfff;
+    background-color: #10101b;
+    color: #fff;
+    box-shadow: 0 0 0 .22rem rgba(69, 217, 255, .15);
+}
+
+.cms-admin-page select option { background: #11111b; color: #f4f2f8; }
+.cms-admin-page input[type="date"] { color-scheme: dark; }
+.cms-admin-page .cms-input { padding: .65rem .8rem; }
+.cms-admin-page textarea.cms-input { min-height: 7rem; }
+.cms-admin-page .cms-file-input { padding: .45rem; }
+.cms-admin-page .form-control-sm,
+.cms-admin-page .form-select-sm { min-height: 2.25rem; font-size: .82rem; }
+.cms-admin-page .cms-field > label,
+.cms-admin-page .payment-review-actions label { color: #e1deea; font-size: .875rem; }
+.cms-admin-page .cms-field-help { color: #aaa7bd; font-size: .8rem; }
+.cms-admin-page .cms-file-input::file-selector-button {
+    padding: .5rem .75rem;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: .45rem;
+    background: #252238;
+    color: #f4f2f8;
+    font: 500 .85rem Inter, system-ui, sans-serif;
+}
+
+.cms-admin-page .btn,
+.cms-admin-page .cms-save-button,
+.cms-admin-page .payment-review-actions button {
+    min-height: 40px;
+    font: 600 .875rem Inter, system-ui, sans-serif;
+}
+
+.cms-admin-page .btn-sm { min-height: 34px; font-size: .8rem; }
+.cms-admin-page .cms-save-button { padding: 0 1rem; }
+.cms-admin-page .cms-form-actions > a { font-size: .85rem; }
+.cms-admin-page .cms-form-actions > span { font-size: .78rem; }
+.cms-admin-page .page-link {
+    border-color: rgba(255, 255, 255, .12);
+    background: #11111b;
+    color: #d7d2e3;
+}
+.cms-admin-page .page-link:hover,
+.cms-admin-page .page-item.active .page-link {
+    border-color: rgba(213, 87, 231, .35);
+    background: #382044;
+    color: #fff;
+}
+.cms-admin-page .page-item.disabled .page-link {
+    border-color: rgba(255, 255, 255, .08);
+    background: #0c0c14;
+    color: #777487;
+}
+.payment-review-page .payment-review-heading h1 { font-family: "Pixelify Sans", Inter, system-ui, sans-serif; }
+.payment-review-page .payment-review-card p,
+.payment-review-page .payment-review-card>a { font-size: .9rem; }
+.payment-review-page .payment-review-actions button { min-height: 42px; }
+.payment-review-page .payment-review-actions input { min-width: min(18rem, 100%); padding: .6rem .75rem; }
+.analytics-select-label { display: grid; min-width: min(18rem, 100%); gap: .4rem; color: #d7d2e3; font-size: .85rem; }
+.analytics-chart-wrap { position: relative; width: 100%; height: 300px; }
+.analytics-chart-wrap canvas { display: block; width: 100%; height: 100%; }
+.analytics-chart-empty { margin: .8rem 0 0; color: #aaa7bd; font-size: .875rem; }
+
 @media (max-width: 1050px) {
     .cms-topbar-inner { gap: 14px; padding: 0 18px; }
     .cms-brand img { width: 112px; }

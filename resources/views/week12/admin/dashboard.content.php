@@ -56,6 +56,7 @@
                 <div class="d-grid gap-2">
                     <a href="<?= week12_escape(week12_url('/week12/admin/artworks')) ?>" class="btn w12-btn-outline text-start"><i class="bi bi-card-list"></i> Artwork and prices</a>
                     <a href="<?= week12_escape(week12_url('/admin/users')) ?>" class="btn w12-btn-outline text-start"><i class="bi bi-people"></i> User accounts</a>
+                    <a href="<?= week12_escape(week12_url('/admin/analytics')) ?>" class="btn w12-btn-outline text-start"><i class="bi bi-graph-up"></i> Market analytics</a>
                     <a href="<?= week12_escape(week12_url('/admin/payment-orders')) ?>" class="btn w12-btn-outline text-start"><i class="bi bi-receipt"></i> Payments and resales</a>
                     <a href="<?= week12_escape(week12_url('/admin/content/home')) ?>" class="btn w12-btn-outline text-start"><i class="bi bi-pencil-square"></i> Website content</a>
                 </div>

@@ -1,0 +1,52 @@
+.app-notification {
+    width: min(420px, calc(100% - 32px));
+    padding: 28px;
+    border: 1px solid #554064;
+    border-radius: 16px;
+    background: #171522;
+    color: #f8f7ff;
+    text-align: center;
+    box-shadow: 0 24px 80px #000b;
+}
+
+.app-notification::backdrop {
+    background: #080811bf;
+    backdrop-filter: blur(5px);
+}
+
+.app-notification-icon {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 14px;
+    place-items: center;
+    border: 1px solid #ef66d555;
+    border-radius: 50%;
+    background: #ef66d51a;
+    color: #f17add;
+    font-size: 22px;
+}
+
+.app-notification h2 {
+    margin: 0;
+    color: #fff;
+    font-size: 22px;
+}
+
+.app-notification p {
+    margin: 12px 0 22px;
+    color: #c3bfd1;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.app-notification-close {
+    min-width: 120px;
+    padding: 10px 18px;
+    border: 0;
+    border-radius: 8px;
+    background: linear-gradient(100deg, #d72bdf, #00bff2);
+    color: #fff;
+    cursor: pointer;
+    font-weight: 700;
+}

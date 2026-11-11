@@ -11,10 +11,59 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class PaymentOrderController extends Controller
 {
-    private const METHODS = ['gcash', 'maya', 'paypal'];
+    private const METHODS = ['gcash', 'maya'];
+
+    public function checkout(Request $request, string $artworkId): View
+    {
+        $this->ensurePaymentsEnabled();
+
+        $artwork = Artwork::query()->whereKey($artworkId)->where('status', 'Listed')->firstOrFail();
+        $sellerId = $this->sellerIdFor($artwork);
+        abort_if((int) $sellerId === (int) $request->user()->id, 422, 'You cannot buy your own artwork or resale listing.');
+        $seller = User::query()->findOrFail($sellerId);
+        $paymentMethods = array_values(array_filter(self::METHODS, static function (string $method) use ($seller): bool {
+            $path = $seller->getAttribute($method . '_qr_path');
+
+            return is_string($path) && Storage::disk('local')->exists($path);
+        }));
+        $amountMinor = $this->artworkPriceMinor($artwork);
+        if ($paymentMethods !== []) {
+            $request->session()->put('payment_checkout.' . $artwork->id, [
+                'started_at' => now()->timestamp,
+                'seller_id' => (int) $sellerId,
+                'amount_minor' => $amountMinor,
+            ]);
+        }
+
+        return view('payment-checkout', [
+            'artwork' => $artwork,
+            'seller' => $seller,
+            'amountMinor' => $amountMinor,
+            'paymentMethods' => $paymentMethods,
+        ]);
+    }
+
+    public function qr(Request $request, string $artworkId, string $method)
+    {
+        $this->ensurePaymentsEnabled();
+        abort_unless(in_array($method, self::METHODS, true), 404);
+        $checkout = $request->session()->get('payment_checkout.' . $artworkId);
+        abort_unless($this->validCheckoutSession($checkout), 403);
+
+        $artwork = Artwork::query()->whereKey($artworkId)->where('status', 'Listed')->firstOrFail();
+        $sellerId = $this->sellerIdFor($artwork);
+        abort_unless($checkout['seller_id'] === $sellerId, 403);
+        $seller = User::query()->findOrFail($sellerId);
+        abort_if((int) $seller->id === (int) $request->user()->id, 403);
+        $path = $seller->getAttribute($method . '_qr_path');
+        abort_unless(is_string($path) && Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->response($path);
+    }
 
     public function store(Request $request): RedirectResponse
     {
@@ -22,216 +71,76 @@ class PaymentOrderController extends Controller
 
         $validated = $request->validate([
             'artwork_id' => ['required', 'string', 'exists:artworks,id'],
-            'payment_method' => ['required', 'in:gcash,maya,paypal,cash_wallet'],
-            'transaction_reference' => ['required_unless:payment_method,cash_wallet', 'nullable', 'string', 'max:120'],
-            'proof' => ['required_unless:payment_method,cash_wallet', 'nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
+            'payment_method' => ['required', 'in:gcash,maya'],
+            'transaction_reference' => ['required', 'string', 'max:120'],
+            'proof' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
         $artwork = Artwork::query()->whereKey($validated['artwork_id'])->where('status', 'Listed')->firstOrFail();
-        $sellerId = DB::table('resale_listings')->where('artwork_id', $artwork->id)
-            ->where('status', 'listed')->value('seller_id') ?? $artwork->user_id;
+        $sellerId = $this->sellerIdFor($artwork);
         abort_if((int) $sellerId === (int) $request->user()->id, 422, 'You cannot buy your own artwork or resale listing.');
-        if ($validated['payment_method'] !== 'cash_wallet') {
-            $this->assertReferenceAvailable($validated['payment_method'], $validated['transaction_reference']);
+        $checkout = $request->session()->get('payment_checkout.' . $artwork->id);
+        abort_unless($this->validCheckoutSession($checkout) && $checkout['seller_id'] === $sellerId, 403, 'Start checkout again before submitting a receipt.');
+        $amountMinor = $this->artworkPriceMinor($artwork);
+        if ($checkout['amount_minor'] !== $amountMinor) {
+            throw ValidationException::withMessages(['payment_method' => 'The listing price changed. Review the current checkout amount and submit a new payment if needed.']);
         }
-        $path = isset($validated['proof']) ? $validated['proof']->store('payment-proofs', 'local') : null;
-        if (isset($validated['proof']) && ! is_string($path)) {
+        $seller = User::query()->findOrFail($sellerId);
+        $qrPath = $seller->getAttribute($validated['payment_method'] . '_qr_path');
+        abort_unless(is_string($qrPath) && Storage::disk('local')->exists($qrPath), 422, 'The selected payment method is not configured by this creator.');
+        $this->assertReferenceAvailable($validated['payment_method'], $validated['transaction_reference']);
+
+        $path = $validated['proof']->store('payment-proofs', 'local');
+        if (! is_string($path)) {
             throw new \RuntimeException('Payment proof could not be stored securely.');
         }
 
         try {
-            DB::transaction(function () use ($request, $validated, $artwork, $path, $sellerId): void {
-                if ($validated['payment_method'] === 'cash_wallet') {
-                    $buyer = User::query()->lockForUpdate()->findOrFail($request->user()->id);
-                    $amount = $this->artworkPriceMinor($artwork);
-                    if ($buyer->cash_balance_minor - $buyer->cash_reserved_minor < $amount) {
-                        throw ValidationException::withMessages(['payment_method' => 'Your cleared PHP wallet balance is not enough.']);
-                    }
-                    $buyer->cash_balance_minor -= $amount;
-                    $buyer->save();
-                    $requestId = (string) Str::uuid();
-                    $order = PaymentOrder::create([
-                        'purchase_id' => $requestId, 'buyer_id' => $buyer->id, 'seller_id' => $sellerId,
-                        'artwork_id' => $artwork->id, 'type' => 'nft_purchase', 'amount_minor' => $amount,
-                        'payment_method' => 'cash_wallet', 'status' => 'approved',
-                    ]);
-                    $this->ledger($buyer, $order, 'nft_purchase', 'debit', $amount);
-                    $this->acquire($order);
-                    if ($order->seller_id !== null) {
-                        $seller = User::query()->lockForUpdate()->findOrFail($order->seller_id);
-                        $seller->cash_balance_minor += $amount;
-                        $seller->save();
-                        $this->ledger($seller, $order, 'nft_sale', 'credit', $amount);
-                    }
-                    return;
-                }
-
-                $this->createOrder($request, $artwork, 'nft_purchase', $validated['payment_method'], $this->artworkPriceMinor($artwork), $validated['transaction_reference'], $path, $sellerId);
-            });
-        } catch (\Throwable $exception) {
-            if ($path !== null) Storage::disk('local')->delete($path);
-            throw $exception;
-        }
-
-        return redirect('/user/purchases')->with('status', 'Payment submitted for admin verification. NFT ownership changes only after approval.');
-    }
-
-    public function topUp(Request $request): RedirectResponse
-    {
-        $this->ensurePaymentsEnabled();
-
-        $validated = $request->validate([
-            'amount_php' => ['required', 'integer', 'in:100,500,1000'],
-            'payment_method' => ['required', 'in:gcash,maya,paypal'],
-            'transaction_reference' => ['required', 'string', 'max:120'],
-            'proof' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
-        ]);
-        $this->assertReferenceAvailable($validated['payment_method'], $validated['transaction_reference']);
-        $path = $validated['proof']->store('payment-proofs', 'local');
-        if (! is_string($path)) throw new \RuntimeException('Payment proof could not be stored securely.');
-        $this->createOrder($request, null, 'cash_topup', $validated['payment_method'], $validated['amount_php'] * 100, $validated['transaction_reference'], $path);
-
-        return back()->with('status', 'Top-up submitted. Your cash balance will update after admin verification.');
-    }
-
-    public function prepaidTopUp(Request $request): RedirectResponse
-    {
-        $this->ensurePaymentsEnabled();
-
-        $validated = $request->validate([
-            'amount_php' => ['required', 'integer', 'in:50,100,300'],
-            'transaction_reference' => ['required', 'string', 'max:120'],
-            'proof' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
-        ]);
-        $this->assertReferenceAvailable('prepaid_load', $validated['transaction_reference']);
-        $path = $validated['proof']->store('payment-proofs', 'local');
-        if (! is_string($path)) throw new \RuntimeException('Payment proof could not be stored securely.');
-        $this->createOrder($request, null, 'pixel_topup', 'prepaid_load', $validated['amount_php'] * 100, $validated['transaction_reference'], $path);
-
-        return back()->with('status', 'Prepaid-load top-up submitted for verification. Prepaid load is not an NFT checkout method.');
-    }
-
-    public function withdraw(Request $request): RedirectResponse
-    {
-        $this->ensurePaymentsEnabled();
-
-        $validated = $request->validate([
-            'amount_php' => ['required', 'integer', 'min:100', 'max:100000'],
-            'paypal_email' => ['required', 'email', 'max:254'],
-        ]);
-        $amount = $validated['amount_php'] * 100;
-        DB::transaction(function () use ($request, $validated, $amount): void {
-            $user = User::query()->lockForUpdate()->findOrFail($request->user()->id);
-            if ($user->cash_balance_minor - $user->cash_reserved_minor < $amount) {
-                throw ValidationException::withMessages(['amount_php' => 'The requested payout exceeds your cleared, unreserved balance.']);
-            }
-            $user->cash_reserved_minor += $amount;
-            $user->save();
             PaymentOrder::create([
                 'purchase_id' => (string) Str::uuid(),
-                'buyer_id' => $user->id,
-                'type' => 'withdrawal',
-                'amount_minor' => $amount,
+                'buyer_id' => $request->user()->id,
+                'seller_id' => $sellerId,
+                'artwork_id' => $artwork->id,
+                'type' => 'nft_purchase',
+                'amount_minor' => $amountMinor,
                 'currency' => 'PHP',
-                'payment_method' => 'paypal',
-                'payout_email' => $validated['paypal_email'],
+                'payment_method' => $validated['payment_method'],
+                'transaction_reference' => $validated['transaction_reference'],
+                'proof_path' => $path,
             ]);
-        });
+        } catch (\Throwable $exception) {
+            $disk = Storage::disk('local');
+            if ($disk->exists($path) && ! $disk->delete($path)) {
+                throw new \RuntimeException('The failed payment receipt could not be removed from private storage.', 0, $exception);
+            }
+            throw $exception;
+        }
+        $request->session()->forget('payment_checkout.' . $artwork->id);
 
-        return back()->with('status', 'PayPal payout request submitted for admin review; nothing has been sent yet.');
+        return redirect('/user/purchases')->with('status', 'Receipt submitted for manual admin verification. NFT ownership changes only after approval.');
     }
 
     public function review(Request $request, PaymentOrder $order): RedirectResponse
     {
         $this->ensurePaymentsEnabled();
 
-        $validated = $request->validate([
-            'decision' => ['required', 'in:approve,reject,mark_paid'],
-            'payout_reference' => ['required_if:decision,mark_paid', 'nullable', 'string', 'max:120'],
-        ]);
+        $validated = $request->validate(['decision' => ['required', 'in:approve,reject']]);
         DB::transaction(function () use ($request, $order, $validated): void {
             $order = PaymentOrder::query()->lockForUpdate()->findOrFail($order->purchase_id);
-            $user = User::query()->lockForUpdate()->findOrFail($order->buyer_id);
-            if ($order->type === 'withdrawal') {
-                if ($validated['decision'] === 'reject') {
-                    abort_unless(in_array($order->status, ['pending_review', 'payout_approved'], true), 409, 'This withdrawal can no longer be rejected.');
-                    abort_if($user->cash_reserved_minor < $order->amount_minor, 409, 'The reserved withdrawal amount is inconsistent.');
-                    $user->cash_reserved_minor -= $order->amount_minor;
-                    $user->save();
-                    $order->update(['status' => 'rejected', 'reviewed_by' => $request->user()->id, 'reviewed_at' => now()]);
-                    return;
-                }
-                if ($validated['decision'] === 'approve') {
-                    abort_unless($order->status === 'pending_review', 409, 'This withdrawal has already been reviewed.');
-                    $order->update(['status' => 'payout_approved', 'reviewed_by' => $request->user()->id, 'reviewed_at' => now()]);
-                    return;
-                }
-                abort_unless($order->status === 'payout_approved', 409, 'Approve the withdrawal before recording its payout.');
-                abort_if($user->cash_reserved_minor < $order->amount_minor || $user->cash_balance_minor < $order->amount_minor, 409, 'The reserved withdrawal amount is inconsistent.');
-                if (DB::table('payment_orders')->where('payout_reference', $validated['payout_reference'])
-                    ->where('purchase_id', '<>', $order->purchase_id)->exists()) {
-                    throw ValidationException::withMessages([
-                        'payout_reference' => 'This payout reference has already been recorded.',
-                    ]);
-                }
-                $user->cash_reserved_minor -= $order->amount_minor;
-                $user->cash_balance_minor -= $order->amount_minor;
-                $user->save();
-                $order->update([
-                    'status' => 'paid',
-                    'payout_reference' => $validated['payout_reference'],
-                    'reviewed_by' => $request->user()->id,
-                    'reviewed_at' => now(),
-                ]);
-                $this->ledger($user, $order, 'paypal_payout', 'debit', $order->amount_minor);
-                return;
-            }
+            abort_unless($order->type === 'nft_purchase', 422, 'Only NFT purchase receipts can be reviewed.');
             abort_unless($order->status === 'pending_review', 409, 'This payment request has already been reviewed.');
-            abort_unless(in_array($validated['decision'], ['approve', 'reject'], true), 422, 'This action is only valid for a withdrawal.');
+            abort_unless(in_array($order->payment_method, self::METHODS, true), 422, 'This payment method is not supported.');
+            abort_unless($order->transaction_reference && $order->proof_path, 422, 'The payment reference and proof are required before review.');
             if ($validated['decision'] === 'reject') {
                 $order->update(['status' => 'rejected', 'reviewed_by' => $request->user()->id, 'reviewed_at' => now()]);
                 return;
             }
-
-            if ($order->type === 'cash_topup') {
-                $user->cash_balance_minor += $order->amount_minor;
-                $user->save();
-                $this->ledger($user, $order, 'cash_topup', 'credit', $order->amount_minor);
-            } elseif ($order->type === 'pixel_topup') {
-                $coinAmount = (int) ($order->amount_minor / 100) * (int) config('payments.pixel_coin_per_php', 100);
-                abort_if($user->pixel_coin_balance + $coinAmount > 1_000_000_000, 409, 'This Pixel Coin account balance would exceed its limit.');
-                $user->pixel_coin_balance += $coinAmount;
-                $user->save();
-                $user->pixelCoinTransactions()->create([
-                    'type' => 'prepaid_load_top_up', 'amount' => $coinAmount,
-                    'balance_after' => $user->pixel_coin_balance, 'description' => 'Admin-verified prepaid-load top-up',
-                ]);
-            } elseif ($order->type === 'nft_purchase') {
-                $this->acquire($order);
-                if ($order->seller_id !== null) {
-                    $seller = User::query()->lockForUpdate()->findOrFail($order->seller_id);
-                    $seller->cash_balance_minor += $order->amount_minor;
-                    $seller->save();
-                    $this->ledger($seller, $order, 'nft_sale', 'credit', $order->amount_minor);
-                }
-            }
-
+            $this->acquire($order);
             $order->update(['status' => 'approved', 'reviewed_by' => $request->user()->id, 'reviewed_at' => now()]);
         });
 
-        return back()->with('status', 'Payment request reviewed. Verify incoming funds before approval; PayPal payouts are only recorded as paid after the transfer is sent.');
-    }
-
-    private function createOrder(Request $request, ?Artwork $artwork, string $type, string $method, int $amount, ?string $reference, ?string $path, ?int $sellerId = null): PaymentOrder
-    {
-        if ($reference !== null) {
-            $this->assertReferenceAvailable($method, $reference);
-        }
-        return PaymentOrder::create([
-            'purchase_id' => (string) Str::uuid(), 'buyer_id' => $request->user()->id,
-            'seller_id' => $artwork === null ? null : ($sellerId ?? $artwork->user_id), 'artwork_id' => $artwork?->id, 'type' => $type,
-            'amount_minor' => $amount, 'currency' => 'PHP', 'payment_method' => $method,
-            'transaction_reference' => $reference, 'proof_path' => $path,
-        ]);
+        return back()->with('status', $validated['decision'] === 'approve'
+            ? 'Receipt approved. Ownership was transferred after manual review.'
+            : 'Receipt rejected. NFT ownership was not transferred.');
     }
 
     private function assertReferenceAvailable(string $method, string $reference): void
@@ -246,7 +155,16 @@ class PaymentOrderController extends Controller
 
     private function ensurePaymentsEnabled(): void
     {
-        abort_unless(config('payments.enabled'), 503, 'Payments and payouts are disabled during beta.');
+        abort_unless(config('payments.enabled'), 503, 'NFT checkout is currently unavailable.');
+    }
+
+    private function validCheckoutSession(mixed $checkout): bool
+    {
+        return is_array($checkout)
+            && is_int($checkout['started_at'] ?? null)
+            && $checkout['started_at'] >= now()->subMinutes(30)->timestamp
+            && is_int($checkout['seller_id'] ?? null)
+            && is_int($checkout['amount_minor'] ?? null);
     }
 
     private function acquire(PaymentOrder $order): void
@@ -280,13 +198,18 @@ class PaymentOrderController extends Controller
         ]);
     }
 
-    private function ledger(User $user, PaymentOrder $order, string $type, string $direction, int $amount): void
+    private function sellerIdFor(Artwork $artwork): int
     {
-        DB::table('cash_ledger_entries')->insert([
-            'user_id' => $user->id, 'purchase_id' => $order->purchase_id, 'type' => $type,
-            'direction' => $direction, 'amount_minor' => $amount, 'balance_after_minor' => $user->cash_balance_minor,
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
+        $listedSellerId = DB::table('resale_listings')->where('artwork_id', $artwork->id)
+            ->where('status', 'listed')->value('seller_id');
+        if ($listedSellerId !== null) {
+            return (int) $listedSellerId;
+        }
+
+        $ownerId = DB::table('artwork_ownerships')->where('artwork_id', $artwork->id)->value('owner_id');
+        abort_if($ownerId !== null, 409, 'This artwork is not currently listed for resale.');
+
+        return (int) $artwork->user_id;
     }
 
     private function artworkPriceMinor(Artwork $artwork): int

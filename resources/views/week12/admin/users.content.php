@@ -23,7 +23,7 @@
         </form>
         <div class="table-responsive">
             <table class="table w12-table align-middle mb-0">
-                <thead><tr><th>Account</th><th>Email</th><th>Verification</th><th>Artwork</th><th>Joined</th><th>Role</th><th>Access</th></tr></thead>
+                <thead><tr><th>Account</th><th>Email</th><th>Verification</th><th>Artwork</th><th>Joined</th><th>Role</th><th>Manage</th></tr></thead>
                 <tbody>
                     <?php foreach ($users as $account): ?>
                         <tr>
@@ -33,17 +33,7 @@
                             <td><?= number_format($account->artworks_count) ?></td>
                             <td><?= week12_escape($account->created_at?->format('Y-m-d') ?? '—') ?></td>
                             <td><?= $account->isAdmin() ? 'Administrator' : 'User' ?></td>
-                            <td>
-                                <?php if (auth()->id() !== $account->id): ?>
-                                    <form method="post" action="<?= week12_escape(route('admin.users.role', ['user' => $account->id])) ?>">
-                                        <input type="hidden" name="_token" value="<?= week12_escape($week12CsrfToken) ?>">
-                                        <input type="hidden" name="role" value="<?= $account->isAdmin() ? 'user' : 'admin' ?>">
-                                        <button class="btn w12-btn-outline btn-sm" type="submit"><?= $account->isAdmin() ? 'Remove admin' : 'Make admin' ?></button>
-                                    </form>
-                                <?php else: ?>
-                                    <span class="text-secondary small">Current account</span>
-                                <?php endif; ?>
-                            </td>
+                            <td><a class="btn w12-btn-outline btn-sm" href="<?= week12_escape(route('admin.users.edit', $account)) ?>">Edit account</a></td>
                         </tr>
                     <?php endforeach; ?>
                     <?php if ($users->isEmpty()): ?>

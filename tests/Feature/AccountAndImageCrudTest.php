@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Image;
 use App\Models\User;
+use App\Mail\NewAccountWelcomeMail;
 use App\Mail\EmailVerificationCodeMail;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -42,6 +43,18 @@ class AccountAndImageCrudTest extends TestCase
             'terms' => '1',
         ])->assertRedirect('/email/verify');
 
+        $this->assertDatabaseHas('users', [
+            'email' => 'artist@example.test',
+            'name' => 'Pixel Artist',
+        ]);
+        Mail::assertSent(NewAccountWelcomeMail::class, function (NewAccountWelcomeMail $mail): bool {
+            return $mail->hasTo('artist@example.test')
+                && $mail->user->name === 'Pixel Artist';
+        });
+        $this->get('/email/verify')
+            ->assertOk()
+            ->assertSee('data-notification-popup', false)
+            ->assertSee('Welcome to Pixmoree, Pixel Artist!');
         $user = User::where('email', 'artist@example.test')->firstOrFail();
         $this->assertSame('pixelartist', $user->username);
         $this->assertGuest();
@@ -94,8 +107,14 @@ class AccountAndImageCrudTest extends TestCase
         ])->assertRedirect('/user');
         $this->assertAuthenticated();
 
-        $this->post('/logout')->assertRedirect('/login');
+        $this->post('/logout')
+            ->assertRedirect('/login')
+            ->assertSessionHas('notification_popup.title', 'You are logged out');
         $this->assertGuest();
+        $this->get('/login')
+            ->assertOk()
+            ->assertSee('data-notification-popup', false)
+            ->assertSee('You are logged out');
     }
 
     public function test_unverified_user_can_log_in_without_email_delivery_or_an_unrequested_prompt(): void
@@ -261,6 +280,11 @@ class AccountAndImageCrudTest extends TestCase
         $this->assertSame('google-user-123', $user->google_id);
         $this->assertSame('user', $user->role);
         $this->assertGuest();
+        Mail::assertSent(NewAccountWelcomeMail::class, fn (NewAccountWelcomeMail $mail): bool => $mail->hasTo($user->email));
+        $this->get('/email/verify')
+            ->assertOk()
+            ->assertSee('data-notification-popup', false)
+            ->assertSee('Welcome to Pixmoree, Google Person!');
         $this->post('/email/verify', ['code' => $this->verificationCodeFor($user)])
             ->assertRedirect('/user/profile-settings');
         $this->assertAuthenticatedAs($user->fresh());
@@ -471,7 +495,13 @@ class AccountAndImageCrudTest extends TestCase
         $this->get('/user/profile-settings')->assertRedirect('/login');
         $this->get('/admin/content/about')->assertRedirect('/login');
         $this->post('/user/profile')->assertRedirect('/login');
+        $this->get('/user/artworks')->assertRedirect('/login');
+        $this->get('/user/artworks/private-artwork/edit')->assertRedirect('/login');
+        $this->post('/user/artworks')->assertRedirect('/login');
+        $this->patch('/user/artworks/private-artwork', [])->assertRedirect('/login');
+        $this->delete('/user/artworks/private-artwork')->assertRedirect('/login');
         $this->get('/week12/admin')->assertRedirect('/login');
+        $this->get('/week12/admin/artworks')->assertRedirect('/login');
     }
 
     public function test_admin_access_is_granted_only_after_cli_promotion(): void

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\NewAccountWelcomeMail;
 use App\Models\User;
 use App\Support\EmailDeliveryNotConfigured;
 use App\Support\EmailVerification;
@@ -9,9 +10,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class AuthController extends Controller
 {
@@ -57,8 +60,22 @@ class AuthController extends Controller
             ]);
         }
 
-        return redirect()->route('verification.notice')
-            ->with('status', 'A verification code was sent to your email address. Verify it before signing in.');
+        $redirect = redirect()->route('verification.notice')
+            ->with('status', 'A verification code was sent to your email address. Verify it before signing in.')
+            ->with('notification_popup', [
+                'title' => 'Welcome to Pixmoree, '.$user->name.'!',
+                'message' => 'Your account is ready. Check your inbox for a welcome note and verify your email to finish setting up.',
+            ]);
+
+        try {
+            Mail::to($user->email)->send(new NewAccountWelcomeMail($user));
+        } catch (TransportExceptionInterface) {
+            $redirect->withErrors([
+                'email' => 'Your account was created and the verification code was sent, but we could not send the welcome email.',
+            ]);
+        }
+
+        return $redirect;
     }
 
     public function login(Request $request): RedirectResponse
@@ -148,7 +165,10 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login');
+        return redirect()->route('login')->with('notification_popup', [
+            'title' => 'You are logged out',
+            'message' => 'You have been securely signed out of Pixmoree.',
+        ]);
     }
 
     private function availableUsername(string $base): string

@@ -130,6 +130,64 @@ class UserProfileController extends Controller
             ->with('status', 'Your password has been changed.');
     }
 
+    public function updatePaymentQrs(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'gcash_qr' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'maya_qr' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'remove_gcash_qr' => ['sometimes', 'boolean'],
+            'remove_maya_qr' => ['sometimes', 'boolean'],
+        ]);
+        $user = $request->user();
+        $disk = Storage::disk('local');
+        $changes = [
+            'gcash_qr_path' => ['file' => $validated['gcash_qr'] ?? null, 'remove' => (bool) ($validated['remove_gcash_qr'] ?? false)],
+            'maya_qr_path' => ['file' => $validated['maya_qr'] ?? null, 'remove' => (bool) ($validated['remove_maya_qr'] ?? false)],
+        ];
+        $newPaths = [];
+        $oldPaths = [];
+
+        try {
+            foreach ($changes as $attribute => $change) {
+                if ($change['file'] !== null) {
+                    $path = $change['file']->store('creator-payment-qrs', 'local');
+                    if (! is_string($path)) {
+                        throw new RuntimeException('The payment QR image could not be stored securely.');
+                    }
+                    $newPaths[$attribute] = $path;
+                    $oldPaths[] = $user->getAttribute($attribute);
+                    $user->setAttribute($attribute, $path);
+                } elseif ($change['remove']) {
+                    $oldPaths[] = $user->getAttribute($attribute);
+                    $user->setAttribute($attribute, null);
+                }
+            }
+            $user->save();
+        } catch (Throwable $exception) {
+            foreach ($newPaths as $path) {
+                $disk->delete($path);
+            }
+            throw $exception;
+        }
+
+        foreach (array_filter($oldPaths) as $path) {
+            if ($disk->exists($path) && ! $disk->delete($path)) {
+                throw new RuntimeException('The previous payment QR image could not be removed.');
+            }
+        }
+
+        return redirect()->route('user.profile-settings')->with('status', 'Your creator payment QR codes have been updated.');
+    }
+
+    public function paymentQrPreview(Request $request, string $method)
+    {
+        abort_unless(in_array($method, ['gcash', 'maya'], true), 404);
+        $path = $request->user()->getAttribute($method . '_qr_path');
+        abort_unless(is_string($path) && Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->response($path);
+    }
+
     public function storeImage(Request $request): RedirectResponse
     {
         $validated = $request->validate([

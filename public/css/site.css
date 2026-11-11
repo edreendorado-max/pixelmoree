@@ -1538,3 +1538,16 @@ body.nft-detail-page-active #nftPreview{display:none!important}
 .store-empty{grid-column:1/-1;padding:32px;border:1px dashed #ffffff25;border-radius:10px;color:#aaa4b2;text-align:center}
 @media(max-width:520px){.store-header{align-items:flex-start;flex-direction:column;gap:8px}.store-header nav{width:100%;justify-content:space-between}.store-header nav a,.store-header nav button{font-size:12px}}
 @media(max-width:900px){.member-area{--member-sidebar-width:66px}}
+.store-resale-section{margin-top:54px;padding-top:30px;border-top:1px solid #ffffff1a}
+.store-resale-section .store-heading{margin-bottom:20px}
+.resale-section{max-width:1500px;margin:12px auto 50px;padding:0 0 15px}
+.resale-owner-listings{display:grid;gap:12px;margin-top:28px}
+.resale-owner-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,1.3fr);gap:20px;align-items:start;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.resale-owner-card strong{font-size:13px}
+.resale-owner-card p,.resale-feedback{color:var(--muted);font-size:12px}
+.resale-owner-card form{display:grid;gap:10px}
+.resale-owner-card form label{display:grid;gap:5px;color:#ded9e9;font-size:11px}
+.resale-owner-card input:not([type=checkbox]){width:100%;padding:9px;border:1px solid #ffffff24;border-radius:6px;background:#0d0d16;color:#fff}
+.resale-owner-card .member-policy-accept{display:flex;align-items:flex-start}
+.store-owned-note{display:block;margin-top:10px;padding:9px;border:1px solid #ffffff1a;border-radius:7px;color:#b9b2c4;text-align:center;font-size:11px}
+@media(max-width:650px){.resale-owner-card{grid-template-columns:1fr}.resale-section{padding-right:7px;padding-left:7px}}

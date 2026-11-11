@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\User;
 use App\Models\Artwork;
+use App\Models\ResaleListing;
 use App\Support\ArtworkPriceDashboard;
 use App\Support\ArtworkRecommendations;
 use App\Support\SitePageContent;
@@ -60,6 +61,12 @@ class AppServiceProvider extends ServiceProvider
             $view->with('homeContent', SitePageContent::get('home'));
             $view->with('aboutContent', SitePageContent::get('about'));
             $view->with('homeArtworks', $homeArtworks);
+            $view->with('resaleListings', ResaleListing::query()
+                ->where('status', 'listed')
+                ->whereHas('artwork', static fn ($query) => $query->where('status', 'Listed'))
+                ->with(['artwork.user', 'seller'])
+                ->latest()
+                ->get());
             $view->with('dailyPriceGainers', $dailyPriceMovers['gainers']);
             $view->with('dailyPriceDecliners', $dailyPriceMovers['decliners']);
             $view->with('priceComparisonDate', $dailyPriceMovers['comparison_date']);
@@ -110,16 +117,6 @@ class AppServiceProvider extends ServiceProvider
                     ->get();
             }
             $view->with('ownedArtworks', $ownedArtworks);
-        });
-
-        View::composer('user.pixel-coin', static function (ViewContract $view): void {
-            $account = Auth::user();
-            $view->with('account', $account);
-            $view->with('cashOrders', $account?->paymentOrders()->latest()->limit(20)->get() ?? collect());
-            $view->with('cashLedger', $account === null
-                ? collect()
-                : DB::table('cash_ledger_entries')->where('user_id', $account->id)->latest()->limit(20)->get());
-            $view->with('usdRate', (float) config('payments.php_per_usd', 58));
         });
 
         View::composer('login', static function (ViewContract $view): void {

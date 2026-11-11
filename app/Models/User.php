@@ -36,6 +36,8 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'password',
         'remember_token',
         'pixel_coin_balance',
+        'gcash_qr_path',
+        'maya_qr_path',
     ];
 
     protected function casts(): array

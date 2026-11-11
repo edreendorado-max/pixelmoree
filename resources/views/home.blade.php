@@ -11,8 +11,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ asset('css/site.css') }}?v=20261111-store" rel="stylesheet">
+    <link href="{{ asset('css/typography.css') }}?v=20261111" rel="stylesheet">
 </head>
-<body>
+<body class="{{ $account ? 'member-home' : 'guest-home' }}">
 <nav class="navbar navbar-expand-lg navbar-dark site-nav guest-nav">
   <div class="container-fluid px-3 px-lg-5">
     <a class="navbar-brand" href="{{ $account ? route('user') : '#home' }}" aria-label="Pixmoree home"><img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree" class="brand-logo"></a>
@@ -27,7 +28,6 @@
         <a class="guest-only-nav-link" href="/about"><i class="bi bi-info-circle"></i><span>About</span></a>
         <a href="/user/purchases" class="member-only-nav-link" data-member-nav="history" hidden><i class="bi bi-receipt"></i><span>Purchases</span></a>
         <a href="/user/earnings" class="member-only-nav-link" data-member-nav="earnings" hidden><i class="bi bi-graph-up-arrow"></i><span>Earnings</span></a>
-        <a href="/user/resales" class="member-only-nav-link" data-member-nav="resales" hidden><i class="bi bi-arrow-left-right"></i><span>Resale Artworks</span></a>
         <a href="/user/terms" class="member-only-nav-link" data-member-nav="terms" hidden><i class="bi bi-shield-check"></i><span>Terms &amp; Originality</span></a>
         <a href="/user/profile-settings" class="member-only-nav-link" data-member-nav="profile-settings" hidden><i class="bi bi-person-gear"></i><span>Profile Settings</span></a>
         <a href="/user/about" class="member-only-nav-link" data-member-nav="about" hidden><i class="bi bi-info-circle"></i><span>About</span></a>
@@ -38,7 +38,6 @@
           <button class="search-icon" type="button" aria-label="Open artwork search" aria-expanded="false" aria-controls="gallerySearch"><i class="bi bi-search"></i></button>
           <input id="gallerySearch" class="search-input" type="search" placeholder="Search artwork..." aria-label="Search artwork" tabindex="-1">
         </div>
-        <a href="/user/pixel-coin" class="member-pixel-coin-link member-only-nav-link" data-member-nav="pixel-coin" aria-label="Pixel Coin wallet" @if (!$account) hidden @endif><i class="bi bi-coin" aria-hidden="true"></i><span data-pixelcoin-balance>{{ number_format((int) ($account?->pixel_coin_balance ?? 0)) }}</span><small>PIXEL</small><span class="member-pixel-coin-status" id="memberPixelCoinNavStatus" role="status" aria-label="Wallet unavailable" hidden>!</span></a>
         <div class="member-profile" id="memberProfile" hidden>
           <button class="member-profile-toggle" id="memberProfileToggle" type="button" aria-expanded="false" aria-controls="memberProfileMenu"><span class="member-avatar" id="memberNavAvatar"><span class="member-avatar-initial">{{ strtoupper(substr($account?->name ?? 'A', 0, 1)) }}</span></span><span id="memberNavName">{{ $account?->name ?? 'Account' }}</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
           <div class="member-profile-menu" id="memberProfileMenu" hidden>
@@ -48,7 +47,6 @@
             <a href="/user/create" data-member-action="create"><i class="bi bi-plus-circle"></i> Create</a>
             <a href="/user/purchases" data-member-action="history"><i class="bi bi-receipt"></i> Purchases</a>
             <a href="/user/earnings" data-member-action="earnings"><i class="bi bi-graph-up-arrow"></i> Earnings balance</a>
-            <a href="/user/pixel-coin" data-member-action="pixel-coin"><i class="bi bi-coin"></i> Pixel Coin wallet</a>
             <a href="/user/terms" data-member-action="terms"><i class="bi bi-shield-check"></i> Terms &amp; Originality</a>
             <a href="/user/profile-settings" data-member-action="profile-settings"><i class="bi bi-person-gear"></i> Profile Settings</a>
             <a href="/user/about" data-member-action="about"><i class="bi bi-info-circle"></i> About Pixmoree</a>
@@ -103,7 +101,7 @@
             </section>
             <section class="member-panel-card member-price-dashboard">
               <div class="member-panel-heading"><div><h3>Price analytics</h3><p>Only verified marketplace transactions can support a market estimate.</p></div><span class="member-demo-label">UNAVAILABLE</span></div>
-              <p class="member-empty-state">Price analytics are hidden during beta because payment and sales processing are disabled. Listed prices are set by creators.</p>
+              <p class="member-empty-state">Price analytics are hidden during beta while GCash and Maya receipts are manually reviewed. Listed prices are set by creators.</p>
             </section>
           </section>
           <section class="member-dashboard-panel active" data-member-panel-content="me">
@@ -154,7 +152,7 @@
                       <span class="member-art-tile-details"><strong>{{ $artwork->title }}</strong><small>Owned collection</small></span>
                     </a>
                   @empty
-                    <p class="member-empty-state">Your collection is empty. Artwork purchases are disabled during beta.</p>
+                    <p class="member-empty-state">Your collection is empty. Approved purchases will appear here.</p>
                   @endforelse
                 </div>
               </div>
@@ -173,7 +171,7 @@
             </section>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="history" hidden>
-            <div class="member-panel-heading"><div><h3>Purchases</h3><p>Account purchase order records. New purchases are disabled during beta.</p></div></div>
+            <div class="member-panel-heading"><div><h3>Purchases</h3><p>Payment receipts remain pending until an administrator confirms payment.</p></div></div>
             <section class="member-panel-card member-transactions-card">
               <h4>Purchase orders</h4>
               <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Purchase ID</th><th>Artwork</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead><tbody>
@@ -186,7 +184,7 @@
             </section>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="earnings" hidden>
-            <div class="member-panel-heading"><div><h3>Creator earnings</h3><p>Only approved purchase orders are included. New sales are disabled during beta.</p></div><span class="member-demo-label"><i class="bi bi-info-circle"></i> BETA</span></div>
+            <div class="member-panel-heading"><div><h3>Creator earnings</h3><p>Only approved purchase orders are included. Payments are made directly to creators.</p></div><span class="member-demo-label"><i class="bi bi-info-circle"></i> DIRECT PAYMENTS</span></div>
             <article class="member-panel-card member-earnings-hero" data-earnings-total="{{ $creatorEarnings['totalCashMinor'] ?? 0 }}">
               <span class="member-earnings-icon"><i class="bi bi-stars"></i></span>
               <div>
@@ -199,7 +197,7 @@
               <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-bag-check"></i></span><div><small>Approved sales</small><strong>{{ number_format($creatorEarnings['salesCount'] ?? 0) }}</strong></div></article>
               <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-calendar-check"></i></span><div><small>Approved sales, last 30 days</small><strong>PHP {{ number_format(($creatorEarnings['last30DaysCashMinor'] ?? 0) / 100, 2) }}</strong></div></article>
             </div>
-            <div class="member-earnings-notice"><i class="bi bi-shield-check" aria-hidden="true"></i><p><strong>Beta status</strong> Sales and payouts are disabled. This page only displays historical approved order records.</p><a href="/user/pixel-coin">View balances <i class="bi bi-arrow-up-right"></i></a></div>
+            <div class="member-earnings-notice"><i class="bi bi-shield-check" aria-hidden="true"></i><p><strong>Direct payments</strong> Buyers pay creators directly; Pixmoree does not hold a seller balance or process payouts.</p></div>
             <section class="member-panel-card member-transactions-card">
               <div class="member-panel-heading"><div><h4>Recent artwork sales</h4><p>Latest approved purchase orders for your listings.</p></div></div>
               <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Artwork</th><th>Sale value</th><th>Date</th></tr></thead><tbody>
@@ -211,53 +209,9 @@
               </tbody></table></div>
             </section>
           </section>
-          <section class="member-dashboard-panel" data-member-panel-content="pixel-coin" hidden>
-            <div class="member-panel-heading"><div><h3>Pixel Coin wallet</h3><p>Review your legacy balance and account history.</p></div><span class="member-demo-label"><i class="bi bi-info-circle"></i> DISABLED</span></div>
-            <section class="member-panel-card member-pixel-wallet" aria-labelledby="memberPixelWalletHeading">
-              <div class="member-wallet-overview">
-                <span class="member-wallet-icon"><i class="bi bi-coin"></i></span>
-                <div><small id="memberPixelWalletHeading">YOUR PIXEL COIN BALANCE</small><strong><span data-pixelcoin-balance>{{ number_format((int) ($account?->pixel_coin_balance ?? 0)) }}</span> <span>PIXEL COIN</span></strong><p>Pixel Coin is disabled and has no cash value.</p></div>
-              </div>
-              <div class="member-wallet-topups">
-                <strong>Wallet actions unavailable</strong>
-                <small>Top-ups and checkout are disabled until payment integration is available.</small>
-                <p class="member-wallet-feedback" id="memberPixelWalletFeedback" role="status" aria-live="polite" hidden></p>
-              </div>
-            </section>
-            <section class="member-panel-card member-transactions-card">
-              <div class="member-panel-heading"><div><h4>Pixel Coin activity</h4><p>Legacy ledger records are read-only.</p></div></div>
-              <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Activity</th><th>Change</th><th>Balance after</th><th>Date</th></tr></thead><tbody id="memberPixelCoinActivity"><tr><td colspan="4" class="member-empty-state">Loading wallet activity…</td></tr></tbody></table></div>
-            </section>
-          </section>
-          <section class="member-dashboard-panel" data-member-panel-content="resales" hidden>
-            <div class="member-panel-heading"><div><h3>Resale artworks</h3><p>Resale actions are unavailable during beta.</p></div><span class="member-demo-label">DISABLED</span></div>
-            @if (session('status'))<p role="status">{{ session('status') }}</p>@endif
-            @if ($errors->any())<p role="alert">{{ $errors->first() }}</p>@endif
-            @if (!config('payments.enabled'))
-              <p class="member-payment-safety" role="status">Resale listings and reviews are disabled until payment processing is available.</p>
-            @else
-            @forelse ($ownedArtworks as $ownedArtwork)
-              <article class="member-panel-card mb-3">
-                <strong>{{ $ownedArtwork->title }}</strong>
-                <p>Product ID: {{ $ownedArtwork->product_id }} · Resale status: {{ $ownedArtwork->resale_status ?? 'Not listed' }}</p>
-                @if (!in_array($ownedArtwork->resale_status, ['pending_review', 'listed'], true))
-                  <form method="post" action="{{ route('user.artworks.resale', $ownedArtwork->id) }}" enctype="multipart/form-data">
-                    @csrf
-                    <label>Resale price (PHP)<input name="price_php" type="number" min="1" max="10000000" required></label>
-                    <label>Ownership/authorization evidence<input name="evidence" type="file" accept="image/png,image/jpeg,application/pdf" required></label>
-                    <label class="member-policy-accept"><input name="ownership_declaration" type="checkbox" value="1" required> I own or am authorized to resell this artwork and the submission is accurate.</label>
-                    <button class="member-profile-save" type="submit">Submit for review</button>
-                  </form>
-                @endif
-              </article>
-            @empty
-              <p class="member-empty-state">Verified purchases will appear here when the payment is approved.</p>
-            @endforelse
-            @endif
-          </section>
           <section class="member-dashboard-panel" data-member-panel-content="payment" hidden>
-            <div class="member-panel-heading"><div><h3>Purchases and payments</h3><p>Purchase and payment actions are unavailable in this beta.</p></div><span class="member-demo-label">DISABLED</span></div>
-            <div class="member-payment-safety" role="status"><i class="bi bi-info-circle"></i><span>No payment provider is integrated. Do not send funds or submit payment information. This screen will be enabled after provider integration and operational review.</span></div>
+            <div class="member-panel-heading"><div><h3>Purchases and payments</h3><p>Use the Store to buy a listed NFT from its creator.</p></div><span class="member-demo-label">MANUAL REVIEW</span></div>
+            <div class="member-payment-safety" role="status"><i class="bi bi-info-circle"></i><span>Pay directly to the creator by GCash or Maya QR and submit the receipt number and proof. Admins manually verify payment before NFT ownership changes. No automatic receipt-verification API is connected.</span></div>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="terms" hidden>
             <div class="member-panel-heading"><div><h3>Terms &amp; Originality Policy</h3><p>Marketplace rules for creators and collectors.</p></div><span class="member-demo-label">BETA</span></div>
@@ -267,7 +221,7 @@
               <h4>2. Originality and anti-plagiarism</h4><p>Only upload work you created or have clear permission and appropriate licenses to use. Do not copy, trace, repackage, or mint another creator’s artwork, photographs, characters, logos, writing, or other protected material as your own. Credit alone does not replace permission.</p>
               <p>Do not use unauthorized AI training outputs, reference material, or third-party assets in a way that infringes another person’s rights. Keep source files and permission records where appropriate. If a work includes licensed or collaborative material, disclose that clearly and follow the license terms.</p>
               <h4>3. Reports, review, and consequences</h4><p>Rights holders should provide the listing link, identify the material at issue, and explain their rights when reporting suspected copying. Pixmoree should review reports, give creators a reasonable opportunity to respond where appropriate, and may hide or remove disputed listings, restrict accounts, or refer serious matters for further review. False or abusive reports are not permitted.</p>
-              <h4>4. Payments and transactions</h4><p>Purchases, payments, payouts, resale, and Pixel Coin transactions are disabled during beta. Do not send funds or submit payment information. Artwork listings do not represent a completed sale, and no blockchain asset is minted or transferred.</p>
+              <h4>4. Payments and transactions</h4><p>NFT purchases use direct GCash or Maya payments to the current creator or owner. Pixmoree does not hold balances or process payouts. Buyers submit a receipt reference and proof; an admin must manually verify the exact amount before ownership is recorded. No automatic payment-verification API or blockchain transfer is provided.</p>
               <h4>5. Respect intellectual property</h4><p>Creators retain rights they hold in their work. A listing does not transfer copyright unless a separate, valid agreement says so. Collectors should not reproduce, sell, or commercially exploit artwork without the creator’s permission or a license that allows it.</p>
               <h4>6. Policy updates and contact</h4><p>These draft rules may change as the project evolves. For a real service, publish the effective date, operator identity, contact and appeal process, governing law, and privacy terms after professional review.</p>
             </article>
@@ -440,6 +394,38 @@
     </div>
     <div class="load-more-wrap"><button class="btn-load" id="loadMoreItems" type="button"><i class="bi bi-plus-circle" aria-hidden="true"></i> {{ $homeContent['explore']['load_more'] }}</button></div>
   </section>
+  <section id="resale" class="resale-section">
+    <div class="section-heading">
+      <div><h2>Resale gallery <i class="bi bi-arrow-left-right"></i></h2><p class="muted">Previously purchased artwork listed by its current owner.</p></div>
+    </div>
+    @include('partials.resale-listings', ['resaleListings' => $resaleListings])
+    @auth
+      <section class="resale-owner-listings" aria-labelledby="resale-owner-heading">
+        <div class="section-heading"><div><h3 id="resale-owner-heading">Your owned artwork</h3><p class="muted">Submit an owned piece for resale review. Only approved listings appear in this gallery.</p></div></div>
+        @if (session('status'))<p class="resale-feedback" role="status">{{ session('status') }}</p>@endif
+        @if ($errors->any())<p class="resale-feedback" role="alert">{{ $errors->first() }}</p>@endif
+        @if (!config('payments.enabled'))
+          <p class="resale-feedback" role="status">Resale listings and purchases are unavailable while payments are disabled.</p>
+        @endif
+        @forelse ($ownedArtworks as $ownedArtwork)
+          <article class="resale-owner-card">
+            <div><strong>{{ $ownedArtwork->title }}</strong><p>Resale status: {{ $ownedArtwork->resale_status ?? 'Not listed' }}</p></div>
+            @if (config('payments.enabled') && !in_array($ownedArtwork->resale_status, ['pending_review', 'listed'], true))
+              <form method="post" action="{{ route('user.artworks.resale', $ownedArtwork->id) }}" enctype="multipart/form-data">
+                @csrf
+                <label>Resale price (PHP)<input name="price_php" type="number" min="1" max="10000000" required></label>
+                <label>Ownership/authorization evidence<input name="evidence" type="file" accept="image/png,image/jpeg,application/pdf" required></label>
+                <label class="member-policy-accept"><input name="ownership_declaration" type="checkbox" value="1" required> I own or am authorized to resell this artwork and the submission is accurate.</label>
+                <button class="member-profile-save" type="submit">Submit for review</button>
+              </form>
+            @endif
+          </article>
+        @empty
+          <p class="member-empty-state">Verified purchases will appear here when the payment is approved.</p>
+        @endforelse
+      </section>
+    @endauth
+  </section>
   <section id="about" class="guest-about"><h2>{{ $homeContent['closing_heading'] }}</h2><p>{{ $homeContent['closing_body'] }}</p><a href="/login" class="btn hero-explore">{{ $homeContent['closing_cta'] }}</a></section>
   <footer class="site-footer"><a href="#"><img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree" class="footer-logo"></a><p>{{ $homeContent['footer_tagline'] }}</p><div class="footer-links"><a href="#explore">{{ $homeContent['footer_links'][0] }}</a><a href="#creators">{{ $homeContent['footer_links'][1] }}</a><a href="#">{{ $homeContent['footer_links'][2] }}</a><a href="#">{{ $homeContent['footer_links'][3] }}</a></div><small>© {{ date('Y') }} Pixmoree. {{ $homeContent['footer_note'] }}</small></footer>
 </main>
@@ -469,7 +455,7 @@
     </div>
   </div>
 </dialog>
-<script>window.pixmoreeAccount = <?= json_encode($account?->only(['name', 'username', 'email', 'phone', 'bio', 'pixel_coin_balance']) ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;</script>
+<script>window.pixmoreeAccount = <?= json_encode($account?->only(['name', 'username', 'email', 'phone', 'bio']) ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ asset('js/site.js') }}?v=20261030-me"></script>
 <script src="{{ asset('js/engagement.js') }}?v=20261104-engagement"></script>

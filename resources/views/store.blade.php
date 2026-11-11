@@ -9,6 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ asset('css/site.css') }}?v=20261111-store" rel="stylesheet">
+    <link href="{{ asset('css/typography.css') }}?v=20261111" rel="stylesheet">
 </head>
 <body class="store-page">
 <header class="store-header">
@@ -45,22 +46,27 @@
                         <span><small>Price</small><strong>{{ number_format((float) $artwork->price, 2) }} ETH</strong></span>
                         <span><small>Edition</small><strong>{{ number_format((int) $artwork->item_count) }}</strong></span>
                     </div>
-                    @if (! auth()->user()->hasVerifiedEmail())
-                        <form method="post" action="{{ route('user.purchase-orders.store') }}">
-                            @csrf
-                            <input type="hidden" name="artwork_id" value="{{ $artwork->id }}">
-                            <input type="hidden" name="payment_method" value="cash_wallet">
-                            <button class="store-buy-button" type="submit">Buy NFT</button>
-                        </form>
+                    @if ((int) $artwork->user_id === (int) auth()->id())
+                        <span class="store-owned-note">Your artwork</span>
+                    @elseif (config('payments.enabled'))
+                        <a class="store-buy-button" href="{{ route('user.checkout', ['artworkId' => $artwork->id]) }}">Buy NFT</a>
                     @else
                         <button class="store-buy-button" type="button" disabled aria-describedby="store-buy-beta-{{ $loop->index }}">Buy NFT</button>
-                        <small class="store-buy-note" id="store-buy-beta-{{ $loop->index }}">Checkout is unavailable during beta.</small>
+                        <small class="store-buy-note" id="store-buy-beta-{{ $loop->index }}">Checkout is currently unavailable.</small>
                     @endif
                 </div>
             </article>
         @empty
             <p class="store-empty">No NFTs are listed yet. Please check back soon.</p>
         @endforelse
+    </section>
+    <section class="store-resale-section" aria-labelledby="store-resale-heading">
+        <header class="store-heading">
+            <p class="store-eyebrow"><i class="bi bi-arrow-left-right" aria-hidden="true"></i> CURRENT OWNER LISTINGS</p>
+            <h2 id="store-resale-heading">Resale NFTs</h2>
+            <p>Previously purchased artworks available from their verified current owners.</p>
+        </header>
+        @include('partials.resale-listings', ['resaleListings' => $resaleListings])
     </section>
 </main>
 </body>

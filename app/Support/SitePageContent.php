@@ -323,7 +323,7 @@ class SitePageContent
                     'heading_after' => 'world.',
                     'description' => 'Browse imaginative digital art from independent creators.',
                     'cta' => 'Explore the gallery',
-                    'note' => 'Artwork listings are stored in MySQL. Purchases, payments, and blockchain transactions are disabled during beta.',
+                    'note' => 'Purchases require a verified account and manual GCash/Maya receipt review. NFT ownership is recorded in Pixmoree; no blockchain transfer is provided.',
                     'image' => 'assets/guest-hero-background.png',
                     'image_alt' => 'Colorful Pixmoree digital art collage',
                 ],
@@ -337,7 +337,7 @@ class SitePageContent
                 ],
                 'footer' => [
                     'tagline' => 'Pixmoree Marketplace',
-                    'disclaimer' => 'Purchases and payments are disabled during beta.',
+                    'disclaimer' => 'GCash and Maya payments are sent directly to creators and manually verified before ownership is recorded.',
                 ],
             ],
             'about' => [

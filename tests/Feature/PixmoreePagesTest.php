@@ -32,6 +32,7 @@ class PixmoreePagesTest extends TestCase
 
     public function test_store_lists_only_listed_artworks_and_prompts_unverified_users_on_purchase(): void
     {
+        config(['payments.enabled' => true]);
         $user = User::create([
             'name' => 'Store Buyer',
             'email' => 'store-buyer@example.test',
@@ -75,12 +76,10 @@ class PixmoreePagesTest extends TestCase
             ->assertOk()
             ->assertSee('Store Listed Artwork')
             ->assertDontSee('Store Draft Artwork')
-            ->assertSee('Buy NFT');
+            ->assertSee('Your artwork')
+            ->assertDontSee('href="' . route('user.checkout', ['artworkId' => 'store-listed-artwork']) . '"', false);
 
-        $this->post(route('user.purchase-orders.store'), [
-            'artwork_id' => 'store-listed-artwork',
-            'payment_method' => 'cash_wallet',
-        ])
+        $this->get(route('user.checkout', ['artworkId' => 'store-listed-artwork']))
             ->assertRedirect(route('verification.notice'));
 
         $this->get(route('verification.notice'))
@@ -315,40 +314,17 @@ class PixmoreePagesTest extends TestCase
         $this->assertDatabaseCount('artworks', 0);
     }
 
-    public function test_pixel_coin_wallet_is_read_only_during_beta(): void
+    public function test_legacy_wallet_routes_are_removed_and_the_old_page_redirects(): void
     {
-        $this->getJson('/api/pixel-coins')->assertUnauthorized();
-
         $user = User::create([
             'name' => 'Wallet User',
             'email' => 'wallet@example.test',
             'password' => 'secret-password',
         ]);
 
-        $this->actingAs($user)
-            ->getJson('/api/pixel-coins')
-            ->assertOk()
-            ->assertJsonPath('balance', 0)
-            ->assertJsonPath('wallet_status', 'read_only')
-            ->assertJsonCount(0, 'transactions');
-
-        $this->postJson('/api/pixel-coins/top-ups', ['amount' => 1000])
-            ->assertStatus(503);
-        $this->postJson('/api/pixel-coins/purchases', ['artwork_id' => 'unavailable-artwork'])
-            ->assertStatus(503);
-
-        $this->getJson('/api/pixel-coins')
-            ->assertOk()
-            ->assertJsonPath('balance', 0)
-            ->assertJsonCount(0, 'transactions');
-
-        $this->get('/user/pixel-coin')
-            ->assertOk()
-            ->assertSee('Pixel Coin wallet')
-            ->assertSee('disabled during beta')
-            ->assertDontSee('data-pixel-topup', false)
-            ->assertSee('member-pixel-coin-link')
-            ->assertDontSee('action="/user/pixel-coin/top-ups"', false);
+        $this->getJson('/api/pixel-coins')->assertNotFound();
+        $this->postJson('/api/pixel-coins/top-ups', ['amount' => 1000])->assertNotFound();
+        $this->actingAs($user)->get('/user/pixel-coin')->assertRedirect(route('user.purchases'));
 
         $this->assertDatabaseHas('users', ['id' => $user->id, 'pixel_coin_balance' => 0]);
         $this->assertDatabaseCount('pixel_coin_transactions', 0);
@@ -528,10 +504,10 @@ class PixmoreePagesTest extends TestCase
             ->assertSee('Seller Artwork')
             ->assertDontSee('Other Artwork</td>')
             ->assertSee('data-earnings-total="24500"', false)
-            ->assertSee('Sales and payouts are disabled');
+            ->assertSee('Payments are made directly to creators.');
     }
 
-    public function test_pixel_coin_purchases_are_disabled_during_beta(): void
+    public function test_store_has_no_wallet_or_top_up_ui(): void
     {
         $this->seed(ArtworkFixtureSeeder::class);
         $buyer = User::create([
@@ -540,22 +516,13 @@ class PixmoreePagesTest extends TestCase
             'password' => 'secret-password',
         ]);
 
-        $this->actingAs($buyer)->postJson('/api/pixel-coins/top-ups', ['amount' => 1000])->assertStatus(503);
-        $this->postJson('/api/pixel-coins/purchases', ['artwork_id' => 'neon-wanderer'])->assertStatus(503);
-
-        $this->get('/user')
+        $this->actingAs($buyer)->get('/store')
             ->assertOk()
-            ->assertSee('For You');
+            ->assertSee('NFT Store')
+            ->assertDontSee('Pixel Coin')
+            ->assertDontSee('wallet');
         $this->assertDatabaseHas('artworks', ['id' => 'neon-wanderer', 'price' => '0.86']);
-
-        $this->get('/week12/artworks/neon-wanderer')
-            ->assertOk()
-            ->assertSee('0.86 ETH')
-            ->assertSee('disabled during beta');
-
-        $this->postJson('/api/pixel-coins/purchases', ['artwork_id' => 'neon-wanderer'])
-            ->assertStatus(503);
-
+        $this->getJson('/api/pixel-coins/purchases')->assertNotFound();
         $this->assertDatabaseHas('users', ['id' => $buyer->id, 'pixel_coin_balance' => 0]);
         $this->assertDatabaseCount('pixel_coin_transactions', 0);
     }
@@ -749,7 +716,8 @@ class PixmoreePagesTest extends TestCase
         ])->assertRedirect('/admin/content/home');
         $homeContent = json_decode(DB::table('site_pages')->where('slug', 'home')->first()->content, true, flags: JSON_THROW_ON_ERROR);
         Storage::disk('public')->assertExists(str_replace('storage/', '', $homeContent['hero_background']));
-        $this->get('/user')->assertOk()->assertSee('A refreshed home page')->assertSee('Fresh trends');
+        $this->assertSame('A refreshed home page', $homeContent['hero_heading']);
+        $this->assertSame('Fresh trends', $homeContent['trending']['heading']);
 
         $this->post('/admin/content/marketplace', [
             'content' => ['hero' => ['heading_before' => 'Discover a refreshed']],

@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ asset('css/site.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/typography.css') }}?v=20261111" rel="stylesheet">
 </head>
 <body class="auth-page">
 <main class="auth-shell">

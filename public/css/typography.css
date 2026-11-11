@@ -1,0 +1,16 @@
+:root {
+    --font-pixel: "Pixelify Sans", "Pixel Sans", monospace;
+    --font-formal: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+body:not(.guest-home) {
+    font-family: var(--font-formal) !important;
+}
+
+body:not(.guest-home) :is(h1, h2, h3, h4, h5, h6, label, button, th, dt, small, summary, legend, .eyebrow, .muted, .store-card-category, .store-card-details strong, .store-buy-button, .store-owned-note, .auth-eyebrow, .member-demo-label, .profile-settings-eyebrow, .w12-beta-pill, .cms-topnav a, .guest-links a, .store-header nav a, .profile-settings-nav a) {
+    font-family: var(--font-pixel) !important;
+}
+
+body:not(.guest-home) :is(p, li, blockquote, dd, td, textarea, .auth-intro, .creator-profile-bio, .store-heading > p:last-child) {
+    font-family: var(--font-formal) !important;
+}

@@ -16,7 +16,6 @@ $engagementController = \App\Http\Controllers\EngagementController::class;
 $artworkController = \App\Http\Controllers\ArtworkController::class;
 $earningsController = \App\Http\Controllers\UserEarningsController::class;
 $profileController = \App\Http\Controllers\UserProfileController::class;
-$pixelCoinController = \App\Http\Controllers\PixelCoinController::class;
 $paymentOrderController = \App\Http\Controllers\PaymentOrderController::class;
 $resaleListingController = \App\Http\Controllers\ResaleListingController::class;
 $sitePageContentController = \App\Http\Controllers\SitePageContentController::class;
@@ -70,12 +69,21 @@ Route::middleware('throttle:120,1')->group(function () use ($engagementControlle
         ->name('api.creators.views');
 });
 
-Route::middleware('auth')->group(function () use ($profileController, $artworkController, $pixelCoinController, $earningsController, $engagementController, $paymentOrderController, $resaleListingController): void {
+Route::middleware(['auth', 'member.account'])->group(function () use ($profileController, $artworkController, $earningsController, $engagementController, $paymentOrderController, $resaleListingController): void {
     Route::get('/store', static fn () => view('store', [
         'artworks' => Artwork::query()
             ->where('status', 'Listed')
+            ->whereNotExists(static fn ($query) => $query->selectRaw('1')
+                ->from('artwork_ownerships')
+                ->whereColumn('artwork_ownerships.artwork_id', 'artworks.id'))
             ->with('user')
             ->withCount(['likes', 'views'])
+            ->latest()
+            ->get(),
+        'resaleListings' => \App\Models\ResaleListing::query()
+            ->where('status', 'listed')
+            ->whereHas('artwork', static fn ($query) => $query->where('status', 'Listed'))
+            ->with(['artwork.user', 'seller'])
             ->latest()
             ->get(),
     ]))->name('store');
@@ -95,18 +103,17 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
     Route::redirect('/user/settings', '/user/profile-settings')->name('user.settings');
     Route::redirect('/user/profile', '/user/profile-settings')->name('user.profile');
     Route::get('/user/payment', static fn () => redirect()->route('user.purchases')
-        ->with('status', 'Purchases and payments are disabled during beta.'))->name('user.payment');
-    Route::view('/user/pixel-coin', 'user.pixel-coin')->name('user.pixel-coin');
-    Route::view('/user/resales', 'home')->name('user.resales');
-    Route::post('/user/pixel-coin/top-ups', [$paymentOrderController, 'topUp'])->name('user.cash.topups');
-    Route::post('/user/pixel-coin/prepaid-top-ups', [$paymentOrderController, 'prepaidTopUp'])->name('user.pixel.prepaid-topups');
-    Route::post('/user/pixel-coin/withdrawals', [$paymentOrderController, 'withdraw'])->name('user.cash.withdrawals');
+        ->with('status', 'Choose an NFT in the Store to pay its creator directly by GCash or Maya.'))->name('user.payment');
+    Route::redirect('/user/pixel-coin', '/user/purchases')->name('user.pixel-coin');
+    Route::redirect('/user/resales', '/user#resale')->name('user.resales');
     Route::view('/user/terms', 'home')->name('user.terms');
     Route::get('/user/nft/{id}', static fn (string $id) => redirect()->route('week12.client.artwork', ['id' => $id]))
         ->where('id', '[A-Za-z0-9][A-Za-z0-9-]*')
         ->name('user.nft.show');
     Route::get('/user/profile-settings', [$profileController, 'edit'])->name('user.profile-settings');
     Route::post('/user/profile', [$profileController, 'update'])->name('user.profile.update');
+    Route::post('/user/payment-qr', [$profileController, 'updatePaymentQrs'])->name('user.payment-qr.update');
+    Route::get('/user/payment-qr/{method}', [$profileController, 'paymentQrPreview'])->whereIn('method', ['gcash', 'maya'])->name('user.payment-qr.preview');
     Route::put('/user/password', [$profileController, 'updatePassword'])->name('user.password.update');
     Route::post('/user/images', [$profileController, 'storeImage'])->name('user.images.store');
     Route::post('/user/images/{imageId}/update', [$profileController, 'updateImage'])
@@ -122,19 +129,17 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
         ->name('user.artworks.edit');
     Route::post('/user/artworks/{artwork}/resale', [$resaleListingController, 'store'])
         ->where('artwork', '[a-z0-9-]+')->name('user.artworks.resale');
-    Route::post('/user/purchase-orders', [$paymentOrderController, 'store'])->middleware('verified')->name('user.purchase-orders.store');
+    Route::get('/user/checkout/{artworkId}', [$paymentOrderController, 'checkout'])->where('artworkId', '[A-Za-z0-9][A-Za-z0-9-]*')->middleware('verified')->name('user.checkout');
+    Route::get('/user/checkout/{artworkId}/qr/{method}', [$paymentOrderController, 'qr'])
+        ->where('artworkId', '[A-Za-z0-9][A-Za-z0-9-]*')->middleware(['verified', 'throttle:60,1'])->name('user.checkout.qr');
+    Route::post('/user/purchase-orders', [$paymentOrderController, 'store'])
+        ->middleware(['verified', 'throttle:10,1'])->name('user.purchase-orders.store');
     Route::patch('/user/artworks/{id}', [$artworkController, 'update'])
         ->where('id', '[a-z0-9-]+')
         ->name('user.artworks.update');
     Route::delete('/user/artworks/{id}', [$artworkController, 'destroy'])
         ->where('id', '[a-z0-9-]+')
         ->name('user.artworks.destroy');
-    Route::prefix('/api/pixel-coins')->middleware('throttle:30,1')->group(function () use ($pixelCoinController): void {
-        Route::get('/', [$pixelCoinController, 'show'])->name('api.pixel-coins.show');
-        Route::post('/top-ups', [$pixelCoinController, 'topUp'])->name('api.pixel-coins.top-ups');
-        Route::post('/purchases', [$pixelCoinController, 'purchase'])->name('api.pixel-coins.purchases');
-    });
-
     Route::prefix('/api')->middleware('throttle:30,1')->group(function () use ($engagementController): void {
         Route::put('/artworks/{artwork}/like', [$engagementController, 'likeArtwork'])->name('api.artworks.like');
         Route::delete('/artworks/{artwork}/like', [$engagementController, 'unlikeArtwork'])->name('api.artworks.unlike');
@@ -157,7 +162,7 @@ Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12A
     Route::redirect('/admin', '/week12/admin')->name('admin');
     Route::get('/admin/payment-orders', function () {
         return view('admin.payment-orders', [
-            'orders' => \App\Models\PaymentOrder::query()->with(['buyer', 'seller', 'artwork'])->latest()->limit(100)->get(),
+            'orders' => \App\Models\PaymentOrder::query()->where('type', 'nft_purchase')->with(['buyer', 'seller', 'artwork'])->latest()->limit(100)->get(),
             'resales' => DB::table('resale_listings')->join('artworks', 'artworks.id', '=', 'resale_listings.artwork_id')
                 ->join('users', 'users.id', '=', 'resale_listings.seller_id')
                 ->select('resale_listings.*', 'artworks.title', 'users.name as seller_name')->latest('resale_listings.created_at')->limit(100)->get(),
@@ -176,7 +181,10 @@ Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12A
     Route::post('/admin/resales/{listing}/review', [$resaleListingController, 'review'])->whereNumber('listing')->name('admin.resales.review');
 
     Route::get('/admin/users', [$adminController, 'users'])->name('admin.users');
-    Route::post('/admin/users/{user}/role', [$adminController, 'updateRole'])->whereNumber('user')->name('admin.users.role');
+    Route::get('/admin/users/{user}/edit', [$adminController, 'editUser'])->whereNumber('user')->name('admin.users.edit');
+    Route::put('/admin/users/{user}', [$adminController, 'updateUser'])->whereNumber('user')->name('admin.users.update');
+    Route::get('/admin/analytics', [$adminController, 'analytics'])->name('admin.analytics');
+    Route::get('/admin/api/analytics', [$adminController, 'analyticsData'])->middleware('throttle:60,1')->name('admin.api.analytics');
     Route::post('/admin/artworks/{id}/price', [$adminController, 'updateArtworkPrice'])
         ->where('id', '[a-z0-9-]+')->name('admin.artworks.price');
 
@@ -187,6 +195,7 @@ Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12A
             'userCount' => \App\Models\User::query()->count(),
             'unverifiedUserCount' => \App\Models\User::query()->whereNull('email_verified_at')->count(),
             'paymentCounts' => \App\Models\PaymentOrder::query()
+                ->where('type', 'nft_purchase')
                 ->selectRaw('status, COUNT(*) AS total')
                 ->groupBy('status')
                 ->pluck('total', 'status'),
