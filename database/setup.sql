@@ -1,3 +1,5 @@
+-- Legacy MySQL-only bootstrap. SQLite is the default; use `php artisan migrate`.
+-- Keep this file only for deployments explicitly configured to use MySQL.
 CREATE DATABASE IF NOT EXISTS `pixmoreedb`
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;

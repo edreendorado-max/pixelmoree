@@ -17,15 +17,25 @@ class ResetAccounts extends Command
 
     public function handle(): int
     {
-        $host = config('database.connections.mysql.host');
+        $sqliteDatabase = config('database.connections.sqlite.database');
+        $sqlitePath = is_string($sqliteDatabase)
+            ? (realpath($sqliteDatabase) ?: realpath(base_path($sqliteDatabase)))
+            : false;
+        $isLocalSqlite = config('app.env') === 'local'
+            && config('database.default') === 'sqlite'
+            && $sqlitePath === realpath(database_path('database.sqlite'))
+            && ! config('database.connections.sqlite.url');
 
-        if (config('app.env') !== 'local'
-            || config('database.default') !== 'mysql'
-            || config('database.connections.mysql.database') !== 'pixmoreedb'
-            || ! in_array($host, ['127.0.0.1', 'localhost'], true)
-            || (string) config('database.connections.mysql.port') !== '3306'
-            || config('database.connections.mysql.url')) {
-            $this->error('This command only runs in the local environment against the pixmoreedb MySQL database.');
+        $host = config('database.connections.mysql.host');
+        $isLocalMysql = config('app.env') === 'local'
+            && config('database.default') === 'mysql'
+            && config('database.connections.mysql.database') === 'pixmoreedb'
+            && in_array($host, ['127.0.0.1', 'localhost'], true)
+            && (string) config('database.connections.mysql.port') === '3306'
+            && ! config('database.connections.mysql.url');
+
+        if (! $isLocalSqlite && ! $isLocalMysql) {
+            $this->error('This command only runs in the local environment against the project SQLite database or the local pixmoreedb MySQL database.');
 
             return self::FAILURE;
         }

@@ -396,7 +396,7 @@ class SitePageContent
                         ['heading' => 'Core features', 'body' => 'Artwork discovery, search and filters, favorites, creator listings, user collections, NFT detail views, and simulated checkout.'],
                         ['heading' => 'Learning goals', 'body' => 'Practice responsive UI design, reusable page patterns, browser storage, form validation, accessibility, and responsible handling of creative work.'],
                         ['heading' => 'Tools and stack', 'body' => 'PHP/Laravel-compatible views, HTML, CSS, JavaScript, and Bootstrap, with Photoshop and After Effects for visual assets.'],
-                        ['heading' => 'Scope and limitations', 'body' => 'This is a student prototype. Accounts and artwork listings are stored in MySQL; payments and blockchain transactions are simulated and are not enabled.'],
+                        ['heading' => 'Scope and limitations', 'body' => 'This is a student prototype. Accounts and artwork listings are stored in the application database; payments and blockchain transactions are simulated and are not enabled.'],
                     ],
                 ],
                 'team' => [
