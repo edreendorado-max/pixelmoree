@@ -134,6 +134,20 @@ Route::middleware('auth')->group(function () use ($profileController, $artworkCo
     Route::delete('/user/artworks/{id}', [$artworkController, 'destroy'])
         ->where('id', '[a-z0-9-]+')
         ->name('user.artworks.destroy');
+    Route::prefix('/week14/artworks')->name('week14.artworks.')->group(function () use ($artworkController): void {
+        Route::get('/', [$artworkController, 'index'])->name('index');
+        Route::get('/create', static fn () => redirect()->route('user.create'))->name('create');
+        Route::post('/', [$artworkController, 'store'])->name('store');
+        Route::get('/{id}/edit', [$artworkController, 'edit'])
+            ->where('id', '[a-z0-9-]+')
+            ->name('edit');
+        Route::patch('/{id}', [$artworkController, 'update'])
+            ->where('id', '[a-z0-9-]+')
+            ->name('update');
+        Route::delete('/{id}', [$artworkController, 'destroy'])
+            ->where('id', '[a-z0-9-]+')
+            ->name('destroy');
+    });
     Route::prefix('/api/pixel-coins')->middleware('throttle:30,1')->group(function () use ($pixelCoinController): void {
         Route::get('/', [$pixelCoinController, 'show'])->name('api.pixel-coins.show');
         Route::post('/top-ups', [$pixelCoinController, 'topUp'])->name('api.pixel-coins.top-ups');
