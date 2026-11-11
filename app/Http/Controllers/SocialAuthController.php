@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\NewAccountWelcomeMail;
 use App\Models\User;
+use App\Notifications\AccountWelcomeNotification;
 use App\Support\EmailDeliveryNotConfigured;
 use App\Support\EmailVerification;
 use Illuminate\Http\RedirectResponse;
@@ -79,20 +80,30 @@ class SocialAuthController extends Controller
                 'password' => Str::random(64),
                 $providerColumn => $providerId,
             ]);
+            $user->notify(new AccountWelcomeNotification());
             $isNewAccount = true;
         }
 
         if (! $user->hasVerifiedEmail()) {
             $request->session()->put('email_verification_user_id', $user->id);
+            $redirect = redirect()->route('verification.notice');
             try {
                 $sent = $emailVerification->sendCode($user);
             } catch (EmailDeliveryNotConfigured) {
-                return redirect()->route('verification.notice')->withErrors([
+                $redirect->withErrors([
                     'code' => 'Your account needs email verification, but email delivery is not configured. Configure MAIL_* in .env, then request a new code.',
                 ]);
+                if ($isNewAccount) {
+                    $redirect->with('notification_popup', [
+                        'title' => 'Welcome to Pixmoree, '.$user->name.'!',
+                        'message' => 'Your account is ready. Verify your email to finish setting up.',
+                    ]);
+                }
+
+                return $redirect;
             }
 
-            $redirect = redirect()->route('verification.notice')->with('status', $sent
+            $redirect->with('status', $sent
                 ? 'A verification code was sent to your email address.'
                 : 'A code was sent recently. Check your inbox before requesting another.');
 

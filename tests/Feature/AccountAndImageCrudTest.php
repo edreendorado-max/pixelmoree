@@ -280,6 +280,10 @@ class AccountAndImageCrudTest extends TestCase
         $this->assertSame('google-user-123', $user->google_id);
         $this->assertSame('user', $user->role);
         $this->assertGuest();
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_id' => $user->id,
+            'type' => \App\Notifications\AccountWelcomeNotification::class,
+        ]);
         Mail::assertSent(NewAccountWelcomeMail::class, fn (NewAccountWelcomeMail $mail): bool => $mail->hasTo($user->email));
         $this->get('/email/verify')
             ->assertOk()
@@ -520,6 +524,7 @@ class AccountAndImageCrudTest extends TestCase
             ->assertExitCode(0);
 
         $this->assertDatabaseHas('users', ['id' => $user->id, 'role' => 'admin']);
+        $this->post('/logout')->assertRedirect('/login');
         $this->post('/login', [
             'email' => $user->email,
             'password' => 'secret-password',

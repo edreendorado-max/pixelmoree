@@ -13,6 +13,17 @@ class ArtworkCrudTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_dashboard_and_week14_artwork_crud_routes_require_authentication(): void
+    {
+        $this->get(route('user.dashboard'))->assertRedirect(route('login'));
+        $this->get(route('week14.artworks.index'))->assertRedirect(route('login'));
+        $this->get(route('week14.artworks.create'))->assertRedirect(route('login'));
+        $this->post(route('week14.artworks.store'))->assertRedirect(route('login'));
+        $this->get(route('week14.artworks.edit', ['id' => 'private-artwork']))->assertRedirect(route('login'));
+        $this->patch(route('week14.artworks.update', ['id' => 'private-artwork']))->assertRedirect(route('login'));
+        $this->delete(route('week14.artworks.destroy', ['id' => 'private-artwork']))->assertRedirect(route('login'));
+    }
+
     public function test_a_user_can_create_list_update_and_delete_their_artwork(): void
     {
         Storage::fake('public');

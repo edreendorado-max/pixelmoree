@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\NewAccountWelcomeMail;
 use App\Models\User;
+use App\Notifications\AccountWelcomeNotification;
 use App\Support\EmailDeliveryNotConfigured;
 use App\Support\EmailVerification;
 use Illuminate\Http\RedirectResponse;
@@ -50,22 +51,26 @@ class AuthController extends Controller
             'email' => mb_strtolower(trim($validated['email'])),
             'password' => $validated['password'],
         ]);
+        $user->notify(new AccountWelcomeNotification());
 
+        $welcomePopup = [
+            'title' => 'Welcome to Pixmoree, '.$user->name.'!',
+            'message' => 'Your account is ready. Check your inbox for a welcome note and verify your email to finish setting up.',
+        ];
         $request->session()->put('email_verification_user_id', $user->id);
         try {
             $emailVerification->sendCode($user, false);
         } catch (EmailDeliveryNotConfigured) {
-            return redirect()->route('verification.notice')->withErrors([
-                'code' => 'Your account was created, but we could not send a verification email. Configure MAIL_* in .env, then request a new code.',
-            ]);
+            return redirect()->route('verification.notice')
+                ->withErrors([
+                    'code' => 'Your account was created, but we could not send a verification email. Configure MAIL_* in .env, then request a new code.',
+                ])
+                ->with('notification_popup', $welcomePopup);
         }
 
         $redirect = redirect()->route('verification.notice')
             ->with('status', 'A verification code was sent to your email address. Verify it before signing in.')
-            ->with('notification_popup', [
-                'title' => 'Welcome to Pixmoree, '.$user->name.'!',
-                'message' => 'Your account is ready. Check your inbox for a welcome note and verify your email to finish setting up.',
-            ]);
+            ->with('notification_popup', $welcomePopup);
 
         try {
             Mail::to($user->email)->send(new NewAccountWelcomeMail($user));

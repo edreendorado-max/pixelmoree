@@ -1,4 +1,6 @@
 @php($account = auth()->user())
+@php($notifications = $notifications ?? collect())
+@php($unreadNotificationCount = $unreadNotificationCount ?? 0)
 <!doctype html>
 <html lang="en">
 <head>
@@ -49,6 +51,7 @@
             <a href="/user/earnings" data-member-action="earnings"><i class="bi bi-graph-up-arrow"></i> Earnings balance</a>
             <a href="/user/terms" data-member-action="terms"><i class="bi bi-shield-check"></i> Terms &amp; Originality</a>
             <a href="/user/profile-settings" data-member-action="profile-settings"><i class="bi bi-person-gear"></i> Profile Settings</a>
+            <a href="{{ route('user.notifications') }}" data-member-action="notifications"><i class="bi bi-bell"></i> Notifications</a>
             <a href="/user/about" data-member-action="about"><i class="bi bi-info-circle"></i> About Pixmoree</a>
             @if ($account?->isAdmin())
               <a href="/admin" data-member-action="admin"><i class="bi bi-shield-lock"></i> Admin</a>
@@ -231,8 +234,40 @@
             <a class="member-profile-save" href="/user/profile-settings">Manage profile details</a>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="notifications" hidden>
-            <div class="member-panel-heading"><div><h3>Notifications</h3><p>In-app notifications are not enabled in the beta.</p></div></div>
-            <p class="member-empty-state">Account and artwork updates are available from their respective pages.</p>
+            <div class="member-panel-heading">
+              <div><h3>Notifications</h3><p>{{ $unreadNotificationCount }} unread notification{{ $unreadNotificationCount === 1 ? '' : 's' }}.</p></div>
+              @if ($unreadNotificationCount > 0)
+                <form method="post" action="{{ route('user.notifications.read-all') }}">
+                  @csrf
+                  <button class="member-profile-save" type="submit">Mark all as read</button>
+                </form>
+              @endif
+            </div>
+            @if (session('status'))
+              <p class="member-profile-feedback" role="status">{{ session('status') }}</p>
+            @endif
+            @forelse ($notifications as $notification)
+              <article class="member-panel-card mb-3" @class(['opacity-75' => $notification->read_at !== null])>
+                <div class="member-panel-heading">
+                  <div>
+                    <h4>{{ $notification->data['title'] ?? 'Notification' }}</h4>
+                    <p>{{ $notification->created_at->diffForHumans() }} · {{ $notification->read_at ? 'Read' : 'Unread' }}</p>
+                  </div>
+                  @if ($notification->read_at === null)
+                    <form method="post" action="{{ route('user.notifications.read', $notification->id) }}">
+                      @csrf
+                      <button class="member-profile-save" type="submit">Mark as read</button>
+                    </form>
+                  @endif
+                </div>
+                <p>{{ $notification->data['message'] ?? '' }}</p>
+              </article>
+            @empty
+              <p class="member-empty-state">You have no notifications yet.</p>
+            @endforelse
+            @if ($notifications instanceof \Illuminate\Contracts\Pagination\Paginator)
+              {{ $notifications->links() }}
+            @endif
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="about" hidden>
             <div class="member-about-page">

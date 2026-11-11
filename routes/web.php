@@ -9,6 +9,7 @@ require_once base_path('app/Week12Helpers.php');
 require_once base_path('app/ArtworkRepository.php');
 
 $authController = \App\Http\Controllers\AuthController::class;
+$notificationController = \App\Http\Controllers\NotificationController::class;
 $passwordResetController = \App\Http\Controllers\PasswordResetController::class;
 $socialAuthController = \App\Http\Controllers\SocialAuthController::class;
 $creatorController = \App\Http\Controllers\CreatorController::class;
@@ -30,15 +31,17 @@ Route::view('/about', 'about')->name('about');
 Route::get('/nft/{id}', static fn (string $id) => auth()->check()
     ? redirect()->route('user.nft.show', ['id' => $id])
     : view('home'))->where('id', '[A-Za-z0-9][A-Za-z0-9-]*')->name('nft.guest');
-Route::view('/login', 'login')->name('login');
-Route::get('/register', [$authController, 'create'])->name('register');
-Route::get('/create-account', [$authController, 'create'])->name('create-account');
+Route::middleware('guest')->group(function () use ($authController): void {
+    Route::view('/login', 'login')->name('login');
+    Route::get('/register', [$authController, 'create'])->name('register');
+    Route::get('/create-account', [$authController, 'create'])->name('create-account');
+    Route::post('/login', [$authController, 'login'])->middleware('throttle:10,1')->name('login.store');
+    Route::post('/register', [$authController, 'store'])->name('register.store');
+});
 Route::get('/forgot-password', [$passwordResetController, 'createLink'])->name('password.request');
 Route::post('/forgot-password', [$passwordResetController, 'sendLink'])->middleware('throttle:5,1')->name('password.email');
 Route::get('/reset-password/{token}', [$passwordResetController, 'createForm'])->name('password.reset');
 Route::post('/reset-password', [$passwordResetController, 'reset'])->middleware('throttle:5,1')->name('password.update');
-Route::post('/login', [$authController, 'login'])->middleware('throttle:10,1')->name('login.store');
-Route::post('/register', [$authController, 'store'])->name('register.store');
 Route::get('/email/verify', [$authController, 'verificationNotice'])->name('verification.notice');
 Route::post('/email/verify', [$authController, 'verifyEmail'])->middleware('throttle:10,1')->name('verification.verify');
 Route::post('/email/verification/resend', [$authController, 'resendVerification'])->middleware('throttle:3,1')->name('verification.resend');
@@ -69,7 +72,7 @@ Route::middleware('throttle:120,1')->group(function () use ($engagementControlle
         ->name('api.creators.views');
 });
 
-Route::middleware(['auth', 'member.account'])->group(function () use ($profileController, $artworkController, $earningsController, $engagementController, $paymentOrderController, $resaleListingController): void {
+Route::middleware(['auth', 'member.account'])->group(function () use ($profileController, $artworkController, $earningsController, $engagementController, $paymentOrderController, $resaleListingController, $notificationController): void {
     Route::get('/store', static fn () => view('store', [
         'artworks' => Artwork::query()
             ->where('status', 'Listed')
@@ -92,7 +95,9 @@ Route::middleware(['auth', 'member.account'])->group(function () use ($profileCo
     Route::view('/user/me', 'home')->name('user.me');
     Route::view('/user/dashboard', 'home')->name('user.dashboard');
     Route::view('/user/create', 'home')->name('user.create');
-    Route::view('/user/notifications', 'home')->name('user.notifications');
+    Route::get('/user/notifications', [$notificationController, 'index'])->name('user.notifications');
+    Route::post('/user/notifications/read-all', [$notificationController, 'markAllAsRead'])->name('user.notifications.read-all');
+    Route::post('/user/notifications/{notification}/read', [$notificationController, 'markAsRead'])->name('user.notifications.read');
     Route::view('/user/about', 'home')->name('user.about');
     Route::view('/user/purchases', 'home')->name('user.purchases');
     Route::get('/user/nft-management', [$artworkController, 'index'])->name('user.nft-management');
@@ -140,6 +145,20 @@ Route::middleware(['auth', 'member.account'])->group(function () use ($profileCo
     Route::delete('/user/artworks/{id}', [$artworkController, 'destroy'])
         ->where('id', '[a-z0-9-]+')
         ->name('user.artworks.destroy');
+    Route::prefix('/week14/artworks')->name('week14.artworks.')->group(function () use ($artworkController): void {
+        Route::get('/', [$artworkController, 'index'])->name('index');
+        Route::get('/create', static fn () => redirect()->route('user.create'))->name('create');
+        Route::post('/', [$artworkController, 'store'])->name('store');
+        Route::get('/{id}/edit', [$artworkController, 'edit'])
+            ->where('id', '[a-z0-9-]+')
+            ->name('edit');
+        Route::patch('/{id}', [$artworkController, 'update'])
+            ->where('id', '[a-z0-9-]+')
+            ->name('update');
+        Route::delete('/{id}', [$artworkController, 'destroy'])
+            ->where('id', '[a-z0-9-]+')
+            ->name('destroy');
+    });
     Route::prefix('/api')->middleware('throttle:30,1')->group(function () use ($engagementController): void {
         Route::put('/artworks/{artwork}/like', [$engagementController, 'likeArtwork'])->name('api.artworks.like');
         Route::delete('/artworks/{artwork}/like', [$engagementController, 'unlikeArtwork'])->name('api.artworks.unlike');

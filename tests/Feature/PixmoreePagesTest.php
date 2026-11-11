@@ -11,6 +11,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\ArtworkFixtureSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -729,11 +730,12 @@ class PixmoreePagesTest extends TestCase
         $this->post('/admin/content/login', [
             'content' => ['heading' => 'Sign in to Pixmoree'],
         ])->assertRedirect('/admin/content/login');
-        $this->get('/login')->assertOk()->assertSee('Sign in to Pixmoree');
         $this->get('/admin/content/register')->assertOk()->assertSee('Registration page copy');
         $this->post('/admin/content/register', [
             'content' => ['heading' => 'Join Pixmoree'],
         ])->assertRedirect('/admin/content/register');
+        Auth::logout();
+        $this->get('/login')->assertOk()->assertSee('Sign in to Pixmoree');
         $this->get('/register')->assertOk()->assertSee('Join Pixmoree');
     }
 
