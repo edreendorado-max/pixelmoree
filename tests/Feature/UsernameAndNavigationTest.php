@@ -10,6 +10,52 @@ class UsernameAndNavigationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_auth_pages_use_the_pixmoree_design_and_are_only_available_to_guests(): void
+    {
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('class="auth-page"', false)
+            ->assertSee('class="auth-card"', false)
+            ->assertSee('action="'.route('login.store').'"', false)
+            ->assertSee('css/site.css', false);
+
+        $this->get(route('register'))
+            ->assertOk()
+            ->assertSee('class="auth-page"', false)
+            ->assertSee('class="auth-card auth-card-register"', false)
+            ->assertSee('action="'.route('register.store').'"', false)
+            ->assertSee('css/site.css', false);
+
+        $user = User::create([
+            'name' => 'Signed In User',
+            'email' => 'signed-in@example.test',
+            'password' => 'secret-password',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('login'))
+            ->assertRedirect(route('home'));
+
+        $this->get(route('register'))
+            ->assertRedirect(route('home'));
+
+        $this->post(route('login.store'), [
+            'email' => 'another@example.test',
+            'password' => 'secret-password',
+        ])->assertRedirect(route('home'));
+
+        $this->post(route('register.store'), [
+            'name' => 'Another User',
+            'email' => 'another@example.test',
+            'password' => 'ExamplePass1!',
+            'password_confirmation' => 'ExamplePass1!',
+            'terms' => '1',
+        ])->assertRedirect(route('home'));
+
+        $this->assertDatabaseMissing('users', ['email' => 'another@example.test']);
+        $this->assertAuthenticatedAs($user);
+    }
+
     public function test_a_user_can_sign_in_with_their_username(): void
     {
         $user = User::create([

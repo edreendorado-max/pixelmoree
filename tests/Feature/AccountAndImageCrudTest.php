@@ -490,6 +490,7 @@ class AccountAndImageCrudTest extends TestCase
             ->assertExitCode(0);
 
         $this->assertDatabaseHas('users', ['id' => $user->id, 'role' => 'admin']);
+        $this->post('/logout')->assertRedirect('/login');
         $this->post('/login', [
             'email' => $user->email,
             'password' => 'secret-password',

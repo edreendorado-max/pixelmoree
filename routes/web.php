@@ -31,15 +31,17 @@ Route::view('/about', 'about')->name('about');
 Route::get('/nft/{id}', static fn (string $id) => auth()->check()
     ? redirect()->route('user.nft.show', ['id' => $id])
     : view('home'))->where('id', '[A-Za-z0-9][A-Za-z0-9-]*')->name('nft.guest');
-Route::view('/login', 'login')->name('login');
-Route::get('/register', [$authController, 'create'])->name('register');
-Route::get('/create-account', [$authController, 'create'])->name('create-account');
+Route::middleware('guest')->group(function () use ($authController): void {
+    Route::view('/login', 'login')->name('login');
+    Route::get('/register', [$authController, 'create'])->name('register');
+    Route::get('/create-account', [$authController, 'create'])->name('create-account');
+    Route::post('/login', [$authController, 'login'])->middleware('throttle:10,1')->name('login.store');
+    Route::post('/register', [$authController, 'store'])->name('register.store');
+});
 Route::get('/forgot-password', [$passwordResetController, 'createLink'])->name('password.request');
 Route::post('/forgot-password', [$passwordResetController, 'sendLink'])->middleware('throttle:5,1')->name('password.email');
 Route::get('/reset-password/{token}', [$passwordResetController, 'createForm'])->name('password.reset');
 Route::post('/reset-password', [$passwordResetController, 'reset'])->middleware('throttle:5,1')->name('password.update');
-Route::post('/login', [$authController, 'login'])->middleware('throttle:10,1')->name('login.store');
-Route::post('/register', [$authController, 'store'])->name('register.store');
 Route::get('/email/verify', [$authController, 'verificationNotice'])->name('verification.notice');
 Route::post('/email/verify', [$authController, 'verifyEmail'])->middleware('throttle:10,1')->name('verification.verify');
 Route::post('/email/verification/resend', [$authController, 'resendVerification'])->middleware('throttle:3,1')->name('verification.resend');
