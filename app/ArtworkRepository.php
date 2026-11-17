@@ -1,8 +1,14 @@
 <?php
 
+namespace App;
+
 use App\Support\ArtworkMarketValue;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
+use OutOfBoundsException;
+use PDO;
+use RuntimeException;
 
 final class ArtworkRepository
 {

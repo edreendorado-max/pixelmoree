@@ -2,11 +2,11 @@
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use App\ArtworkRepository;
 use App\Support\SitePageContent;
 use App\Models\Artwork;
 
 require_once base_path('app/Week12Helpers.php');
-require_once base_path('app/ArtworkRepository.php');
 
 $authController = \App\Http\Controllers\AuthController::class;
 $notificationController = \App\Http\Controllers\NotificationController::class;

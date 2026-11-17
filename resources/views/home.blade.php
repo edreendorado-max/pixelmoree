@@ -12,8 +12,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/site.css') }}?v=20261111-store" rel="stylesheet">
-    <link href="{{ asset('css/typography.css') }}?v=20261111" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}?v=20261117-home" rel="stylesheet">
+    <link href="{{ asset('css/typography.css') }}?v=20261117" rel="stylesheet">
 </head>
 <body class="{{ $account ? 'member-home' : 'guest-home' }}">
 <nav class="navbar navbar-expand-lg navbar-dark site-nav guest-nav">

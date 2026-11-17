@@ -5,5 +5,5 @@
         <p id="notification-popup-message">{{ $notification['message'] }}</p>
         <button type="button" class="app-notification-close" data-notification-close>Continue</button>
     </dialog>
-    <script src="{{ asset('js/notifications.js') }}?v=20261111"></script>
+    <script src="{{ asset('js/notifications.js') }}?v=20261117"></script>
 @endif

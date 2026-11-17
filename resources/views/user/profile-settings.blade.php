@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Profile settings — Pixmoree</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/site.css') }}" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}?v=20261117-profile-images" rel="stylesheet">
     <link href="{{ asset('css/payment-checkout.css') }}" rel="stylesheet">
-    <link href="{{ asset('css/typography.css') }}?v=20261111" rel="stylesheet">
+    <link href="{{ asset('css/typography.css') }}?v=20261117" rel="stylesheet">
+    <link href="{{ asset('css/profile-image-editor.css') }}?v=20261117" rel="stylesheet">
 </head>
 <body class="profile-settings-page">
 <header class="profile-settings-topbar">
@@ -35,9 +36,9 @@
             <p>Manage your creator identity, account security, and profile banner.</p>
         </div>
         <div class="profile-settings-account-chip">
-            <span class="profile-settings-account-avatar">
+            <span class="profile-settings-account-avatar" data-image-preview="avatar">
                 @if ($user->avatar_path)
-                    <img src="{{ asset($user->avatar_path) }}" alt="">
+                    <img data-image-preview-image src="{{ asset($user->avatar_path) }}" alt="">
                 @else
                     {{ strtoupper(substr($user->name, 0, 1)) }}
                 @endif
@@ -69,30 +70,30 @@
             <form class="profile-settings-form" method="post" action="{{ route('user.profile.update') }}" enctype="multipart/form-data">
                 @csrf
                 <div class="profile-settings-banner-control">
-                    <div class="profile-settings-banner-preview">
+                    <div class="profile-settings-banner-preview" data-image-preview="banner">
                         @if ($user->banner_path)
-                            <img src="{{ asset($user->banner_path) }}" alt="Current profile banner">
+                            <img data-image-preview-image src="{{ asset($user->banner_path) }}" alt="Current profile banner">
                         @endif
                         <span><i class="bi bi-stars" aria-hidden="true"></i> PROFILE BANNER</span>
                     </div>
                     <div class="profile-settings-field">
                         <label for="profile-banner">Upload a profile banner</label>
-                        <input id="profile-banner" name="banner" type="file" accept=".jpg,.jpeg,.png,.gif,.webp">
-                        <small>JPG, PNG, GIF, or WebP. Maximum 10 MB. Wide images work best.</small>
+                        <input id="profile-banner" name="banner" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" data-image-crop="banner" aria-describedby="profile-banner-help">
+                        <small id="profile-banner-help">JPG, PNG, GIF, or WebP. Maximum 10 MB. You can position and zoom the 3:1 crop before saving.</small>
                     </div>
                 </div>
                 <div class="profile-settings-avatar-row">
-                    <span class="profile-settings-avatar-preview">
+                    <span class="profile-settings-avatar-preview" data-image-preview="avatar">
                         @if ($user->avatar_path)
-                            <img src="{{ asset($user->avatar_path) }}" alt="Current profile image">
+                            <img data-image-preview-image src="{{ asset($user->avatar_path) }}" alt="Current profile image">
                         @else
                             {{ strtoupper(substr($user->name, 0, 1)) }}
                         @endif
                     </span>
                     <div class="profile-settings-field profile-settings-avatar-field">
                         <label for="profile-avatar">Creator profile image</label>
-                        <input id="profile-avatar" name="avatar" type="file" accept=".jpg,.jpeg,.png,.gif,.webp">
-                        <small>JPG, PNG, GIF, or WebP. Maximum 5 MB.</small>
+                        <input id="profile-avatar" name="avatar" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" data-image-crop="avatar" aria-describedby="profile-avatar-help">
+                        <small id="profile-avatar-help">JPG, PNG, GIF, or WebP. Maximum 5 MB. You can position and zoom the square crop before saving.</small>
                     </div>
                 </div>
                 <div class="profile-settings-field-grid">
@@ -168,5 +169,28 @@
         </div>
     </div>
 </main>
+<dialog class="profile-image-crop-dialog" data-image-crop-dialog aria-labelledby="profile-image-crop-title" aria-describedby="profile-image-crop-help">
+    <div class="profile-image-crop-heading">
+        <div>
+            <p class="profile-image-crop-eyebrow">IMAGE PREVIEW</p>
+            <h2 id="profile-image-crop-title">Adjust your image</h2>
+        </div>
+        <button class="profile-image-crop-dismiss" type="button" data-image-crop-cancel aria-label="Cancel image crop">&times;</button>
+    </div>
+    <p class="profile-image-crop-help" id="profile-image-crop-help">Drag the image to position it, then use the zoom control to frame your preview. Cropped images are saved as JPEG; animated GIFs become a still image.</p>
+    <div class="profile-image-crop-viewport" data-image-crop-viewport>
+        <img data-image-crop-image alt="" draggable="false">
+    </div>
+    <label class="profile-image-crop-zoom-label" for="profile-image-crop-zoom">
+        Zoom <output data-image-crop-zoom-value for="profile-image-crop-zoom">100%</output>
+    </label>
+    <input class="profile-image-crop-zoom" id="profile-image-crop-zoom" data-image-crop-zoom type="range" min="1" max="3" step="0.01" value="1">
+    <p class="profile-image-crop-error" data-image-crop-error role="alert" hidden></p>
+    <div class="profile-image-crop-actions">
+        <button class="profile-image-crop-cancel" type="button" data-image-crop-cancel>Cancel</button>
+        <button class="profile-image-crop-apply" type="button" data-image-crop-apply>Use this crop</button>
+    </div>
+</dialog>
+<script src="{{ asset('js/profile-image-editor.js') }}?v=20261117" defer></script>
 </body>
 </html>

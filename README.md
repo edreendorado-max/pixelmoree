@@ -25,6 +25,20 @@ php artisan serve
 
 The default SQLite database is `database/database.sqlite`; Laravel creates its schema when migrations run. Adding XAMPP's PHP directory to the front of `PATH` ensures `php artisan serve` launches the same PHP runtime as the Artisan commands. Open <http://127.0.0.1:8000/> for the guest homepage. Registration is at `/register`; profile and payment QR management is at `/user/profile-settings`. The signed-in Store is at `/store` (`/week12` redirects there); admin routes at `/admin`, `/week12/admin`, and `/week12/admin/artworks` require an admin account.
 
+## Production launch readiness
+
+This repository is prepared for local development; production hosting and third-party accounts must be configured separately. Before launch:
+
+- Set `APP_ENV=production`, `APP_DEBUG=false`, and `APP_URL` to the final HTTPS domain in the host's secret/configuration store. Generate `APP_KEY` once for that environment and retain it securely; never commit `.env` or rotate the key after users have encrypted data.
+- Use a managed production database with backups rather than the local SQLite file. Set its connection variables, run `php artisan migrate --force`, and verify migrations against a staging copy first.
+- Configure a real SMTP/mail provider and sender address. Email verification and password resets depend on delivery; Google/Facebook sign-in are optional and need provider credentials plus exact HTTPS callback URLs.
+- Keep `PAYMENTS_ENABLED=false` until creator payment instructions, private receipt/QR storage, an administrator review process, and the required business/legal checks are ready. When enabled, checkout remains creator-direct GCash/Maya with manual receipt review; Pixmoree does not hold funds, verify receipts automatically, or support withdrawals/payouts.
+- Persist and back up both the database and uploaded files. Keep `storage/` and `bootstrap/cache/` writable by the app; create the public storage link and make sure private files are not exposed through the web root.
+- Point the web server document root at `public/`, enforce HTTPS, promote a real registered administrator with `php artisan pixmoree:make-admin <email>`, and smoke-test login, email verification, uploads, checkout review, and the `/up` health endpoint.
+- Run `php artisan schedule:run` every minute through the host scheduler so daily price snapshots are recorded. Use `composer install --no-dev --optimize-autoloader` and Laravel's production cache commands as part of the host's deployment pipeline.
+
+Do not enable real payments or treat this checklist as a completed production deployment until the selected host, domain, credentials, backups, and operational review process have been configured and tested.
+
 ## Email verification, password reset, and social sign-in
 
 Email/password and new social registrations show an in-app welcome popup and send a welcome email alongside the six-digit verification code. New accounts cannot sign in until the code is confirmed. Signing out displays a confirmation popup on the login page. Verification codes expire after 10 minutes, are stored as hashes, allow at most five guesses, and can be resent after a 60-second cooldown. Login attempts for existing unverified accounts also send or re-send the code. Code delivery is handled through Laravel's configured SMTP mailer; local `log` and `array` mailers are rejected for verification because they do not deliver to the mailbox. For Gmail, create a Google App Password (requires 2-Step Verification), then set `MAIL_USERNAME` to your Gmail address and `MAIL_PASSWORD` to the App Password in `.env`; the local configuration uses Gmail SMTP on port 587 with TLS and uses that address as the sender. Never use your regular Google account password or commit SMTP credentials. For another SMTP provider, set `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SCHEME`, and `MAIL_FROM_ADDRESS` to that provider's values. A successful code check verifies that the user can receive messages at that address; it does not certify the person's legal identity.
