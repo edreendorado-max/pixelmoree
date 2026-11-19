@@ -110,11 +110,6 @@
                         <label for="profile-phone">Phone <span>Optional</span></label>
                         <input id="profile-phone" name="phone" type="tel" value="{{ old('phone', $user->phone) }}" maxlength="30" autocomplete="tel">
                     </div>
-                    <div class="profile-settings-field">
-                        <label for="profile-gcash-number">GCash number for Pixel Coin withdrawals</label>
-                        <input id="profile-gcash-number" name="gcash_number" type="tel" value="{{ old('gcash_number', $user->gcash_number) }}" maxlength="30" autocomplete="tel">
-                        <small>Only admins reviewing your payout can see this.</small>
-                    </div>
                     <div class="profile-settings-field profile-settings-bio-field">
                         <label for="profile-bio">Creator bio <span>Optional</span></label>
                         <textarea id="profile-bio" name="bio" rows="4" maxlength="2000">{{ old('bio', $user->bio) }}</textarea>
@@ -125,29 +120,6 @@
         </section>
 
         <div class="profile-settings-side-column">
-            <section class="profile-settings-panel" aria-labelledby="payment-qr-heading">
-                <div class="profile-settings-panel-heading">
-                    <span class="profile-settings-panel-icon"><i class="bi bi-qr-code" aria-hidden="true"></i></span>
-                    <div><h2 id="payment-qr-heading">GCash payout QR</h2><p>Used by admins to verify your destination before sending approved Pixel Coin withdrawals. Stored privately.</p></div>
-                </div>
-                <form class="profile-settings-form" method="post" action="{{ route('user.payment-qr.update') }}" enctype="multipart/form-data">
-                    @csrf
-                    @foreach (['gcash' => 'GCash'] as $method => $label)
-                        <div class="profile-settings-field">
-                            <label for="{{ $method }}-qr">{{ $label }} QR image</label>
-                            @if ($user->{$method . '_qr_path'})
-                                <img class="profile-payment-qr-preview" src="{{ route('user.payment-qr.preview', $method) }}" alt="Your {{ $label }} payment QR">
-                                <label class="profile-payment-qr-remove"><input type="checkbox" name="remove_{{ $method }}_qr" value="1"> Remove saved {{ $label }} QR</label>
-                            @else
-                                <small>No {{ $label }} QR configured.</small>
-                            @endif
-                            <input id="{{ $method }}-qr" name="{{ $method }}_qr" type="file" accept=".jpg,.jpeg,.png,.webp">
-                            <small>JPG, PNG, or WebP; maximum 5 MB.</small>
-                        </div>
-                    @endforeach
-                    <button class="profile-settings-secondary-button" type="submit">Save payment QR codes</button>
-                </form>
-            </section>
             <section class="profile-settings-panel" aria-labelledby="password-heading">
                 <div class="profile-settings-panel-heading">
                     <span class="profile-settings-panel-icon profile-settings-icon-cyan"><i class="bi bi-shield-lock" aria-hidden="true"></i></span>
@@ -198,6 +170,7 @@
     </div>
 </dialog>
 <script src="{{ asset('js/profile-image-editor.js') }}?v=20261117" defer></script>
+<script src="{{ asset('js/image-previews.js') }}?v=20261119" defer></script>
 @include('partials.notification-popup', ['notification' => session('notification_popup')])
 </body>
 </html>

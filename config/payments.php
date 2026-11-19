@@ -1,7 +1,8 @@
 <?php
 
 return [
-    'enabled' => filter_var(env('PAYMENTS_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+    'enabled' => filter_var(env('PAYMENTS_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+    'simulation' => filter_var(env('PAYMENTS_SIMULATION', true), FILTER_VALIDATE_BOOLEAN),
     'currency' => 'PHP',
     'php_per_eth' => (int) env('PAYMENTS_PHP_PER_ETH', 200000),
     'pixel_coin_topup_numerator' => (int) env('PIXEL_COIN_TOPUP_NUMERATOR', 5),

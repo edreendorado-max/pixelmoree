@@ -1,6 +1,6 @@
 # Pixmoree
 
-Pixmoree is a Laravel 12 digital-art marketplace with accounts, artwork editions, profiles, and engagement data stored in MySQL for the XAMPP demonstration setup. Registration uses email and password and makes the account available immediately; email verification is not required. The marketplace includes manually reviewed GCash receipts, itemized edition ownership, Pixel Coin top-ups, internal coin purchases, and manually sent creator withdrawals. These are database records and do not transfer tokens on a blockchain.
+Pixmoree is a Laravel 12 digital-art marketplace with accounts, artwork editions, profiles, engagement, simulated purchases, receipts, notifications, and a simulated Pixel Coin wallet. Registration uses email and password and makes the account available immediately; email verification is not required. Payment-like actions are local database simulations: no cash, GCash, payment gateway, or blockchain token is involved.
 
 ## Website audit and improvement checklist
 
@@ -12,7 +12,7 @@ The code-level website audit and prioritized recommendations are in [WEBSITE_AUD
 - Provide optional demo content for evaluating a fresh local install, and ensure navigation destinations have clear, distinct behavior.
 - Check accessibility, empty/error states, third-party asset loading, and admin content recovery.
 
-The audit maps repository evidence and automated test results to the attached rubric. Browser layout, real email delivery, and live payment checks still require a local demonstration.
+The audit maps repository evidence and automated test results to the rubric. Responsive browser appearance and presentation evidence still require a local demonstration.
 
 The rubric diagrams, ERD, and tri-fold demonstration guide are in [docs/PROJECT_DIAGRAMS.md](docs/PROJECT_DIAGRAMS.md) and [docs/DEMO_MANUAL.md](docs/DEMO_MANUAL.md).
 
@@ -38,7 +38,7 @@ composer install
 php artisan serve
 ```
 
-Adding XAMPP's PHP directory to the front of `PATH` ensures `php artisan serve` launches the same PHP runtime as the Artisan commands. Open <http://127.0.0.1:8000/> for the guest homepage. Registration is at `/register`; profile and payment QR management is at `/user/profile-settings`. The signed-in Store is at `/store` (`/week12` redirects there); admin routes at `/admin`, `/week12/admin`, and `/week12/admin/artworks` require an admin account.
+Adding XAMPP's PHP directory to the front of `PATH` ensures `php artisan serve` launches the same PHP runtime as the Artisan commands. Open <http://127.0.0.1:8000/> for the guest homepage. Registration is at `/register`; the signed-in Store is at `/store` (`/week12` redirects there). Admin routes at `/admin`, `/week12/admin`, and `/week12/admin/artworks` require an admin account. The app is configured for simulation mode by default.
 
 ### Access the development site from devices on the same Wi-Fi/LAN
 
@@ -76,12 +76,12 @@ This repository is prepared for local development; production hosting and third-
 - Set `APP_ENV=production`, `APP_DEBUG=false`, and `APP_URL` to the final HTTPS domain in the host's secret/configuration store. Generate `APP_KEY` once for that environment and retain it securely; never commit `.env` or rotate the key after users have encrypted data.
 - Use a managed production database with backups rather than the local SQLite file. Set its connection variables, run `php artisan migrate --force`, and verify migrations against a staging copy first.
 - Configure a real SMTP/mail provider and sender address if email password-reset links and optional welcome emails should be delivered. Registration and sign-in do not require email verification. Social sign-in is disabled.
-- Keep `PAYMENTS_ENABLED=false` until the admin GCash QR, private receipt storage, top-up/payout rates, admin review process, dispute guidance, and required business/legal checks are ready. Payments use manual GCash review; the app does not verify receipts automatically.
+- Keep `PAYMENTS_SIMULATION=true` for the demo. NFT purchases, Pixel Coin top-ups, and withdrawals only update in-app records; they never charge or transfer money. Do not connect these routes to a live provider without a separately reviewed payment implementation.
 - Persist and back up both the database and uploaded files. Keep `storage/` and `bootstrap/cache/` writable by the app; create the public storage link and make sure private files are not exposed through the web root.
 - Point the web server document root at `public/`, enforce HTTPS, promote a real registered administrator with `php artisan pixmoree:make-admin <email>`, and smoke-test registration, login, uploads, checkout review, and the `/up` health endpoint.
 - Run `php artisan schedule:run` every minute through the host scheduler so daily price snapshots are recorded. Use `composer install --no-dev --optimize-autoloader` and Laravel's production cache commands as part of the host's deployment pipeline.
 
-Do not enable real payments or treat this checklist as a completed production deployment until the selected host, domain, credentials, backups, and operational review process have been configured and tested.
+Production hosting, domain, credentials, backups, and operational review still require separate setup. The included payment flows are simulations, not a production payment integration.
 
 ## Accounts and password reset
 
@@ -89,20 +89,20 @@ Registration creates an account and signs the new user in immediately. No verifi
 
 Password reset is available from the login page. Reset links expire after 60 minutes, and delivering them to a real inbox requires a configured SMTP provider. Optional welcome emails use the same mail configuration, but delivery failures do not block account creation. Never commit SMTP credentials; keep them in the local `.env` or the host's secret store. New passwords, including reset and profile password changes, must be at least six characters and include an uppercase letter, a number, and a special character.
 
-## Pixel Coin, GCash purchases, and creator withdrawals
+## Simulated purchases and Pixel Coins
 
-Pixel Coins use two decimal places. Current defaults are: minimum top-up PHP 20; cash-out PHP 1.20 per PC; 1.5% top-up fee added to the amount paid; and minimum withdrawal 200 PC. Coin awards are capped so their cash-out value cannot exceed the base top-up amount before the fee. At current rates, PHP 200 awards up to 166.66 PC and costs PHP 203 including the fee; PHP 20 costs PHP 20.30 and awards up to 16.66 PC. NFT cash purchases go to the admin GCash QR; after manual receipt verification, the selected edition item transfers to the buyer and the creator receives Pixel Coins. Coin purchases debit the buyer and credit the creator in one database transaction. Every payment order has a UUID record ID; each edition item has a unique UUID Item ID; each coin ledger entry has its own UUID.
+Pixel Coins use two decimal places. The configured PHP amounts, minimums, conversion cap, and 1.5% top-up fee are demonstration values only. A simulated NFT purchase creates an approved receipt, transfers one selected edition item, notifies buyer and seller, and credits the creator's simulated Pixel Coin balance. Coin purchases debit the buyer and credit the creator in one database transaction. Simulated top-ups and withdrawals update the in-app wallet and ledger only. Each order and edition item has a UUID identifier, as does each coin ledger entry.
 
-The conversion cap prevents the user from cashing out more than the base top-up amount; the 1.5% fee remains an admin fee. Pixmoree has no payment gateway or automatic GCash verification; admins must independently confirm each transfer and payout. The payment switch is off by default (`PAYMENTS_ENABLED=false`).
+Set `PAYMENTS_ENABLED=true` and `PAYMENTS_SIMULATION=true` for local demo transactions. The admin Transactions screen displays completed simulation records. Admin review remains available for artwork moderation and resale evidence, not payment approval.
 
 1. Run migrations after updating the app: `php artisan migrate`.
-2. In Profile settings, each creator saves their GCash number and private GCash payout QR.
-3. In Admin â†’ Payments, upload the admin GCash QR and enter the verified recipient name and number.
-4. Enable `PAYMENTS_ENABLED=true` only after deciding sustainable rates, verifying the destination account and review process, and preparing customer-facing terms/support. Clear config with `php artisan config:clear` after changing `.env`.
-5. Buyers submit GCash transaction reference and receipt screenshot. Admins inspect the transaction in GCash, confirm recipient/amount/reference, then approve or reject. Never approve based only on the uploaded screenshot.
-6. Top-ups credit coins only after approval. Withdrawals reserve coins until the admin sends the GCash payout and records its transaction reference; rejection refunds the reserved coins.
+2. Confirm `PAYMENTS_ENABLED=true` and `PAYMENTS_SIMULATION=true` in `.env`; run `php artisan config:clear` after changing configuration.
+3. Register a second member account to act as the simulated buyer.
+4. Confirm the buyer receipt and ownership, seller notification and simulated Pixel Coin credit, and the completed order in Admin Studio â†’ Transactions.
+5. Simulate a Pixel Coin top-up and withdrawal and confirm each receipt and ledger entry. No external payment is requested.
+6. Use the Admin Studio to moderate artwork, review resale evidence, inspect analytics, and update site content.
 
-Proof images and payout QR images are stored on Laravel's private local disk. Do not expose them through `public/storage` or share them outside the people who need to review each transaction. This workflow is manual and should remain a development/beta process until applicable legal, tax, fraud, and privacy requirements are reviewed.
+The local payment feature gate and simulation setting are enabled for the class demo. NFT purchases, Pixel Coin top-ups, and withdrawals complete in-app and do not use GCash, QR codes, receipt uploads, or external payments. Keep `PAYMENTS_SIMULATION=true`; simulated PHP amounts and wallet balances do not represent real funds.
 ## MySQL database
 
 The rubric demonstration uses the local MySQL database named `pixmoreedb`. Laravel migrations are the source of truth for its schema; run them after pulling schema changes:
@@ -133,23 +133,23 @@ Admins can monitor and edit account profile details, moderate creator-submitted 
 
 The Git repository shares schema and project files, not a live database. Each collaborator creates a local MySQL database by running `php artisan migrate --seed`. Never commit the local SQLite database, `.env`, or production credentials.
 
-Admins can update the homepage, About page, marketplace, log-in, and registration pages from the Content Studio at `/admin/content`. Text and supported page images can be edited in the matching page editor; marketplace and gallery artwork is managed from the admin artwork screen. The About page's â€œpeople behind Pixmoreeâ€ section is a separate, editable developer team, not the marketplace creator list. Developer cards support a section, quote, and validated social URLs. Admin screens share the Pixmoree visual theme. Signed-in creators can upload original artwork from `/user/create`; artwork metadata and the stored image path are saved in MySQL, while the actual image is stored on Laravel's public disk. Users can edit or delete their own artwork, and duplicate image files are rejected by SHA-256. Admins can manage all listings. Creator profile images are stored in `users.avatar_path` and can be changed in profile settings. The supplied artwork and developer photos are kept in `public/assets/nfts` and `public/assets/creators`, separate from the site background and logo.
+Admins can update the homepage, About page, marketplace, log-in, and registration pages from the Content Studio at `/admin/content`. Text and supported page images can be edited in the matching page editor; marketplace and gallery artwork is managed from the admin artwork screen. The About page's Ã¢â‚¬Å“people behind PixmoreeÃ¢â‚¬Â section is a separate, editable developer team, not the marketplace creator list. Developer cards support a section, quote, and validated social URLs. Admin screens share the Pixmoree visual theme. Signed-in creators can upload original artwork from `/user/create`; artwork metadata and the stored image path are saved in MySQL, while the actual image is stored on Laravel's public disk. Users can edit or delete their own artwork, and duplicate image files are rejected by SHA-256. Admins can manage all listings. Creator profile images are stored in `users.avatar_path` and can be changed in profile settings. The supplied artwork and developer photos are kept in `public/assets/nfts` and `public/assets/creators`, separate from the site background and logo.
 
 To replace all local accounts and account-owned artwork with one verified administrator, configure `PIXMOREE_ADMIN_NAME`, `PIXMOREE_ADMIN_EMAIL`, `PIXMOREE_ADMIN_USERNAME`, and `PIXMOREE_ADMIN_PASSWORD` in the local `.env`, then run `php artisan pixmoree:reset-accounts`. The command is restricted to the local SQLite database or local `pixmoreedb` MySQL database and asks for confirmation before deleting accounts and their linked data. Keep the password in `.env` or another secret store; never commit it. The admin can sign in with the configured email or username.
 
-Marketplace listings show creator-provided asking prices only. Simulated market estimates and purchase-driven price analytics are not shown because the beta has no verified sales data.
+Marketplace cards show creator asking prices. The member dashboard also displays simulated estimated values and daily gainers/decliners. Estimates respond to likes, views, approved simulated purchases, edition supply, and inactivity; they are not completed sale prices.
 
 The signed-in home page shows a For You feed ranked from the user's latest liked, purchased, and viewed artwork categories. Marketplace search, category filtering, and sorting operate on current database-backed listings. Recommendations are recomputed on each page load.
 
-## GCash and Pixel Coin transactions
+## Simulated transactions
 
-The payment switch is disabled by default (`PAYMENTS_ENABLED=false`). Admins configure the single private GCash QR in `/admin/payment-orders`; users save their GCash payout number and private QR in `/user/profile-settings`. If the receiving account has an issue, an administrator can replace the QR screenshot and update the matching account name and number on `/admin/payment-orders`. The replacement is stored privately and shown for future NFT purchases and Pixel Coin top-ups. Buyers select one available edition item, send the exact PHP amount to the admin QR, and submit the transaction reference and receipt screenshot. The item is reserved while review is pending. Admins verify in GCash and approve or reject; approval moves only that unique item to the buyer and credits the creator in Pixel Coins. Each edition item has a UUID Item ID and is owned by one account at a time.
+The local app uses `PAYMENTS_ENABLED=true` with `PAYMENTS_SIMULATION=true`. NFT purchases transfer one selected edition immediately and create a receipt; simulated top-ups and withdrawals update the member's wallet and ledger. The admin Transactions page lists completed simulated records. No GCash QR setup, receipt upload, real charge, or cash payout is involved. Admins continue to moderate artwork and resale submissions.
 
-Pixel Coin top-ups use the same admin QR and manual receipt review. Current defaults: minimum base top-up PHP 20; cash-out PHP 1.20 per PC; awards capped so their cash-out value cannot exceed the top-up base amount; add a 1.5% admin fee; minimum withdrawal 200 PC. Pixel Coin supports two decimals. Coin purchases atomically debit the buyer and credit the creator. Withdrawal requests reserve the user's coins; admins verify the saved GCash destination, send the payout manually, then record the transfer reference. Rejected withdrawals refund the reserved coins. Each payment record, coin ledger row, and edition item has a unique UUID.
+Estimated market values use asking price, engagement, approved simulated sales, edition supply, and inactivity. Daily snapshots support the gainers/decliners display. These estimates are for demonstration only and do not represent real prices or investment advice.
 
-**Review the rates before accepting real money.** Conversion awards are capped at the amount redeemable for the base PHP top-up; the fee is paid in addition. The app does not connect to GCash APIs and cannot verify screenshots automatically. Admins must inspect each transaction directly; never approve solely from an uploaded image. Private receipts and QR codes are stored outside the public disk. Do not request or upload PINs or OTPs.
+Amounts displayed in simulated receipts and Pixel Coin records are demonstration values and do not represent real money owed or paid.
 
-Run `php artisan migrate` after updating. Configure the admin QR and user payout details before enabling payment features. Do not enable real payments until the rates, refund/dispute process, privacy disclosures, and applicable legal/tax requirements are reviewed.
+Run `php artisan migrate` after updating, and keep `PAYMENTS_SIMULATION=true` for local demonstrations.
 The legacy MySQL schema remains available as `database/setup.sql`; Apache rules deny direct web requests to the database directory and SQL files. Configure Apache to use the project's `public` directory as its document root.
 
 The local beta accounts use local-only `@pixmoree.test` addresses; configure real email addresses before using accounts outside local development.

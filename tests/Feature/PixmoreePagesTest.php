@@ -117,7 +117,7 @@ class PixmoreePagesTest extends TestCase
         }
     }
 
-    public function test_member_home_recommends_listed_artwork_and_discloses_unavailable_price_analytics(): void
+    public function test_member_home_recommends_artwork_and_shows_simulated_price_estimates(): void
     {
         $user = User::create([
             'name' => 'For You Creator',
@@ -144,10 +144,10 @@ class PixmoreePagesTest extends TestCase
             ->assertSee('For You')
             ->assertSee('For You Artwork')
             ->assertSee('based on your likes, purchases, and artwork views')
-            ->assertSee('Price analytics')
-            ->assertSee('Price analytics are hidden during beta')
-            ->assertDontSee('Top 10 price increases')
-            ->assertDontSee('Daily price history is being collected');
+            ->assertSee('Simulated NFT market values')
+            ->assertSee('Estimated')
+            ->assertSee('Daily gainers')
+            ->assertSee('Daily decliners');
     }
 
     public function test_for_you_recommendations_refresh_from_the_users_latest_interests(): void
@@ -209,7 +209,7 @@ class PixmoreePagesTest extends TestCase
         $this->assertLessThan(strpos($secondFeed, 'Photography Pick'), strpos($secondFeed, 'Sculpture Pick'));
     }
 
-    public function test_member_home_does_not_present_estimate_snapshots_as_market_data(): void
+    public function test_member_home_shows_estimated_daily_gainers_and_decliners_from_snapshots(): void
     {
         $user = User::create([
             'name' => 'Market Creator',
@@ -249,10 +249,11 @@ class PixmoreePagesTest extends TestCase
             ->get('/user')
             ->assertOk()
             ->assertSee('For You')
-            ->assertSee('Price analytics are hidden during beta')
-            ->assertDontSee('Top 10 price increases')
-            ->assertDontSee('+100.00%')
-            ->assertDontSee('-50.00%');
+            ->assertSee('Simulated NFT market values')
+            ->assertSee('Daily Price Gainer')
+            ->assertSee('Daily Price Decliner')
+            ->assertSee('+100.0%')
+            ->assertSee('-50.0%');
     }
 
     public function test_daily_price_movers_are_limited_to_the_top_ten_in_each_direction(): void
@@ -488,7 +489,7 @@ class PixmoreePagesTest extends TestCase
             ->assertSee('Seller Artwork')
             ->assertDontSee('Other Artwork</td>')
             ->assertSee('data-earnings-total="16666"', false)
-            ->assertSee('credited after GCash payment review');
+            ->assertSee('Pixel Coin purchases update the simulated creator balance immediately');
     }
 
     public function test_store_has_no_wallet_or_top_up_ui(): void

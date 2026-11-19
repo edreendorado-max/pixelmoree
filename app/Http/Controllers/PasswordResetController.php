@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Notifications\MarketplaceNotification;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,6 +52,8 @@ class PasswordResetController extends Controller
                     'password' => $password,
                     'remember_token' => Str::random(60),
                 ])->save();
+
+                $user->notify(new MarketplaceNotification('Password reset complete', 'Your Pixmoree password was changed successfully. If you did not make this change, contact support.', route('login')));
 
                 event(new PasswordReset($user));
             },

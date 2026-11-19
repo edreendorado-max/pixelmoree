@@ -98,7 +98,6 @@ Route::middleware(['auth', 'member.account'])->group(function () use ($profileCo
       Route::redirect('/user/pixel-coin', '/user/pixel-coins')->name('user.pixel-coin.legacy');
     Route::get('/user/payment', static fn () => redirect()->route('user.pixel-coins'))->name('user.payment');
     Route::get('/user/pixel-coins', [$pixelCoinController, 'index'])->name('user.pixel-coins');
-    Route::get('/user/pixel-coins/admin-qr', [$pixelCoinController, 'qr'])->name('user.pixel-coins.qr');
     Route::post('/user/pixel-coins/top-ups', [$pixelCoinController, 'topUp'])->middleware('throttle:5,1')->name('user.pixel-coins.topups');
     Route::post('/user/pixel-coins/withdrawals', [$pixelCoinController, 'withdraw'])->middleware('throttle:5,1')->name('user.pixel-coins.withdrawals');
     Route::redirect('/user/resales', '/user#resale')->name('user.resales');
@@ -108,8 +107,6 @@ Route::middleware(['auth', 'member.account'])->group(function () use ($profileCo
         ->name('user.nft.show');
     Route::get('/user/profile-settings', [$profileController, 'edit'])->name('user.profile-settings');
     Route::post('/user/profile', [$profileController, 'update'])->name('user.profile.update');
-    Route::post('/user/payment-qr', [$profileController, 'updatePaymentQrs'])->name('user.payment-qr.update');
-    Route::get('/user/payment-qr/{method}', [$profileController, 'paymentQrPreview'])->whereIn('method', ['gcash'])->name('user.payment-qr.preview');
     Route::put('/user/password', [$profileController, 'updatePassword'])->name('user.password.update');
     Route::post('/user/images', [$profileController, 'storeImage'])->name('user.images.store');
     Route::post('/user/images/{imageId}/update', [$profileController, 'updateImage'])
@@ -126,10 +123,9 @@ Route::middleware(['auth', 'member.account'])->group(function () use ($profileCo
     Route::post('/user/artworks/{artwork}/resale', [$resaleListingController, 'store'])
         ->where('artwork', '[a-z0-9-]+')->name('user.artworks.resale');
     Route::get('/user/checkout/{artworkId}', [$paymentOrderController, 'checkout'])->where('artworkId', '[A-Za-z0-9][A-Za-z0-9-]*')->name('user.checkout');
-    Route::get('/user/checkout/{artworkId}/qr/{method}', [$paymentOrderController, 'qr'])
-        ->where('artworkId', '[A-Za-z0-9][A-Za-z0-9-]*')->middleware('throttle:60,1')->name('user.checkout.qr');
     Route::post('/user/purchase-orders', [$paymentOrderController, 'store'])
         ->middleware('throttle:10,1')->name('user.purchase-orders.store');
+    Route::get('/user/purchase-orders/{order}/receipt', [$paymentOrderController, 'receipt'])->name('user.purchase-orders.receipt');
     Route::patch('/user/artworks/{id}', [$artworkController, 'update'])
         ->where('id', '[a-z0-9-]+')
         ->name('user.artworks.update');
@@ -160,7 +156,7 @@ Route::middleware(['auth', 'member.account'])->group(function () use ($profileCo
     });
 });
 
-Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12ArtworkStore, $sitePageContentController, $paymentOrderController, $resaleListingController, $adminController): void {
+Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12ArtworkStore, $sitePageContentController, $resaleListingController, $adminController): void {
     Route::redirect('/admin/content', '/admin/content/about')->name('admin.content');
     Route::get('/admin/content/{slug}', [$sitePageContentController, 'edit'])
         ->whereIn('slug', array_keys(SitePageContent::definitions()))
@@ -172,37 +168,19 @@ Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12A
     Route::redirect('/admin', '/week12/admin')->name('admin');
     Route::get('/admin/payment-orders', function () {
         return view('admin.payment-orders', [
-            'paymentSettings' => DB::table('admin_payment_settings')->where('id', 1)->first(),
-            'orders' => \App\Models\PaymentOrder::query()->where('type', 'nft_purchase')->with(['buyer', 'seller', 'artwork'])->latest()->limit(100)->get(),
-            'topUps' => \App\Models\PaymentOrder::query()->where('type', 'pixel_coin_topup')->with('buyer')->latest()->limit(100)->get(),
-            'payouts' => \App\Models\PaymentOrder::query()->where('type', 'creator_payout')->with('buyer')->latest()->limit(100)->get(),
+            'orders' => \App\Models\PaymentOrder::query()->where('payment_method', 'simulation')->whereIn('type', ['nft_purchase', 'nft_coin_purchase'])->with(['buyer', 'seller', 'artwork'])->latest()->limit(100)->get(),
+            'topUps' => \App\Models\PaymentOrder::query()->where('payment_method', 'simulation')->where('type', 'pixel_coin_topup')->with('buyer')->latest()->limit(100)->get(),
+            'payouts' => \App\Models\PaymentOrder::query()->where('payment_method', 'simulation')->where('type', 'creator_payout')->with('buyer')->latest()->limit(100)->get(),
             'resales' => DB::table('resale_listings')->join('artworks', 'artworks.id', '=', 'resale_listings.artwork_id')
                 ->join('users', 'users.id', '=', 'resale_listings.seller_id')
                 ->select('resale_listings.*', 'artworks.title', 'users.name as seller_name')->latest('resale_listings.created_at')->limit(100)->get(),
         ]);
     })->name('admin.payment-orders');
-    Route::get('/admin/payment-settings/gcash-qr', function () {
-        $path = DB::table('admin_payment_settings')->where('id', 1)->value('gcash_qr_path');
-        abort_unless(is_string($path) && \Illuminate\Support\Facades\Storage::disk('local')->exists($path), 404);
-        return \Illuminate\Support\Facades\Storage::disk('local')->response($path);
-    })->name('admin.payment-settings.gcash-qr');
-    Route::get('/admin/payment-orders/{order}/creator-gcash-qr', function (\App\Models\PaymentOrder $order) {
-        abort_unless($order->type === 'creator_payout' && $order->buyer?->gcash_qr_path, 404);
-        abort_unless(\Illuminate\Support\Facades\Storage::disk('local')->exists($order->buyer->gcash_qr_path), 404);
-        return \Illuminate\Support\Facades\Storage::disk('local')->response($order->buyer->gcash_qr_path);
-    })->name('admin.payment-orders.creator-gcash-qr');
-    Route::get('/admin/payment-orders/{order}/proof', function (\App\Models\PaymentOrder $order) {
-        abort_unless($order->proof_path && \Illuminate\Support\Facades\Storage::disk('local')->exists($order->proof_path), 404);
-        return \Illuminate\Support\Facades\Storage::disk('local')->response($order->proof_path);
-    })->name('admin.payment-orders.proof');
     Route::get('/admin/resales/{listing}/evidence', function (int $listing) {
         $path = DB::table('resale_listings')->where('id', $listing)->value('evidence_path');
         abort_unless(is_string($path) && \Illuminate\Support\Facades\Storage::disk('local')->exists($path), 404);
         return \Illuminate\Support\Facades\Storage::disk('local')->response($path);
     })->name('admin.resales.evidence');
-    Route::post('/admin/payment-orders/{order}/review', [$paymentOrderController, 'review'])->name('admin.payment-orders.review');
-    Route::post('/admin/payment-orders/{order}/withdrawal-review', [\App\Http\Controllers\PixelCoinController::class, 'reviewWithdrawal'])->name('admin.payment-orders.withdrawal-review');
-    Route::post('/admin/payment-settings/gcash', [\App\Http\Controllers\AdminPaymentSettingsController::class, 'update'])->name('admin.payment-settings.gcash');
     Route::post('/admin/resales/{listing}/review', [$resaleListingController, 'review'])->whereNumber('listing')->name('admin.resales.review');
 
     Route::get('/admin/users', [$adminController, 'users'])->name('admin.users');
@@ -219,7 +197,7 @@ Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12A
             'artworks' => $week12ArtworkStore()->recent(),
             'userCount' => \App\Models\User::query()->count(),
             'paymentCounts' => \App\Models\PaymentOrder::query()
-                ->where('type', 'nft_purchase')
+                ->where('payment_method', 'simulation')
                 ->selectRaw('status, COUNT(*) AS total')
                 ->groupBy('status')
                 ->pluck('total', 'status'),

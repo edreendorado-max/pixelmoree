@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Image;
+use App\Notifications\MarketplaceNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -27,7 +28,6 @@ class UserProfileController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'string', 'email', 'max:254', 'unique:users,email,'.$user->id],
             'phone' => ['nullable', 'string', 'max:30'],
-            'gcash_number' => ['nullable', 'string', 'max:30', 'regex:/^[0-9+() -]+$/'],
             'bio' => ['nullable', 'string', 'max:2000'],
             'avatar' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
             'banner' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:10240'],
@@ -100,66 +100,13 @@ class UserProfileController extends Controller
             'password' => Hash::make($validated['new_password']),
         ])->save();
 
+        $request->user()->notify(new MarketplaceNotification('Password changed', 'Your Pixmoree account password was changed.', route('user.profile-settings')));
+
         $request->session()->regenerate();
 
         return redirect()
             ->route('user.profile-settings')
             ->with('status', 'Your password has been changed.');
-    }
-
-    public function updatePaymentQrs(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'gcash_qr' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            'remove_gcash_qr' => ['sometimes', 'boolean'],
-        ]);
-        $user = $request->user();
-        $disk = Storage::disk('local');
-        $changes = [
-            'gcash_qr_path' => ['file' => $validated['gcash_qr'] ?? null, 'remove' => (bool) ($validated['remove_gcash_qr'] ?? false)],
-        ];
-        $newPaths = [];
-        $oldPaths = [];
-
-        try {
-            foreach ($changes as $attribute => $change) {
-                if ($change['file'] !== null) {
-                    $path = $change['file']->store('creator-payment-qrs', 'local');
-                    if (! is_string($path)) {
-                        throw new RuntimeException('The payment QR image could not be stored securely.');
-                    }
-                    $newPaths[$attribute] = $path;
-                    $oldPaths[] = $user->getAttribute($attribute);
-                    $user->setAttribute($attribute, $path);
-                } elseif ($change['remove']) {
-                    $oldPaths[] = $user->getAttribute($attribute);
-                    $user->setAttribute($attribute, null);
-                }
-            }
-            $user->save();
-        } catch (Throwable $exception) {
-            foreach ($newPaths as $path) {
-                $disk->delete($path);
-            }
-            throw $exception;
-        }
-
-        foreach (array_filter($oldPaths) as $path) {
-            if ($disk->exists($path) && ! $disk->delete($path)) {
-                throw new RuntimeException('The previous payment QR image could not be removed.');
-            }
-        }
-
-        return redirect()->route('user.profile-settings')->with('status', 'Your private GCash payout QR has been updated.');
-    }
-
-    public function paymentQrPreview(Request $request, string $method)
-    {
-        abort_unless($method === 'gcash', 404);
-        $path = $request->user()->getAttribute($method . '_qr_path');
-        abort_unless(is_string($path) && Storage::disk('local')->exists($path), 404);
-
-        return Storage::disk('local')->response($path);
     }
 
     public function storeImage(Request $request): RedirectResponse

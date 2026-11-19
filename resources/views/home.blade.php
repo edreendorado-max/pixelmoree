@@ -50,7 +50,7 @@
             <a href="/user/create" data-member-action="create"><i class="bi bi-plus-circle"></i> Create</a>
             <a href="/user/purchases" data-member-action="history"><i class="bi bi-receipt"></i> Purchases</a>
             <a href="/user/earnings" data-member-action="earnings"><i class="bi bi-graph-up-arrow"></i> Earnings balance</a>
-            <a href="{{ route('user.pixel-coins') }}" data-member-action="earnings"><i class="bi bi-coin"></i> Pixel Coins &amp; withdrawals</a>
+            <a href="{{ route('user.pixel-coins') }}" data-member-action="earnings"><i class="bi bi-coin"></i> Pixel Coin wallet</a>
             <a href="/user/terms" data-member-action="terms"><i class="bi bi-shield-check"></i> Terms &amp; Originality</a>
             <a href="/user/profile-settings" data-member-action="profile-settings"><i class="bi bi-person-gear"></i> Profile Settings</a>
             <a href="{{ route('user.notifications') }}" data-member-action="notifications"><i class="bi bi-bell"></i> Notifications</a>
@@ -105,8 +105,26 @@
               </div>
             </section>
             <section class="member-panel-card member-price-dashboard">
-              <div class="member-panel-heading"><div><h3>Price analytics</h3><p>Only recorded marketplace transactions can support a market estimate.</p></div><span class="member-demo-label">UNAVAILABLE</span></div>
-              <p class="member-empty-state">Price analytics are hidden during beta while GCash receipts are manually reviewed. Listed prices are set by creators.</p>
+              <div class="member-panel-heading"><div><h3>Simulated NFT market values</h3><p>Estimates respond to likes, views, completed simulated sales, edition supply, and inactivity.</p></div><span class="member-demo-label">DEMO ESTIMATE</span></div>
+              <p>These values are estimates based on the creator's asking price. They are recalculated from marketplace signals and are not payments or guaranteed sale prices.</p>
+              <div class="member-stat-grid">
+                <section><h4>Daily gainers</h4>
+                  @forelse ($dailyPriceGainers as $mover)
+                    <p><a href="{{ route('week12.client.artwork', ['id' => $mover->id]) }}">{{ $mover->title }}</a> · {{ number_format($mover->daily_current_price, 2) }} ETH · <strong>+{{ number_format($mover->daily_price_change_percent, 1) }}%</strong></p>
+                  @empty<p class="member-empty-state">Daily movers will appear after price snapshots have been recorded.</p>@endforelse
+                </section>
+                <section><h4>Daily decliners</h4>
+                  @forelse ($dailyPriceDecliners as $mover)
+                    <p><a href="{{ route('week12.client.artwork', ['id' => $mover->id]) }}">{{ $mover->title }}</a> · {{ number_format($mover->daily_current_price, 2) }} ETH · <strong>{{ number_format($mover->daily_price_change_percent, 1) }}%</strong></p>
+                  @empty<p class="member-empty-state">No estimated declines against the previous snapshot.</p>@endforelse
+                </section>
+              </div>
+              <div class="member-owned-grid">
+                @foreach ($homeArtworks->take(6) as $marketArtwork)
+                  @php($marketEstimate = $marketArtwork->marketEstimate())
+                  <article class="member-art-tile"><span class="member-art-tile-image"><img src="{{ asset(str_starts_with($marketArtwork->image, 'storage/') ? $marketArtwork->image : 'assets/' . $marketArtwork->image) }}" alt="{{ $marketArtwork->title }}" loading="lazy"></span><span class="member-art-tile-details"><strong>{{ $marketArtwork->title }}</strong><small>Asking {{ number_format((float) $marketArtwork->price, 2) }} ETH</small><span>Estimated {{ number_format($marketEstimate['value'], 2) }} ETH</span><small>{{ $marketEstimate['change_percent'] >= 0 ? '+' : '' }}{{ number_format($marketEstimate['change_percent'], 1) }}% simulated adjustment</small></span></article>
+                @endforeach
+              </div>
             </section>
           </section>
           <section class="member-dashboard-panel active" data-member-panel-content="me">
@@ -176,12 +194,12 @@
             </section>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="history" hidden>
-            <div class="member-panel-heading"><div><h3>Purchases</h3><p>Payment receipts remain pending until an administrator confirms payment.</p></div></div>
+            <div class="member-panel-heading"><div><h3>Purchases</h3><p>Simulated purchases issue a receipt and transfer the selected edition immediately.</p></div></div>
             <section class="member-panel-card member-transactions-card">
               <h4>Purchase orders</h4>
               <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Purchase ID</th><th>Artwork</th><th>Item ID</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead><tbody>
                 @forelse ($purchaseOrders as $purchaseOrder)
-                  <tr><td>{{ $purchaseOrder->purchase_id }}</td><td>{{ $purchaseOrder->artwork?->title ?? 'Artwork unavailable' }}</td><td>{{ $purchaseOrder->item_id ?? '—' }}</td><td>PHP {{ number_format($purchaseOrder->amount_minor / 100, 2) }}</td><td>{{ $purchaseOrder->payment_method }}</td><td>{{ str_replace('_', ' ', $purchaseOrder->status) }}</td></tr>
+                  <tr><td><a href="{{ route('user.purchase-orders.receipt', $purchaseOrder) }}">{{ $purchaseOrder->purchase_id }}</a></td><td>{{ $purchaseOrder->artwork?->title ?? 'Artwork unavailable' }}</td><td>{{ $purchaseOrder->item_id ?? '—' }}</td><td>PHP {{ number_format($purchaseOrder->amount_minor / 100, 2) }}</td><td>{{ $purchaseOrder->payment_method }}</td><td>{{ str_replace('_', ' ', $purchaseOrder->status) }} · <a href="{{ route('user.purchase-orders.receipt', $purchaseOrder) }}">Receipt</a></td></tr>
                 @empty
                   <tr><td colspan="6" class="member-empty-state">No purchase orders yet.</td></tr>
                 @endforelse
@@ -189,7 +207,7 @@
             </section>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="earnings" hidden>
-            <div class="member-panel-heading"><div><h3>Creator earnings</h3><p>Pixel Coins are credited after GCash payment review or direct Pixel Coin purchase.</p></div><span class="member-demo-label"><i class="bi bi-coin"></i> PIXEL COINS</span></div>
+            <div class="member-panel-heading"><div><h3>Creator earnings</h3><p>Pixel Coin purchases update the simulated creator balance immediately.</p></div><span class="member-demo-label"><i class="bi bi-coin"></i> PIXEL COINS</span></div>
             <article class="member-panel-card member-earnings-hero" data-earnings-total="{{ $creatorEarnings['totalCoinMinor'] ?? 0 }}">
               <span class="member-earnings-icon"><i class="bi bi-stars"></i></span>
               <div>
@@ -202,7 +220,7 @@
               <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-bag-check"></i></span><div><small>Credited sales</small><strong>{{ number_format($creatorEarnings['salesCount'] ?? 0) }}</strong></div></article>
               <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-calendar-check"></i></span><div><small>Sales, last 30 days</small><strong>{{ \App\Support\PixelCoinLedger::format((int) ($creatorEarnings['last30DaysCoinMinor'] ?? 0)) }} PC</strong></div></article>
             </div>
-            <div class="member-earnings-notice"><i class="bi bi-shield-check" aria-hidden="true"></i><p><strong>Manual GCash review</strong> Pixel Coins are credited after approval. Manage your balance and request a withdrawal from <a href="{{ route('user.pixel-coins') }}">Pixel Coins</a>.</p></div>
+            <div class="member-earnings-notice"><i class="bi bi-shield-check" aria-hidden="true"></i><p><strong>Simulation only</strong> These balances are in-app records and do not represent cash payments or withdrawals. View your ledger in <a href="{{ route('user.pixel-coins') }}">Pixel Coins</a>.</p></div>
             <section class="member-panel-card member-transactions-card">
               <div class="member-panel-heading"><div><h4>Recent artwork sales</h4><p>Latest approved purchase orders for your listings.</p></div></div>
               <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Artwork</th><th>Sale value</th><th>Date</th></tr></thead><tbody>
@@ -215,8 +233,8 @@
             </section>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="payment" hidden>
-            <div class="member-panel-heading"><div><h3>Purchases and payments</h3><p>Use the Store to buy a listed NFT from its creator.</p></div><span class="member-demo-label">MANUAL REVIEW</span></div>
-            <div class="member-payment-safety" role="status"><i class="bi bi-info-circle"></i><span>Send GCash payments to the admin QR, then submit your receipt for manual verification. Pixel Coin purchases transfer coins directly to the creator. <a href="{{ route('user.pixel-coins') }}">Top up or withdraw Pixel Coins</a>.</span></div>
+            <div class="member-panel-heading"><div><h3>Purchases and payments</h3><p>Use the Store to simulate a purchase from a creator.</p></div><span class="member-demo-label">SIMULATION</span></div>
+            <div class="member-payment-safety" role="status"><i class="bi bi-info-circle"></i><span>Purchases are simulations only. Completing one creates an in-app receipt and transfers the edition to your collection; no real payment is made. Pixel Coin purchases use the simulated in-app balance. <a href="{{ route('user.pixel-coins') }}">Manage Pixel Coins</a>.</span></div>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="terms" hidden>
             <div class="member-panel-heading"><div><h3>Terms &amp; Originality Policy</h3><p>Marketplace rules for creators and collectors.</p></div><span class="member-demo-label">BETA</span></div>
@@ -226,7 +244,7 @@
               <h4>2. Originality and anti-plagiarism</h4><p>Only upload work you created or have clear permission and appropriate licenses to use. Do not copy, trace, repackage, or mint another creator’s artwork, photographs, characters, logos, writing, or other protected material as your own. Credit alone does not replace permission.</p>
               <p>Do not use unauthorized AI training outputs, reference material, or third-party assets in a way that infringes another person’s rights. Keep source files and permission records where appropriate. If a work includes licensed or collaborative material, disclose that clearly and follow the license terms.</p>
               <h4>3. Reports, review, and consequences</h4><p>Rights holders should provide the listing link, identify the material at issue, and explain their rights when reporting suspected copying. Pixmoree should review reports, give creators a reasonable opportunity to respond where appropriate, and may hide or remove disputed listings, restrict accounts, or refer serious matters for further review. False or abusive reports are not permitted.</p>
-              <h4>4. Payments and transactions</h4><p>NFT GCash purchases use the admin QR and require a receipt reference and proof. An admin manually verifies each payment before assigning one unique edition item. Pixel Coin top-ups add a 1.5% fee; at the current rate a PHP 200 base top-up awards up to 166.66 PC. Creators can withdraw from 200 PC at PHP 1.20 per PC after manual GCash review. The coin award is capped so its cash-out value does not exceed the base top-up amount. No automatic payment-verification API or blockchain transfer is provided.</p>
+              <h4>4. Simulated transactions</h4><p>NFT purchases, Pixel Coin top-ups, and withdrawals are in-app simulations. A purchase creates a receipt and transfers one unique edition item immediately; the creator receives simulated Pixel Coins. No cash, payment credentials, or blockchain tokens are involved. Simulated top-ups and withdrawals update the in-app wallet and ledger only.</p>
               <h4>5. Respect intellectual property</h4><p>Creators retain rights they hold in their work. A listing does not transfer copyright unless a separate, valid agreement says so. Collectors should not reproduce, sell, or commercially exploit artwork without the creator’s permission or a license that allows it.</p>
               <h4>6. Policy updates and contact</h4><p>These draft rules may change as the project evolves. For a real service, publish the effective date, operator identity, contact and appeal process, governing law, and privacy terms after professional review.</p>
             </article>
@@ -263,6 +281,7 @@
                   @endif
                 </div>
                 <p>{{ $notification->data['message'] ?? '' }}</p>
+                @if (!empty($notification->data['url']))<a href="{{ $notification->data['url'] }}">Open details</a>@endif
               </article>
             @empty
               <p class="member-empty-state">You have no notifications yet.</p>
@@ -458,7 +477,7 @@
             @endif
           </article>
         @empty
-          <p class="member-empty-state">Verified purchases will appear here when the payment is approved.</p>
+          <p class="member-empty-state">Simulated purchases transfer edition ownership immediately and appear here with their receipts.</p>
         @endforelse
       </section>
     @endauth
@@ -495,6 +514,7 @@
 <script>window.pixmoreeAccount = <?= json_encode($account?->only(['name', 'username', 'email', 'phone', 'bio']) ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ asset('js/site.js') }}?v=20261030-me"></script>
+<script src="{{ asset('js/image-previews.js') }}?v=20261119"></script>
 <script src="{{ asset('js/engagement.js') }}?v=20261104-engagement"></script>
 </body>
 </html>

@@ -77,6 +77,11 @@ class Artwork extends Model
         return $this->hasMany(PixelCoinTransaction::class, 'artwork_id');
     }
 
+    public function paymentOrders(): HasMany
+    {
+        return $this->hasMany(PaymentOrder::class, 'artwork_id', 'id');
+    }
+
     public function likes(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'artwork_likes')->withTimestamps();
@@ -91,10 +96,9 @@ class Artwork extends Model
     {
         $recentSales = $this->getAttribute('recent_market_sales_count');
         $lastSaleAt = $this->getAttribute('last_market_sale_at');
-
         if (! array_key_exists('recent_market_sales_count', $this->attributes)
             || ! array_key_exists('last_market_sale_at', $this->attributes)) {
-            $sales = $this->pixelCoinTransactions()->where('type', 'purchase');
+            $sales = $this->paymentOrders()->whereIn('type', ['nft_purchase', 'nft_coin_purchase'])->where('status', 'approved');
             $recentSales = (clone $sales)->where('created_at', '>=', now()->subDays(30))->count();
             $lastSaleAt = (clone $sales)->max('created_at');
         }
@@ -104,13 +108,10 @@ class Artwork extends Model
         $creator = $this->user;
         $followers = $creator?->getAttribute('followers_count') ?? $creator?->followers()->count() ?? 0;
         $creatorViews = $creator?->getAttribute('profile_views_count') ?? $creator?->profileViews()->count() ?? 0;
-        $creatorSales = $this->attributes['creator_sold_count'] ?? ($creator === null
-            ? 0
-            : (int) DB::table('pixel_coin_transactions as purchases')
-                ->join('artworks as sold_artworks', 'sold_artworks.id', '=', 'purchases.artwork_id')
-                ->where('purchases.type', 'purchase')
-                ->where('sold_artworks.user_id', $creator->id)
-                ->count());
+        $creatorSales = $this->attributes['creator_sold_count'] ?? ($creator === null ? 0 : (int) DB::table('payment_orders as purchases')
+            ->join('artworks as sold_artworks', 'sold_artworks.id', '=', 'purchases.artwork_id')
+            ->whereIn('purchases.type', ['nft_purchase', 'nft_coin_purchase'])
+            ->where('purchases.status', 'approved')->where('sold_artworks.user_id', $creator->id)->count());
 
         return ArtworkMarketValue::estimate(
             (float) $this->price,

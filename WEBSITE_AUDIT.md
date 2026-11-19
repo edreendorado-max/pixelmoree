@@ -1,60 +1,52 @@
-﻿# Pixmoree Rubric-Based System Audit
+# Pixmoree Rubric-Based System Audit
 
 **Review date:** 2026-11-19  
 **Rubric:** Final Examination Rubrics, ITEL 304 Integrative Programming Technologies 2  
-**Scope:** Source code, routes, migrations, setup and presentation documents, automated tests, and local MySQL migration status. This is a repository and test review, not a live evaluator score.
+**Scope:** Repository code, routes, migrations, setup and presentation documents, and the current SQLite feature suite. This is a repository review, not a live evaluator score.
 
-## Overall result
+## Current result
 
-The earlier audit baseline passed the feature suite on both the default SQLite test setup and XAMPP's MySQL-compatible MariaDB server. After that baseline, the requested account-verification removal updated application code, migrations, documentation, and feature tests. Those latest changes have not been rerun through the suite.
+The website's payment-like actions are configured as simulations. NFT purchases, Pixel Coin top-ups, and withdrawals write in-app records only. Purchase receipts, edition ownership changes, seller credits, account notifications, and simulated price analytics work without a payment provider or GCash configuration.
 
-- SQLite: 71 tests passed, 820 assertions.
-- MariaDB 10.4.32 using the MySQL connection: 71 tests passed, 820 assertions.
-- The existing pixmoreedb schema was migrated without dropping its records; all project migrations are marked as run.
-- The local .env now points the site to pixmoreedb. A separate pixmoree_test database is used only by the MySQL test configuration.
-- The LAN health endpoint returned HTTP 200 from this computer.
-
-Payments remain disabled. The admin GCash QR still must be configured before GCash checkouts or top-ups can be submitted. Real SMTP delivery, real GCash transfers, browser appearance across devices, and GitHub contribution history were not verified.
+- SQLite feature suite: **62 tests passed, 663 assertions**.
+- A fresh MariaDB feature run was attempted using the isolated `pixmoree_test` config, but MySQL was not listening on `127.0.0.1:3306`; that database run could not start.
+- The earlier repository audit recorded a successful migration of the local `pixmoreedb` schema. No migration was added for this update.
+- Browser checks at phone and desktop widths, SMTP delivery, and group GitHub contribution history still require presentation-time evidence.
 
 ### Provisional rubric estimate
 
 | Rubric criterion | Estimate | Evidence and remaining gap |
 |---|---:|---|
-| Subject Matter | **20/25 - Good** | Laravel MVC, relationships, CRUD, authentication, access checks, validation, and transaction records are present. Email verification has been removed; registration signs users in immediately. The earlier migration baseline and MVC request flow are documented. |
-| Creativity | **20/25 - Good, provisional** | Pixmoree branding, responsive styling, artwork editions, and status feedback are present. The manual now includes client/admin steps and screenshot guidance, but actual phone/desktop screenshots and browser usability checks still need to be captured. |
-| Final Product | **20/25 - Good** | The earlier feature suite passed on SQLite and MariaDB. Updated tests now cover registration without email verification and checkout without a verification gate, alongside GCash receipt review and Pixel Coin workflows. The updated suite has not been run yet. Payments remain disabled pending the admin QR and operational review. |
-| Structure and Flow | **20/25 - Good, provisional** | README setup, a tri-fold demonstration guide, three system/workflow diagrams, an ERD, and test evidence are present. GitHub contribution history must still be shown by the project group during presentation. |
-| **Estimated total** | **80/100** | The score is provisional; visual presentation and live demonstration evidence can change it. |
+| Subject Matter | **20/25 - Good** | Laravel MVC, database relationships, CRUD, authentication, access checks, validation, edition ownership, notifications, and simulation receipts are implemented. |
+| Creativity | **20/25 - Good, provisional** | Pixmoree branding, artwork previews, itemized editions, simulated market values, engagement, and responsive styling are present. Capture and review phone/desktop screenshots and browser usability evidence. |
+| Final Product | **20/25 - Good** | The current SQLite feature suite passes. MariaDB could not be retested because the local service is stopped. The website's external payment-like actions are disabled by design; the demo actions run in simulation mode. |
+| Structure and Flow | **20/25 - Good, provisional** | README setup, MVC and ERD diagrams, updated client/admin walkthrough, and automated feature coverage are present. The group still needs to show its GitHub contribution history during the presentation. |
+| **Estimated total** | **80/100** | Provisional. The evaluator's live browser review and presentation evidence can change the score. |
 
-## Fixes made
+## Work completed
 
-- Replaced outdated social sign-in tests with checks that Google and Facebook routes are unavailable and email/password login remains.
-- Rewrote old creator-QR and PHP-wallet tests to match the current admin-QR, Pixel Coin, and unique-edition workflows.
-- Added Pixel Coin lifecycle coverage for top-up review, creator purchase credits, minimum withdrawals, payout decisions, refunds, and duplicate payout references.
-- Changed top-up conversion to award at most 5/6 PC per PHP while preserving cash-out at PHP 1.20 per PC. A PHP 200 base top-up awards 166.66 PC and charges PHP 3.00 in fees; PHP 20 awards 16.66 PC and charges PHP 0.30 in fees.
-- Added a server-side conversion cap: coins awarded cannot cash out for more than the top-up base amount. The page preview applies the same cap, and a migration caps unsettled orders created under the old rate.
-- Updated admin and client payment descriptions to show the current policy. The Pixel Coin page now explains that payment actions are unavailable while the payment switch is off.
-- Configured the local project for XAMPP MySQL, migrated the existing pixmoreedb database, and added a separate phpunit.mysql.xml configuration for repeatable MySQL feature testing.
-- Added docs/PROJECT_DIAGRAMS.md and docs/DEMO_MANUAL.md with the MVC flow, registration/sign-in flow, transaction flow, ERD, presentation walkthrough, and screenshot checklist.
-- Removed email-verification routes, services, UI, model middleware support, and stale account-status copy. Registration and email changes now work without SMTP; password-reset email still uses the configured mail provider.
+- Configured local payment-like actions for simulation mode only. No GCash QR setup, payment proof, real charge, or cash payout is required.
+- Simulated NFT purchases create approved orders and receipts, transfer one unique edition item, credit the seller's simulated Pixel Coin balance, and notify both buyer and seller.
+- Simulated top-ups and withdrawals update the wallet, ledger, receipt history, and account notifications.
+- Updated Admin Studio to show completed simulation records and removed payment approval and external payment setup routes. Artwork and resale moderation, account management, analytics, and content editing remain available.
+- Connected estimated market values and daily gainers/decliners to asking price, engagement, approved simulated sales, edition supply, and inactivity.
+- Added previews for selected image uploads and the current/replacement artwork image.
+- Added in-app welcome, password-change/reset, purchase, sale, top-up, and withdrawal notifications.
+- Replaced manual-payment instructions in README, demo manual, and project transaction-flow diagrams.
+- Updated the feature tests to cover the simulation-only transaction flow.
 
-## Remaining demonstration work
+## Remaining presentation and environment work
 
-1. Run the updated feature suite on SQLite and the separate MariaDB test database.
-2. Upload and verify the admin GCash QR, confirm the recipient details, and keep real payments disabled unless the payment process and customer terms are ready.
-3. Configure SMTP and verify password-reset delivery if that feature will be used.
-4. Capture readable screenshots of registration, artwork creation, checkout, admin review, and transferred ownership at phone and desktop widths.
-5. Test a second device on the same Wi-Fi using the host PC's LAN IP, and check keyboard navigation, focus, contrast, and form errors.
-6. Show the group GitHub contribution history and explain the diagrams and database relationships during the presentation.
+1. Start XAMPP MySQL and rerun `vendor\\bin\\phpunit --configuration=phpunit.mysql.xml --testsuite=Feature` against the separate `pixmoree_test` database.
+2. Capture readable phone- and desktop-width screenshots of registration, artwork creation and previews, checkout, receipt, collection ownership, notifications, market values, and Admin Studio.
+3. In a browser, check keyboard navigation, visible focus, contrast, responsive layout, and validation/error states.
+4. Show the group GitHub contribution history and explain the diagrams and data relationships during the presentation.
+5. Configure SMTP only if demonstrating delivery of password-reset email; email is not required for registration or the simulated marketplace actions.
 
 ## Evidence reviewed
 
-- Attached RUBRICS.pdf.
-- README.md, .env.example, and phpunit.mysql.xml.
-- docs/PROJECT_DIAGRAMS.md and docs/DEMO_MANUAL.md.
-- Laravel controllers, models, Blade templates, and migrations.
-- SQLite feature run: 71 tests passed, 820 assertions.
-- MariaDB feature run: 71 tests passed, 820 assertions.
-- MySQL migration status for pixmoreedb: all migrations applied.
-- Local health endpoint: HTTP 200.
-
+- `README.md`, `.env.example`, and `phpunit.mysql.xml`.
+- `docs/PROJECT_DIAGRAMS.md` and `docs/DEMO_MANUAL.md`.
+- Laravel controllers, models, Blade templates, migrations, and feature tests.
+- SQLite feature run: 62 tests passed, 663 assertions.
+- MariaDB rerun unavailable: local port 3306 refused the connection.

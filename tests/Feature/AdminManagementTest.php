@@ -32,7 +32,7 @@ class AdminManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Accounts')
             ->assertSee('Artwork listings')
-            ->assertSee('Payments to review')
+            ->assertSee('Simulated transactions')
             ->assertSee('Resales to review')
             ->assertSee('Dashboard Artwork')
             ->assertSee(route('admin.users'), false);

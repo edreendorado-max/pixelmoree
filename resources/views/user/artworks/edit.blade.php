@@ -74,6 +74,7 @@
                 </div>
                 <div class="profile-settings-field">
                     <label for="artwork-image">Replace image <span>Optional</span></label>
+                    <img src="{{ asset($artwork->image) }}" alt="Current artwork: {{ $artwork->title }}" style="display:block;width:min(100%,360px);max-height:260px;object-fit:contain;margin:.75rem 0;border-radius:12px">
                     <input id="artwork-image" name="image" type="file" accept="image/png,image/jpeg,image/webp">
                     <small>PNG, JPG, or WEBP up to 2 MB. Leave empty to keep the current image.</small>
                 </div>
@@ -94,5 +95,6 @@
         </aside>
     </div>
 </main>
+<script src="{{ asset('js/image-previews.js') }}?v=20261119" defer></script>
 </body>
 </html>

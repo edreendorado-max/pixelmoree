@@ -32,7 +32,7 @@ abort_unless($adminUser?->isAdmin(), 403);
             <a href="<?= week12_escape(week12_url('/week12/admin/artworks')) ?>" class="<?= request()->is('week12/admin/artworks*') ? 'active' : '' ?>">Artwork</a>
             <a href="<?= week12_escape(week12_url('/admin/users')) ?>" class="<?= request()->is('admin/users*') ? 'active' : '' ?>">Users</a>
             <a href="<?= week12_escape(week12_url('/admin/analytics')) ?>" class="<?= request()->is('admin/analytics*') ? 'active' : '' ?>">Analytics</a>
-            <a href="<?= week12_escape(week12_url('/admin/payment-orders')) ?>" class="<?= request()->is('admin/payment-orders*') || request()->is('admin/resales*') ? 'active' : '' ?>">Payments</a>
+            <a href="<?= week12_escape(week12_url('/admin/payment-orders')) ?>" class="<?= request()->is('admin/payment-orders*') || request()->is('admin/resales*') ? 'active' : '' ?>">Transactions</a>
             <a href="<?= week12_escape(week12_url('/admin/content/home')) ?>" class="<?= request()->is('admin/content*') ? 'active' : '' ?>">Website content</a>
         </nav>
         <div class="cms-account">
@@ -53,5 +53,6 @@ abort_unless($adminUser?->isAdmin(), 403);
     <span>Administrator workspace</span>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="<?= week12_escape(week12_asset('js/image-previews.js')) ?>?v=20261119"></script>
 </body>
 </html>

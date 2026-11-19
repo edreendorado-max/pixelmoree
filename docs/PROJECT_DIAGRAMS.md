@@ -1,6 +1,6 @@
 # Pixmoree Project Diagrams
 
-These diagrams describe the current Laravel MVC application and manual payment workflow. The database schema is defined by the Laravel migrations in database/migrations.
+These diagrams describe the current Laravel MVC application and simulation-only transaction workflow. The database schema is defined by the Laravel migrations in database/migrations.
 
 ## 1. MVC request and data flow
 
@@ -35,23 +35,18 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    Client[Signed-in client] --> Choice{Choose transaction}
-    Choice -->|Buy NFT with GCash| Checkout[Select one available Item ID]
-    Checkout --> Proof[Submit transaction reference and receipt]
-    Proof --> Pending[Payment order pending review; item reserved]
-    Pending --> Review{Admin checks GCash directly}
-    Review -->|Approve| Transfer[Transfer selected item to buyer]
-    Transfer --> Credit[Credit creator Pixel Coins]
-    Review -->|Reject| Release[Reject order and release item]
-    Choice -->|Buy with Pixel Coins| CoinBuy[Debit buyer and credit creator in one DB transaction]
-    CoinBuy --> CoinTransfer[Transfer selected Item ID]
-    Choice -->|Top up coins| Topup[Submit GCash receipt]
-    Topup --> TopupReview[Admin approves or rejects top-up]
-    TopupReview -->|Approve| CoinCredit[Credit top-up coins]
-    Choice -->|Withdraw coins| Withdraw[Reserve coins and create payout request]
-    Withdraw --> Payout[Admin sends GCash and records payout reference]
-    Payout -->|Paid| Close[Mark payout paid and clear reservation]
-    Payout -->|Rejected| Refund[Refund reserved coins]
+    Client[Signed-in client] --> Choice{Choose action}
+    Choice -->|Simulate NFT purchase| Checkout[Select available edition item]
+    Checkout --> Order[Create approved simulated order]
+    Order --> Transfer[Transfer item to buyer]
+    Transfer --> Receipt[Issue receipt and notify buyer and seller]
+    Order --> Credit[Credit creator's simulated Pixel Coins]
+    Choice -->|Buy with Pixel Coins| CoinBuy[Debit buyer and credit creator]
+    CoinBuy --> CoinTransfer[Transfer selected item]
+    Choice -->|Simulate top-up| Topup[Credit simulated wallet and issue receipt]
+    Choice -->|Simulate withdrawal| Withdraw[Debit simulated wallet and issue receipt]
+    Admin[Admin Studio] --> Records[Inspect completed transaction records]
+    Admin --> Review[Moderate artwork and resale evidence]
 ```
 
 ## 4. Relational database diagram (ERD)
@@ -129,6 +124,6 @@ erDiagram
     }
 ```
 
-Edition item IDs are unique. A pending GCash order reserves its selected item, and approval transfers that item in a database transaction. Coin balances and ledger amounts are stored in hundredths of a Pixel Coin.
+Edition item IDs are unique. A simulated purchase transfers its selected item and records the order atomically. Coin balances and ledger amounts are stored in hundredths of a Pixel Coin.
 
 Payment-order and ledger Item ID fields are application-validated UUID references; the current schema does not define foreign-key constraints for those item references. User, artwork, and purchase relationships marked FK are enforced by database constraints.

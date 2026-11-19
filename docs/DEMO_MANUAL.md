@@ -1,68 +1,52 @@
 # Pixmoree Client and Admin Demonstration Manual
 
-This guide is laid out as six short panels for a tri-fold handout. Use a local test database and test GCash details for the presentation. The application has no GCash API and does not verify receipts automatically. Payments are disabled by default.
+Use a local database and two regular accounts. Payment-like actions run in simulation mode: do not use personal payment details, QR codes, or real money.
 
-## Panel 1 - Cover
+## Panel 1 — Project overview
 
-**Pixmoree**  
-Digital art marketplace for creators and collectors.
+Pixmoree is a Laravel digital art marketplace. Demonstrate registration, creator listings, simulated NFT purchases, receipts, edition ownership, notifications, market estimates, and admin tools.
 
-Demonstrate the client-to-admin workflow: register, publish an artwork, submit a purchase, review it as an administrator, and confirm the edition ownership record.
+## Panel 2 — Start and sign in
 
-## Panel 2 - Start and sign in
+1. Start XAMPP Apache and MySQL and open `http://127.0.0.1:8000`.
+2. Confirm `.env` has `PAYMENTS_ENABLED=true` and `PAYMENTS_SIMULATION=true`.
+3. Register a creator account and a separate buyer account. Registration signs the user in immediately.
+4. Register a third account for administration, then promote it with the `pixmoree:make-admin` command documented in README.
 
-1. Start XAMPP Apache and MySQL.
-2. Open the local site at http://127.0.0.1:8000.
-3. Select Register and create a client account with an email address and password.
-4. Registration signs you in immediately; no email code is required.
-5. To create an administrator for the demo, register that account and run the admin-promotion command documented in README.
+## Panel 3 — Create artwork
 
-Google and Facebook sign-in are not available. Email is used for account identification and password reset.
+1. Sign in as the creator and open Create.
+2. Enter a title, description, category, asking price, edition count, and image.
+3. Confirm the uploaded image preview, create the listing, and check it in My Artwork.
+4. As admin, inspect artwork moderation and analytics. Upload a different image if testing duplicate-image validation.
 
-## Panel 3 - Create an artwork
+## Panel 4 — Simulate a purchase
 
-1. Sign in as a client and open the creator artwork form.
-2. Enter the artwork title, description, category, price, edition count, and image.
-3. Submit the artwork and confirm its moderation status in the account area.
-4. As admin, open the artwork moderation screen and approve or reject the submission.
-5. For a multi-copy artwork, confirm each edition has a different Item ID.
+1. Sign in as the buyer and open the Store.
+2. Select an available edition and choose **Simulate purchase**. No payment details or proof are requested.
+3. Open Purchases and view or print the receipt. Confirm the edition appears in the buyer's collection.
+4. Check the creator's Notifications and Pixel Coin balance for the sale notification and simulated credit.
+5. In Admin Studio → Transactions, confirm the completed purchase and receipt ID.
 
-## Panel 4 - Buy an edition
+## Panel 5 — Pixel Coins and estimated market values
 
-1. Confirm the payment switch is enabled only in the isolated demo environment.
-2. As admin, open Admin Studio, then Payments. Upload a test admin GCash QR image and enter the matching recipient name and number.
-3. As a signed-in client, open a listed artwork and choose one available edition item.
-4. For a test GCash purchase, submit the test transaction reference and receipt screenshot.
-5. Confirm the order appears as pending review and the selected item is reserved.
-6. As admin, inspect the pending record and receipt. Approve or reject it.
-7. After approval, confirm the buyer owns the selected Item ID and the creator receives Pixel Coins. After rejection, confirm the item is available again.
+1. Simulate a Pixel Coin top-up and check its receipt and ledger credit.
+2. Simulate a withdrawal and confirm the wallet debit and transaction record. No funds are sent.
+3. Open the member dashboard's simulated market values panel. Explain that engagement, approved simulated sales, supply, and inactivity affect the estimates and daily movers.
+4. Run the Laravel scheduler for daily price snapshots when demonstrating the gainers and decliners.
 
-Never approve a receipt based only on its image; verify the transaction in the GCash account used for the demonstration.
+## Panel 6 — Admin tools and presentation evidence
 
-## Panel 5 - Pixel Coins and withdrawal
+- Admin Studio includes artwork moderation, user management, market analytics, completed simulation records, resale evidence review, and website content editing.
+- Resale review concerns listing evidence only; it is not a payment review or legal copyright decision.
+- Capture readable phone- and desktop-width screenshots of registration, artwork creation and preview, simulated checkout, receipt, buyer collection, notifications, market values, and Admin Studio.
+- Check keyboard navigation, visible focus, contrast, and validation messages in a browser. Show the group GitHub contribution history during the presentation.
 
-1. Submit a top-up receipt for at least PHP 20. The current example conversion awards at most 166.66 PC per PHP 200 base top-up, adds a 1.5% fee, and caps coin awards so cash-out value does not exceed the base amount.
-2. Confirm coins are not credited while the top-up is pending. Approve it as admin and verify the user's balance and ledger.
-3. Buy a listed NFT with Pixel Coins and verify that the buyer is debited and the creator is credited in the same transaction.
-4. In Profile settings, save a test GCash number and private payout QR.
-5. Request at least 200 PC for withdrawal. Confirm the coins are reserved while the admin reviews the request.
-6. As admin, either mark the request paid with a unique payout reference or reject it. Rejection must restore the reserved coins.
+## Rubric evidence checklist
 
-## Panel 6 - Admin checks and troubleshooting
-
-- Admin routes require an administrator account.
-- GCash receipts and payout QR images are private files. A client must not be able to open another user's proof or payout QR.
-- If password-reset email does not arrive, check SMTP settings, spam, and the Laravel log. Email is not required for registration or purchases.
-- If payment actions return service unavailable, check that payments are enabled and the admin QR is configured. Do not turn on real-money processing for a class demo.
-- If another device cannot connect, open the host computer's private IPv4 address and port 8000. Do not enter localhost on the phone.
-- Save screenshots of registration, creator artwork, client checkout, admin pending review, and final ownership for the presentation. Check that names, transaction IDs, and balances are readable before printing.
-
-## Presentation evidence checklist
-
-- [ ] Registration and immediate account access
-- [ ] Creator artwork submission and admin moderation
-- [ ] GCash receipt record before and after admin review
-- [ ] Unique Item ID and ownership before and after approval
-- [ ] Pixel Coin top-up, purchase ledger, and withdrawal decision
-- [ ] MySQL migration status and automated test result
-- [ ] Screenshots readable at presentation size
+- [ ] Account registration, login, and welcome notification
+- [ ] Artwork create, preview, edit, and moderation flow
+- [ ] Simulated purchase, printable receipt, notification, and ownership transfer
+- [ ] Simulated wallet top-up and withdrawal with ledger entries
+- [ ] Admin dashboard, analytics, transaction records, resale review, and content editor
+- [ ] Responsive screenshots, accessibility walkthrough, migration status, and feature suite result
