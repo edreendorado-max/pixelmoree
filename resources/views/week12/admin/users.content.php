@@ -4,7 +4,7 @@
         <div>
             <p class="w12-eyebrow mb-2">ADMIN / ACCOUNTS</p>
             <h1 class="w12-section-title">User accounts</h1>
-            <p class="text-secondary mb-0">Review registration, email verification, creator activity, and administrator access.</p>
+            <p class="text-secondary mb-0">Review account details, creator activity, and administrator access.</p>
         </div>
         <span class="w12-count"><?= number_format($users->total()) ?> accounts</span>
     </div>
@@ -23,13 +23,12 @@
         </form>
         <div class="table-responsive">
             <table class="table w12-table align-middle mb-0">
-                <thead><tr><th>Account</th><th>Email</th><th>Verification</th><th>Artwork</th><th>Joined</th><th>Role</th><th>Manage</th></tr></thead>
+                <thead><tr><th>Account</th><th>Email</th><th>Artwork</th><th>Joined</th><th>Role</th><th>Manage</th></tr></thead>
                 <tbody>
                     <?php foreach ($users as $account): ?>
                         <tr>
                             <td><strong><?= week12_escape($account->name) ?></strong><br><small class="text-secondary">@<?= week12_escape($account->username ?: '—') ?></small></td>
                             <td><?= week12_escape($account->email) ?></td>
-                            <td><span class="w12-status <?= $account->hasVerifiedEmail() ? '' : 'w12-status-review' ?>"><?= $account->hasVerifiedEmail() ? 'Verified' : 'Unverified' ?></span></td>
                             <td><?= number_format($account->artworks_count) ?></td>
                             <td><?= week12_escape($account->created_at?->format('Y-m-d') ?? '—') ?></td>
                             <td><?= $account->isAdmin() ? 'Administrator' : 'User' ?></td>
@@ -37,7 +36,7 @@
                         </tr>
                     <?php endforeach; ?>
                     <?php if ($users->isEmpty()): ?>
-                        <tr><td colspan="7" class="text-secondary">No accounts match this search.</td></tr>
+                        <tr><td colspan="6" class="text-secondary">No accounts match this search.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>

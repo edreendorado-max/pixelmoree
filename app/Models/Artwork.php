@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use App\Support\ArtworkMarketValue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Models\ArtworkItem;
 
 class Artwork extends Model
 {
@@ -39,11 +40,36 @@ class Artwork extends Model
         static::creating(static function (self $artwork): void {
             $artwork->product_id ??= (string) Str::uuid();
         });
+
+        static::created(static function (self $artwork): void {
+            $rows = [];
+            for ($edition = 1; $edition <= max(1, (int) $artwork->item_count); $edition++) {
+                $rows[] = [
+                    'item_id' => (string) Str::uuid(),
+                    'artwork_id' => $artwork->id,
+                    'edition_number' => $edition,
+                    'owner_id' => null,
+                    'status' => 'available',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+                if (count($rows) === 500) {
+                    DB::table('artwork_items')->insert($rows);
+                    $rows = [];
+                }
+            }
+            if ($rows !== []) DB::table('artwork_items')->insert($rows);
+        });
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(ArtworkItem::class, 'artwork_id', 'id');
     }
 
     public function pixelCoinTransactions(): HasMany

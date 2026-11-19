@@ -65,7 +65,6 @@ class UsernameAndNavigationTest extends TestCase
             'password' => 'ExamplePass1!',
         ]);
         $user->forceFill(['role' => 'admin'])->save();
-        $user->markEmailAsVerified();
 
         $this->post(route('login.store'), [
             'email' => 'insanadmin1',

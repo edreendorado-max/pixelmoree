@@ -6,7 +6,7 @@
                 <h1><?= week12_escape($marketplaceContent['hero']['heading_before']) ?> <span><?= week12_escape($marketplaceContent['hero']['heading_emphasis']) ?></span> <?= week12_escape($marketplaceContent['hero']['heading_after']) ?></h1>
                 <p class="w12-hero-copy"><?= week12_escape($marketplaceContent['hero']['description']) ?></p>
                 <a class="btn w12-btn-primary mt-2" href="#artwork"><?= week12_escape($marketplaceContent['hero']['cta']) ?> <i class="bi bi-arrow-down-right"></i></a>
-                <p class="w12-beta-note mt-3 mb-0" role="status"><i class="bi bi-info-circle"></i> Purchases require a verified account and manual GCash/Maya receipt review. NFT ownership is recorded in Pixmoree; no blockchain transfer is provided.</p>
+                <p class="w12-beta-note mt-3 mb-0" role="status"><i class="bi bi-info-circle"></i> Purchases require a signed-in account and manual admin GCash receipt review. Each edition item has a unique ID and recorded owner; no blockchain transfer is provided.</p>
             </div>
             <div class="col-lg-5">
                 <div class="w12-hero-art">

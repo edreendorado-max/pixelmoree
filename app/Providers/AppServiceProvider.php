@@ -39,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
                 ->where('status', 'Listed')
                 ->with(['user' => static fn ($query) => $query->withCount(['followers', 'profileViews'])])
                 ->withCount(['likes', 'views'])
+                ->withCount(['items as available_items_count' => static fn ($query) => $query->where('status', 'available')])
                 ->withCount(['pixelCoinTransactions as recent_market_sales_count' => static fn ($query) => $query
                     ->where('type', 'purchase')
                     ->where('created_at', '>=', now()->subDays(30))])
@@ -92,7 +93,7 @@ class AppServiceProvider extends ServiceProvider
                 ->get() ?? collect());
             $view->with('userArtworks', $account?->artworks()->latest()->get() ?? collect());
             $view->with('purchaseOrders', $account?->paymentOrders()
-                ->where('type', 'nft_purchase')
+                ->whereIn('type', ['nft_purchase', 'nft_coin_purchase'])
                 ->with('artwork')
                 ->latest()
                 ->limit(50)
@@ -103,17 +104,18 @@ class AppServiceProvider extends ServiceProvider
                     ->selectRaw('MAX(id) AS id, artwork_id')
                     ->where('seller_id', $account->id)
                     ->groupBy('artwork_id');
-                $ownedArtworks = DB::table('artwork_ownerships')
-                    ->join('artworks', 'artworks.id', '=', 'artwork_ownerships.artwork_id')
+                $ownedArtworks = DB::table('artwork_items')
+                    ->join('artworks', 'artworks.id', '=', 'artwork_items.artwork_id')
                     ->leftJoinSub($latestListings, 'latest_listing', static fn ($join) => $join
                         ->on('latest_listing.artwork_id', '=', 'artworks.id'))
                     ->leftJoin('resale_listings as listing', 'listing.id', '=', 'latest_listing.id')
-                    ->where('artwork_ownerships.owner_id', $account->id)
+                    ->where('artwork_items.owner_id', $account->id)
                     ->select([
-                        'artworks.id', 'artworks.product_id', 'artworks.title', 'artworks.image',
+                        'artworks.id', 'artworks.product_id', 'artworks.title', 'artworks.image', 'artworks.item_count',
+                        'artwork_items.item_id', 'artwork_items.edition_number',
                         'listing.status as resale_status',
                     ])
-                    ->orderBy('artworks.title')
+                    ->orderBy('artworks.title')->orderBy('artwork_items.edition_number')
                     ->get();
             }
             $view->with('ownedArtworks', $ownedArtworks);

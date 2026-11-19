@@ -10,38 +10,36 @@ class UserEarningsController extends Controller
 {
     public function __invoke(Request $request): View
     {
-        $salesQuery = DB::table('payment_orders')
-            ->join('artworks', 'artworks.id', '=', 'payment_orders.artwork_id')
-            ->where('payment_orders.seller_id', $request->user()->id)
-            ->where('payment_orders.type', 'nft_purchase')
-            ->where('payment_orders.status', 'approved');
+        $salesQuery = DB::table('pixel_coin_transactions')
+            ->leftJoin('artworks', 'artworks.id', '=', 'pixel_coin_transactions.artwork_id')
+            ->where('pixel_coin_transactions.user_id', $request->user()->id)
+            ->where('pixel_coin_transactions.type', 'sale')
+            ->where('pixel_coin_transactions.direction', 'credit');
 
         $summary = (clone $salesQuery)
             ->selectRaw(
-                'COUNT(*) as sales_count, COALESCE(SUM(payment_orders.amount_minor), 0) as total_cash_minor'
+                'COUNT(*) as sales_count, COALESCE(SUM(pixel_coin_transactions.amount), 0) as total_coin_minor'
             )
             ->first();
 
         $recentSales = (clone $salesQuery)
             ->select([
-                'artworks.title',
-                'payment_orders.amount_minor',
-                'payment_orders.created_at',
+                'artworks.title', 'pixel_coin_transactions.amount as coin_minor', 'pixel_coin_transactions.created_at',
             ])
-            ->orderByDesc('payment_orders.created_at')
-            ->orderByDesc('payment_orders.purchase_id')
+            ->orderByDesc('pixel_coin_transactions.created_at')
+            ->orderByDesc('pixel_coin_transactions.id')
             ->limit(20)
             ->get();
 
         $last30DaysCashMinor = (clone $salesQuery)
-            ->where('payment_orders.created_at', '>=', now()->subDays(30))
-            ->sum('payment_orders.amount_minor');
+            ->where('pixel_coin_transactions.created_at', '>=', now()->subDays(30))
+            ->sum('pixel_coin_transactions.amount');
 
         return view('home', [
             'creatorEarnings' => [
-                'totalCashMinor' => (int) $summary->total_cash_minor,
+                'totalCoinMinor' => (int) $summary->total_coin_minor,
                 'salesCount' => (int) $summary->sales_count,
-                'last30DaysCashMinor' => (int) $last30DaysCashMinor,
+                'last30DaysCoinMinor' => (int) $last30DaysCashMinor,
                 'recentSales' => $recentSales,
             ],
         ]);

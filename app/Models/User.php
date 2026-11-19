@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
-use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,10 +11,9 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class User extends Authenticatable implements MustVerifyEmailContract
+class User extends Authenticatable
 {
     use HasFactory;
-    use MustVerifyEmailTrait;
     use Notifiable;
 
     protected $fillable = [
@@ -25,27 +22,28 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'email',
         'password',
         'phone',
+        'gcash_number',
         'bio',
         'avatar_path',
         'banner_path',
-        'google_id',
-        'facebook_id',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
         'pixel_coin_balance',
+        'pixel_coin_reserved',
         'gcash_qr_path',
+        'gcash_number',
         'maya_qr_path',
     ];
 
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'pixel_coin_balance' => 'integer',
+            'pixel_coin_reserved' => 'integer',
             'cash_balance_minor' => 'integer',
             'cash_reserved_minor' => 'integer',
         ];

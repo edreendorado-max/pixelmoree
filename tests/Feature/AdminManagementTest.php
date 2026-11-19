@@ -40,7 +40,7 @@ class AdminManagementTest extends TestCase
         $this->get(route('admin.users'))
             ->assertOk()
             ->assertSee('Dashboard Creator')
-            ->assertSee('Unverified')
+            ->assertDontSee('Verification')
             ->assertSee('1');
 
         $this->get(route('admin.analytics'))
@@ -97,11 +97,10 @@ class AdminManagementTest extends TestCase
         $this->assertEquals(24.95, $artwork->fresh()->price);
     }
 
-    public function test_admin_can_edit_user_profile_and_email_change_resets_verification(): void
+    public function test_admin_can_edit_user_profile_and_email_without_verification_status(): void
     {
         $admin = $this->createUser('Account Admin', 'account-admin@example.test', 'admin');
         $account = $this->createUser('Original Name', 'original@example.test');
-        $account->markEmailAsVerified();
 
         $this->actingAs($admin)
             ->get(route('admin.users.edit', $account))
@@ -122,7 +121,6 @@ class AdminManagementTest extends TestCase
         $this->assertSame('Updated Name', $account->name);
         $this->assertSame('updated.name', $account->username);
         $this->assertSame('updated@example.test', $account->email);
-        $this->assertNull($account->email_verified_at);
         $this->assertSame('555-0199', $account->phone);
         $this->assertSame('Updated by an administrator.', $account->bio);
     }

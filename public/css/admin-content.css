@@ -150,6 +150,7 @@ body.cms-admin-page {
 .payment-review-heading h1 { margin: 0; color: #fbf8ff; font-size: clamp(24px, 3vw, 32px); font-weight: 700; letter-spacing: -.5px; }
 .payment-review-section { display: grid; gap: 12px; margin: 0 0 26px; }
 .payment-review-section h2 { margin: 0; color: #f3f0fa; font-size: 16px; font-weight: 650; }
+.payment-review-qr-preview { display: block; width: min(220px, 100%); max-height: 320px; margin: 12px 0; object-fit: contain; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; background: #fff; }
 .payment-review-card { padding: 16px; border: 1px solid rgba(255,255,255,.085); border-radius: 11px; background: linear-gradient(145deg,#14141e,#111119); color: #e8e6f0; }
 .payment-review-card>strong { color: #fbf8ff; font-size: 13px; }
 .payment-review-card p { margin: 9px 0 0; color: #aaa7b9; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }

@@ -1,15 +1,31 @@
 # Pixmoree
 
-Pixmoree is a Laravel 12 marketplace with account, artwork, profile, and engagement data stored in a local SQLite database by default. Google and Facebook sign-in are supported when provider credentials are configured. Registration, email verification, password reset, artwork uploads, favorites, and profile updates use persistent server-side storage. NFT purchases can use creator-owned GCash or Maya QR codes and require manual admin receipt verification; Pixmoree does not handle funds or provide automatic receipt verification.
+Pixmoree is a Laravel 12 digital-art marketplace with accounts, artwork editions, profiles, and engagement data stored in MySQL for the XAMPP demonstration setup. Registration uses email and password and makes the account available immediately; email verification is not required. The marketplace includes manually reviewed GCash receipts, itemized edition ownership, Pixel Coin top-ups, internal coin purchases, and manually sent creator withdrawals. These are database records and do not transfer tokens on a blockchain.
+
+## Website audit and improvement checklist
+
+The code-level website audit and prioritized recommendations are in [WEBSITE_AUDIT.md](WEBSITE_AUDIT.md). Key next steps are:
+
+- Review the main guest, member, creator, checkout, and admin journeys in a browser at mobile and desktop sizes.
+- Decide whether marketplace listings and artwork details should be publicly viewable before sign-in; the current Store requires authentication.
+- Add clear terms, privacy, content/copyright, payment dispute/refund, and support information before enabling payments.
+- Provide optional demo content for evaluating a fresh local install, and ensure navigation destinations have clear, distinct behavior.
+- Check accessibility, empty/error states, third-party asset loading, and admin content recovery.
+
+The audit maps repository evidence and automated test results to the attached rubric. Browser layout, real email delivery, and live payment checks still require a local demonstration.
+
+The rubric diagrams, ERD, and tri-fold demonstration guide are in [docs/PROJECT_DIAGRAMS.md](docs/PROJECT_DIAGRAMS.md) and [docs/DEMO_MANUAL.md](docs/DEMO_MANUAL.md).
 
 ## Requirements
 
-- PHP 8.2 or newer with `pdo_sqlite` enabled (included with the XAMPP PHP installation)
+- PHP 8.2 or newer with `pdo_mysql` enabled (included with the XAMPP PHP installation); `pdo_sqlite` is used for isolated automated tests
 - Composer
 
 On Windows, install Composer using the official Composer installer and select `C:\xampp\php\php.exe` as the PHP executable.
 
 ## Run locally
+
+Before migrating, start MySQL from the XAMPP Control Panel and create the local database. In phpMyAdmin, run `CREATE DATABASE pixmoreedb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;` or use the XAMPP MySQL command line. The example configuration uses the standard local XAMPP root account with a blank password; update `.env` if your MySQL account differs.
 
 From the project directory in PowerShell:
 
@@ -18,12 +34,40 @@ $env:PATH = 'C:\xampp\php;' + $env:PATH
 Copy-Item .env.example .env
 composer install
 & 'C:\xampp\php\php.exe' artisan key:generate
-if (-not (Test-Path 'database\database.sqlite')) { New-Item -Path 'database\database.sqlite' -ItemType File | Out-Null }
 & 'C:\xampp\php\php.exe' artisan migrate --seed
 php artisan serve
 ```
 
-The default SQLite database is `database/database.sqlite`; Laravel creates its schema when migrations run. Adding XAMPP's PHP directory to the front of `PATH` ensures `php artisan serve` launches the same PHP runtime as the Artisan commands. Open <http://127.0.0.1:8000/> for the guest homepage. Registration is at `/register`; profile and payment QR management is at `/user/profile-settings`. The signed-in Store is at `/store` (`/week12` redirects there); admin routes at `/admin`, `/week12/admin`, and `/week12/admin/artworks` require an admin account.
+Adding XAMPP's PHP directory to the front of `PATH` ensures `php artisan serve` launches the same PHP runtime as the Artisan commands. Open <http://127.0.0.1:8000/> for the guest homepage. Registration is at `/register`; profile and payment QR management is at `/user/profile-settings`. The signed-in Store is at `/store` (`/week12` redirects there); admin routes at `/admin`, `/week12/admin`, and `/week12/admin/artworks` require an admin account.
+
+### Access the development site from devices on the same Wi-Fi/LAN
+
+This shares the site only with devices that can reach this computer on the local network. It does not publish the site to the internet, and it does not make devices on a different Wi-Fi network able to connect. Keep this for trusted networks and development; `artisan serve` is not a production web server.
+
+1. Connect the host computer and phone/tablet/other computer to the same Wi-Fi or LAN. On Windows, run `ipconfig` and find the active adapter's **IPv4 Address** (for example, `192.168.1.28`). Do not use `127.0.0.1` on the other device; that address refers to that device itself.
+2. In the project folder, start Laravel bound to all network interfaces:
+
+   ```powershell
+   & 'C:\xampp\php\php.exe' artisan serve --host=0.0.0.0 --port=8000
+   ```
+
+   Leave this terminal open while using the site. Stop the server with `Ctrl+C`. If port 8000 is already in use, stop the old local server or choose another port and use that port in all URLs and firewall commands.
+3. On another device connected to the same network, open `http://<HOST-IP>:8000/`, replacing `<HOST-IP>` with the host's IPv4 address. Example: `http://192.168.1.28:8000/`.
+4. If the page times out, allow inbound TCP traffic to the chosen port in Windows Defender Firewall on **Private networks only**. Run PowerShell as Administrator and add a narrow rule for port 8000:
+
+   ```powershell
+   New-NetFirewallRule -DisplayName 'Pixmoree Laravel dev (private LAN)' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8000 -Profile Private
+   ```
+
+   Remove the rule when it is no longer needed:
+
+   ```powershell
+   Remove-NetFirewallRule -DisplayName 'Pixmoree Laravel dev (private LAN)'
+   ```
+
+5. If the router assigns a new IP address later, repeat `ipconfig` and use the new IPv4 address. Do not configure router port forwarding for this development server.
+
+The current development machine reported `192.168.1.28` during setup. This can change; verify it with `ipconfig` before connecting. If you change the host address, check `APP_URL` and restart the development server.
 
 ## Production launch readiness
 
@@ -31,49 +75,65 @@ This repository is prepared for local development; production hosting and third-
 
 - Set `APP_ENV=production`, `APP_DEBUG=false`, and `APP_URL` to the final HTTPS domain in the host's secret/configuration store. Generate `APP_KEY` once for that environment and retain it securely; never commit `.env` or rotate the key after users have encrypted data.
 - Use a managed production database with backups rather than the local SQLite file. Set its connection variables, run `php artisan migrate --force`, and verify migrations against a staging copy first.
-- Configure a real SMTP/mail provider and sender address. Email verification and password resets depend on delivery; Google/Facebook sign-in are optional and need provider credentials plus exact HTTPS callback URLs.
-- Keep `PAYMENTS_ENABLED=false` until creator payment instructions, private receipt/QR storage, an administrator review process, and the required business/legal checks are ready. When enabled, checkout remains creator-direct GCash/Maya with manual receipt review; Pixmoree does not hold funds, verify receipts automatically, or support withdrawals/payouts.
+- Configure a real SMTP/mail provider and sender address if email password-reset links and optional welcome emails should be delivered. Registration and sign-in do not require email verification. Social sign-in is disabled.
+- Keep `PAYMENTS_ENABLED=false` until the admin GCash QR, private receipt storage, top-up/payout rates, admin review process, dispute guidance, and required business/legal checks are ready. Payments use manual GCash review; the app does not verify receipts automatically.
 - Persist and back up both the database and uploaded files. Keep `storage/` and `bootstrap/cache/` writable by the app; create the public storage link and make sure private files are not exposed through the web root.
-- Point the web server document root at `public/`, enforce HTTPS, promote a real registered administrator with `php artisan pixmoree:make-admin <email>`, and smoke-test login, email verification, uploads, checkout review, and the `/up` health endpoint.
+- Point the web server document root at `public/`, enforce HTTPS, promote a real registered administrator with `php artisan pixmoree:make-admin <email>`, and smoke-test registration, login, uploads, checkout review, and the `/up` health endpoint.
 - Run `php artisan schedule:run` every minute through the host scheduler so daily price snapshots are recorded. Use `composer install --no-dev --optimize-autoloader` and Laravel's production cache commands as part of the host's deployment pipeline.
 
 Do not enable real payments or treat this checklist as a completed production deployment until the selected host, domain, credentials, backups, and operational review process have been configured and tested.
 
-## Email verification, password reset, and social sign-in
+## Accounts and password reset
 
-Email/password and new social registrations show an in-app welcome popup and send a welcome email alongside the six-digit verification code. New accounts cannot sign in until the code is confirmed. Signing out displays a confirmation popup on the login page. Verification codes expire after 10 minutes, are stored as hashes, allow at most five guesses, and can be resent after a 60-second cooldown. Login attempts for existing unverified accounts also send or re-send the code. Code delivery is handled through Laravel's configured SMTP mailer; local `log` and `array` mailers are rejected for verification because they do not deliver to the mailbox. For Gmail, create a Google App Password (requires 2-Step Verification), then set `MAIL_USERNAME` to your Gmail address and `MAIL_PASSWORD` to the App Password in `.env`; the local configuration uses Gmail SMTP on port 587 with TLS and uses that address as the sender. Never use your regular Google account password or commit SMTP credentials. For another SMTP provider, set `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SCHEME`, and `MAIL_FROM_ADDRESS` to that provider's values. A successful code check verifies that the user can receive messages at that address; it does not certify the person's legal identity.
+Registration creates an account and signs the new user in immediately. No verification code, SMTP setup, or email confirmation is needed to register, sign in, update an email address, use the Store, or make a purchase. Social login is disabled; use email or username with a password.
 
-Password reset is available from the login page and reset links expire after 60 minutes. New passwords, including reset and profile password changes, must be at least six characters and include an uppercase letter, a number, and a special character.
+Password reset is available from the login page. Reset links expire after 60 minutes, and delivering them to a real inbox requires a configured SMTP provider. Optional welcome emails use the same mail configuration, but delivery failures do not block account creation. Never commit SMTP credentials; keep them in the local `.env` or the host's secret store. New passwords, including reset and profile password changes, must be at least six characters and include an uppercase letter, a number, and a special character.
 
-Google and Facebook OAuth sign-in do not charge an API usage fee for basic sign-in, but require developer app credentials and provider setup. Social sign-ups also require the Pixmoree email verification code before login. To enable them, create OAuth apps with each provider and set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `FACEBOOK_CLIENT_ID`, and `FACEBOOK_CLIENT_SECRET` in `.env`. Register these callback URLs with the providers:
+## Pixel Coin, GCash purchases, and creator withdrawals
 
-```text
-http://127.0.0.1:8000/auth/google/callback
-http://127.0.0.1:8000/auth/facebook/callback
-```
+Pixel Coins use two decimal places. Current defaults are: minimum top-up PHP 20; cash-out PHP 1.20 per PC; 1.5% top-up fee added to the amount paid; and minimum withdrawal 200 PC. Coin awards are capped so their cash-out value cannot exceed the base top-up amount before the fee. At current rates, PHP 200 awards up to 166.66 PC and costs PHP 203 including the fee; PHP 20 costs PHP 20.30 and awards up to 16.66 PC. NFT cash purchases go to the admin GCash QR; after manual receipt verification, the selected edition item transfers to the buyer and the creator receives Pixel Coins. Coin purchases debit the buyer and credit the creator in one database transaction. Every payment order has a UUID record ID; each edition item has a unique UUID Item ID; each coin ledger entry has its own UUID.
 
-The callback base uses `APP_URL`; update it for another host or production domain. Keep provider secrets out of Git. Social sign-in does not automatically link to an existing password account with the same email. If you do not want OAuth or cannot configure the provider credentials, remove the social links from the login and registration pages; email/password verification does not depend on OAuth.
+The conversion cap prevents the user from cashing out more than the base top-up amount; the 1.5% fee remains an admin fee. Pixmoree has no payment gateway or automatic GCash verification; admins must independently confirm each transfer and payout. The payment switch is off by default (`PAYMENTS_ENABLED=false`).
 
-## SQLite database
+1. Run migrations after updating the app: `php artisan migrate`.
+2. In Profile settings, each creator saves their GCash number and private GCash payout QR.
+3. In Admin â†’ Payments, upload the admin GCash QR and enter the verified recipient name and number.
+4. Enable `PAYMENTS_ENABLED=true` only after deciding sustainable rates, verifying the destination account and review process, and preparing customer-facing terms/support. Clear config with `php artisan config:clear` after changing `.env`.
+5. Buyers submit GCash transaction reference and receipt screenshot. Admins inspect the transaction in GCash, confirm recipient/amount/reference, then approve or reject. Never approve based only on the uploaded screenshot.
+6. Top-ups credit coins only after approval. Withdrawals reserve coins until the admin sends the GCash payout and records its transaction reference; rejection refunds the reserved coins.
 
-The local database is stored in the ignored file `database/database.sqlite`. Laravel migrations are the source of truth for its schema; run them after pulling schema changes:
+Proof images and payout QR images are stored on Laravel's private local disk. Do not expose them through `public/storage` or share them outside the people who need to review each transaction. This workflow is manual and should remain a development/beta process until applicable legal, tax, fraud, and privacy requirements are reviewed.
+## MySQL database
+
+The rubric demonstration uses the local MySQL database named `pixmoreedb`. Laravel migrations are the source of truth for its schema; run them after pulling schema changes:
 
 ```dotenv
-DB_CONNECTION=sqlite
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=pixmoreedb
+DB_USERNAME=root
+DB_PASSWORD=
 DB_FOREIGN_KEYS=true
 ```
 
-Run `php artisan migrate --seed` to create or update the schema. The default seeder does not create demo users or artwork; the supplied images remain available in `public/assets/nfts` for creators to use when they choose. The legacy `database/setup.sql` is MySQL-only and is not used by the default SQLite setup. Existing MySQL data is not changed by SQLite migrations.
+Run `php artisan migrate --seed` to create or update the schema. The default seeder does not create demo users or artwork; the supplied images remain available in `public/assets/nfts` for creators to use when they choose. Do not run the legacy `database/setup.sql`; the Laravel migrations define the current schema.
 
-The `users` table stores account and editable profile fields, including a unique username. Registration creates the user row in the configured SQLite `users` table before email verification is sent. Users can sign in with either their email or username, and can update their display name, email, phone, bio, and profile photo in `/user/profile-settings`. Changing the email address requires verifying the new mailbox. Each new account receives an in-app welcome notification; users can view and mark their own notifications as read from `/user/notifications`. These records are stored in the `notifications` table. The `email_verification_codes` table stores only a hash of the time-limited code and is deleted after successful verification. The `images` table stores each signed-in user's uploaded image path, MIME type, size, and description; deleting a user cascades to their image records. User uploads and NFT artwork uploads are stored on Laravel's public disk. Run `php artisan storage:link` after setup so URLs under `/storage` can reach those files; if uploaded artwork appears blank, check that `public/storage` links to `storage/app/public` and rerun the command if it is missing.
+For the MySQL feature suite, create a separate test database with `mysql.exe -u root -e "CREATE DATABASE IF NOT EXISTS pixmoree_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"`. Run `& 'C:\xampp\php\php.exe' vendor\bin\phpunit --configuration=phpunit.mysql.xml --testsuite=Feature`. This test configuration targets only pixmoree_test, which the test suite refreshes. Never point it at a database containing user data.
+
+### SQLite for isolated local tests
+
+The test environment can use SQLite in memory. To run the site locally on SQLite instead of MySQL, set `DB_CONNECTION=sqlite` and `DB_DATABASE=database/database.sqlite` in `.env`, then run the migrations. The ignored SQLite file is for local development only; the rubric's database demonstration should use MySQL.
+
+The `users` table stores account and editable profile fields, including a unique username. Registration creates the user row and signs the new user in immediately. Users can sign in with either their email or username, and can update their display name, email, phone, bio, and profile photo in `/user/profile-settings`; email changes do not require verification or sign the user out. Each new account receives an in-app welcome notification; users can view and mark their own notifications as read from `/user/notifications`. These records are stored in the `notifications` table. A migration removes the obsolete email-verification code table and timestamp column. The `images` table stores each signed-in user's uploaded image path, MIME type, size, and description; deleting a user cascades to their image records. User uploads and NFT artwork uploads are stored on Laravel's public disk. Run `php artisan storage:link` after setup so URLs under `/storage` can reach those files; if uploaded artwork appears blank, check that `public/storage` links to `storage/app/public` and rerun the command if it is missing.
 
 Admins can monitor and edit account profile details, moderate creator-submitted artwork, update listing prices, review payment and resale submissions, edit website pages, and view market analytics from `/week12/admin`. Admin accounts are redirected away from member-only pages such as `/user` and `/store`; the Store remains available to regular signed-in users. Admins cannot create artwork listings on behalf of their own accounts; creators submit their own artwork. The administrator-only analytics API at `/admin/api/analytics` reports asking prices, likes, views, creator followers, and daily estimated-market-value snapshots. Estimates are not completed sales; run the Laravel scheduler so `artworks:prices:snapshot` can record a daily history.
 
-### Share a safe local database snapshot with collaborators
+### Share a safe local database setup with collaborators
 
-The Git repository shares schema and project files, not a live database. Each collaborator creates a local SQLite database by running `php artisan migrate --seed`. The optional `database/collaborator-data.sql` starter snapshot is MySQL-only; it excludes all user accounts, emails, password hashes, wallet balances, and transactions. Never commit the local SQLite database, `.env`, or production credentials.
+The Git repository shares schema and project files, not a live database. Each collaborator creates a local MySQL database by running `php artisan migrate --seed`. Never commit the local SQLite database, `.env`, or production credentials.
 
-Admins can update the homepage, About page, marketplace, log-in, and registration pages from the Content Studio at `/admin/content`. Text and supported page images can be edited in the matching page editor; marketplace and gallery artwork is managed from the admin artwork screen. The About page's “people behind Pixmoree” section is a separate, editable developer team, not the marketplace creator list. Developer cards support a section, quote, and validated social URLs. Admin screens share the Pixmoree visual theme. Signed-in creators can upload original artwork from `/user/create`; artwork metadata and the stored image path are saved in SQLite, while the actual image is stored on Laravel's public disk. Users can edit or delete their own artwork, and duplicate image files are rejected by SHA-256. Admins can manage all listings. Creator profile images are stored in `users.avatar_path` and can be changed in profile settings. The supplied artwork and developer photos are kept in `public/assets/nfts` and `public/assets/creators`, separate from the site background and logo.
+Admins can update the homepage, About page, marketplace, log-in, and registration pages from the Content Studio at `/admin/content`. Text and supported page images can be edited in the matching page editor; marketplace and gallery artwork is managed from the admin artwork screen. The About page's â€œpeople behind Pixmoreeâ€ section is a separate, editable developer team, not the marketplace creator list. Developer cards support a section, quote, and validated social URLs. Admin screens share the Pixmoree visual theme. Signed-in creators can upload original artwork from `/user/create`; artwork metadata and the stored image path are saved in MySQL, while the actual image is stored on Laravel's public disk. Users can edit or delete their own artwork, and duplicate image files are rejected by SHA-256. Admins can manage all listings. Creator profile images are stored in `users.avatar_path` and can be changed in profile settings. The supplied artwork and developer photos are kept in `public/assets/nfts` and `public/assets/creators`, separate from the site background and logo.
 
 To replace all local accounts and account-owned artwork with one verified administrator, configure `PIXMOREE_ADMIN_NAME`, `PIXMOREE_ADMIN_EMAIL`, `PIXMOREE_ADMIN_USERNAME`, and `PIXMOREE_ADMIN_PASSWORD` in the local `.env`, then run `php artisan pixmoree:reset-accounts`. The command is restricted to the local SQLite database or local `pixmoreedb` MySQL database and asks for confirmation before deleting accounts and their linked data. Keep the password in `.env` or another secret store; never commit it. The admin can sign in with the configured email or username.
 
@@ -81,16 +141,15 @@ Marketplace listings show creator-provided asking prices only. Simulated market 
 
 The signed-in home page shows a For You feed ranked from the user's latest liked, purchased, and viewed artwork categories. Marketplace search, category filtering, and sorting operate on current database-backed listings. Recommendations are recomputed on each page load.
 
-## Creator-direct NFT payments
+## GCash and Pixel Coin transactions
 
-Set `PAYMENTS_ENABLED=true` to enable checkout. Creators configure GCash and/or Maya QR images in `/user/profile-settings`; the QR files are stored privately and are only served to the creator or a signed-in, email-verified buyer at checkout. Buyers see the current seller's QR and the exact calculated PHP amount, then submit their transaction reference and receipt image. The purchase remains pending until an administrator checks the receipt directly in the selected payment service and approves or rejects the order from `/admin/payment-orders`. Ownership transfers only on approval. No automatic receipt-verification API is connected, so approval must never be treated as an automated verification or approved without independently confirming the exact amount. Never collect payment PINs, passwords, or OTPs.
+The payment switch is disabled by default (`PAYMENTS_ENABLED=false`). Admins configure the single private GCash QR in `/admin/payment-orders`; users save their GCash payout number and private QR in `/user/profile-settings`. If the receiving account has an issue, an administrator can replace the QR screenshot and update the matching account name and number on `/admin/payment-orders`. The replacement is stored privately and shown for future NFT purchases and Pixel Coin top-ups. Buyers select one available edition item, send the exact PHP amount to the admin QR, and submit the transaction reference and receipt screenshot. The item is reserved while review is pending. Admins verify in GCash and approve or reject; approval moves only that unique item to the buyer and credits the creator in Pixel Coins. Each edition item has a UUID Item ID and is owned by one account at a time.
 
-Payments go directly to the NFT's current creator/owner. Pixmoree does not hold buyer funds, maintain a usable cash/Pixel Coin balance, process top-ups, or pay out sellers. Top-up, withdrawal, and Pixel Coin routes and UI are removed; historical database records are retained. The PHP amount for original ETH listings uses `PAYMENTS_PHP_PER_ETH`; resale listings use their PHP price. Email verification is required to open checkout and submit a receipt.
+Pixel Coin top-ups use the same admin QR and manual receipt review. Current defaults: minimum base top-up PHP 20; cash-out PHP 1.20 per PC; awards capped so their cash-out value cannot exceed the top-up base amount; add a 1.5% admin fee; minimum withdrawal 200 PC. Pixel Coin supports two decimals. Coin purchases atomically debit the buyer and credit the creator. Withdrawal requests reserve the user's coins; admins verify the saved GCash destination, send the payout manually, then record the transfer reference. Rejected withdrawals refund the reserved coins. Each payment record, coin ledger row, and edition item has a unique UUID.
 
-Resale listings continue to require admin review. Approved resales appear in the Resale Gallery below Explore and in the Store; resale submission is available to current owners from the homepage section. The current owner does not see a buy action for their own listing, and checkout rejects purchases from the seller. Existing legacy balance, top-up, and ledger rows remain stored for historical reference.
+**Review the rates before accepting real money.** Conversion awards are capped at the amount redeemable for the base PHP top-up; the fee is paid in addition. The app does not connect to GCash APIs and cannot verify screenshots automatically. Admins must inspect each transaction directly; never approve solely from an uploaded image. Private receipts and QR codes are stored outside the public disk. Do not request or upload PINs or OTPs.
 
-The normalized account/profile structure uses `users.id` as the internal account key and a stable UUID `users.account_id` for the public account identifier; one-to-one contact/profile details are mirrored to `user_profiles`. Artwork rows keep the existing listing key and add UUID `artworks.product_id`. `payment_orders.purchase_id` is the UUID for a purchase order. `cash_ledger_entries` retains historical PHP movements; `artwork_ownerships` stores current recorded ownership, and `ownership_transfers` records the transfer history. Creator GCash/Maya QR paths are stored in the `users` table but files remain on Laravel's private disk. Migrations backfill UUIDs/profile data for existing records. Review direct-payment workflows for applicable legal, tax, fraud, and privacy requirements before operating a live marketplace.
-
+Run `php artisan migrate` after updating. Configure the admin QR and user payout details before enabling payment features. Do not enable real payments until the rates, refund/dispute process, privacy disclosures, and applicable legal/tax requirements are reviewed.
 The legacy MySQL schema remains available as `database/setup.sql`; Apache rules deny direct web requests to the database directory and SQL files. Configure Apache to use the project's `public` directory as its document root.
 
 The local beta accounts use local-only `@pixmoree.test` addresses; configure real email addresses before using accounts outside local development.
@@ -107,7 +166,7 @@ The command only promotes an existing registered account and does not set or exp
 
 ## Tests
 
-The feature suite uses an in-memory SQLite database regardless of the local database configuration. Run `php artisan test --testsuite=Feature`.
+The standard feature suite uses an in-memory SQLite database regardless of the local database configuration. Run `php artisan test --testsuite=Feature`. For MySQL, use the separate pixmoree_test database and phpunit.mysql.xml instructions above.
 
 ## Project structure
 

@@ -44,7 +44,7 @@
                     <p class="store-card-creator">By {{ $artwork->user?->name ?? $artwork->creator }}</p>
                     <div class="store-card-details">
                         <span><small>Price</small><strong>{{ number_format((float) $artwork->price, 2) }} ETH</strong></span>
-                        <span><small>Edition</small><strong>{{ number_format((int) $artwork->item_count) }}</strong></span>
+                        <span><small>Items available</small><strong>{{ number_format((int) $artwork->available_items_count) }} / {{ number_format((int) $artwork->item_count) }}</strong></span>
                     </div>
                     @if ((int) $artwork->user_id === (int) auth()->id())
                         <span class="store-owned-note">Your artwork</span>
@@ -64,7 +64,7 @@
         <header class="store-heading">
             <p class="store-eyebrow"><i class="bi bi-arrow-left-right" aria-hidden="true"></i> CURRENT OWNER LISTINGS</p>
             <h2 id="store-resale-heading">Resale NFTs</h2>
-            <p>Previously purchased artworks available from their verified current owners.</p>
+            <p>Previously purchased artworks available from their recorded current owners.</p>
         </header>
         @include('partials.resale-listings', ['resaleListings' => $resaleListings])
     </section>

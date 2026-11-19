@@ -126,5 +126,15 @@ class ArtworkFixtureSeeder extends Seeder
             ['id'],
             ['title', 'creator', 'user_id', 'category', 'price', 'image', 'image_hash', 'description', 'status', 'updated_at']
         );
+
+        foreach (DB::table('artworks')->whereIn('id', collect($artworks)->pluck('id'))->get() as $artwork) {
+            $existing = (int) DB::table('artwork_items')->where('artwork_id', $artwork->id)->max('edition_number');
+            for ($edition = $existing + 1; $edition <= max(1, (int) $artwork->item_count); $edition++) {
+                DB::table('artwork_items')->insert([
+                    'item_id' => (string) Str::uuid(), 'artwork_id' => $artwork->id,
+                    'edition_number' => $edition, 'status' => 'available', 'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+        }
     }
 }

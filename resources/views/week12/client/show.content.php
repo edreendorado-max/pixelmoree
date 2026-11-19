@@ -26,7 +26,7 @@
                 <?php endif; ?>
                 <p class="w12-engagement-feedback" data-engagement-feedback role="status" aria-live="polite" hidden></p>
             </div>
-            <p class="w12-beta-note mt-3" role="status"><i class="bi bi-info-circle"></i> Purchase this NFT from the signed-in Store. Email verification and manual GCash/Maya receipt review are required before ownership is recorded. No blockchain transfer is provided.</p>
+            <p class="w12-beta-note mt-3" role="status"><i class="bi bi-info-circle"></i> Purchase one unique edition item from the signed-in Store. Manual admin GCash receipt review is required before ownership is recorded. No blockchain transfer is provided.</p>
             <div class="w12-info-panel mt-4">
                 <h2 class="h6 mb-3">Listing information</h2>
                 <dl class="row mb-0">

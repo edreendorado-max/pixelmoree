@@ -68,8 +68,7 @@ class AdminController extends Controller
             ]);
         }
 
-        $emailChanged = mb_strtolower($user->email) !== mb_strtolower($validated['email']);
-        DB::transaction(static function () use ($user, $validated, $username, $emailChanged): void {
+        DB::transaction(static function () use ($user, $validated, $username): void {
             $user->fill([
                 'name' => $validated['name'],
                 'username' => $username !== '' ? $username : null,
@@ -78,19 +77,12 @@ class AdminController extends Controller
                 'bio' => $validated['bio'] ?? null,
             ]);
 
-            if ($emailChanged) {
-                $user->email_verified_at = null;
-                DB::table('email_verification_codes')->where('user_id', $user->id)->delete();
-            }
-
             $user->save();
         });
 
         return redirect()
             ->route('admin.users.edit', $user)
-            ->with('status', $emailChanged
-                ? 'Account updated. The changed email address must be verified before purchases.'
-                : 'Account updated.');
+            ->with('status', 'Account updated.');
     }
 
     public function updateArtworkPrice(Request $request, string $id): RedirectResponse

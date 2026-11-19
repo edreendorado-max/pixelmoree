@@ -26,7 +26,6 @@
             <div class="col-md-6">
                 <label class="form-label" for="account-email">Email address</label>
                 <input class="form-control" id="account-email" name="email" type="email" value="<?= week12_escape(old('email', $account->email)) ?>" maxlength="254" required>
-                <div class="form-text">Changing the email address resets its verification status.</div>
             </div>
             <div class="col-md-6">
                 <label class="form-label" for="account-phone">Phone</label>

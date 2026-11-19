@@ -18,7 +18,7 @@ class AccountWelcomeNotification extends Notification
     {
         return [
             'title' => 'Welcome to Pixmoree',
-            'message' => 'Your account has been created. Verify your email address to complete setup.',
+            'message' => 'Your account is ready. Explore the marketplace and share your work.',
         ];
     }
 }

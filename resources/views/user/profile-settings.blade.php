@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ asset('css/site.css') }}?v=20261117-profile-images" rel="stylesheet">
+    <link href="{{ asset('css/notifications.css') }}?v=20261117" rel="stylesheet">
     <link href="{{ asset('css/payment-checkout.css') }}" rel="stylesheet">
     <link href="{{ asset('css/typography.css') }}?v=20261117" rel="stylesheet">
     <link href="{{ asset('css/profile-image-editor.css') }}?v=20261117" rel="stylesheet">
@@ -109,6 +110,11 @@
                         <label for="profile-phone">Phone <span>Optional</span></label>
                         <input id="profile-phone" name="phone" type="tel" value="{{ old('phone', $user->phone) }}" maxlength="30" autocomplete="tel">
                     </div>
+                    <div class="profile-settings-field">
+                        <label for="profile-gcash-number">GCash number for Pixel Coin withdrawals</label>
+                        <input id="profile-gcash-number" name="gcash_number" type="tel" value="{{ old('gcash_number', $user->gcash_number) }}" maxlength="30" autocomplete="tel">
+                        <small>Only admins reviewing your payout can see this.</small>
+                    </div>
                     <div class="profile-settings-field profile-settings-bio-field">
                         <label for="profile-bio">Creator bio <span>Optional</span></label>
                         <textarea id="profile-bio" name="bio" rows="4" maxlength="2000">{{ old('bio', $user->bio) }}</textarea>
@@ -122,11 +128,11 @@
             <section class="profile-settings-panel" aria-labelledby="payment-qr-heading">
                 <div class="profile-settings-panel-heading">
                     <span class="profile-settings-panel-icon"><i class="bi bi-qr-code" aria-hidden="true"></i></span>
-                    <div><h2 id="payment-qr-heading">Creator payment QR codes</h2><p>Buyers pay you directly. Your QR images stay private and are shown only on a verified buyer's checkout.</p></div>
+                    <div><h2 id="payment-qr-heading">GCash payout QR</h2><p>Used by admins to verify your destination before sending approved Pixel Coin withdrawals. Stored privately.</p></div>
                 </div>
                 <form class="profile-settings-form" method="post" action="{{ route('user.payment-qr.update') }}" enctype="multipart/form-data">
                     @csrf
-                    @foreach (['gcash' => 'GCash', 'maya' => 'Maya'] as $method => $label)
+                    @foreach (['gcash' => 'GCash'] as $method => $label)
                         <div class="profile-settings-field">
                             <label for="{{ $method }}-qr">{{ $label }} QR image</label>
                             @if ($user->{$method . '_qr_path'})
@@ -192,5 +198,6 @@
     </div>
 </dialog>
 <script src="{{ asset('js/profile-image-editor.js') }}?v=20261117" defer></script>
+@include('partials.notification-popup', ['notification' => session('notification_popup')])
 </body>
 </html>

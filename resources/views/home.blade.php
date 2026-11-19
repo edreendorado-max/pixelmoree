@@ -30,6 +30,7 @@
         <a class="guest-only-nav-link" href="/about"><i class="bi bi-info-circle"></i><span>About</span></a>
         <a href="/user/purchases" class="member-only-nav-link" data-member-nav="history" hidden><i class="bi bi-receipt"></i><span>Purchases</span></a>
         <a href="/user/earnings" class="member-only-nav-link" data-member-nav="earnings" hidden><i class="bi bi-graph-up-arrow"></i><span>Earnings</span></a>
+        <a href="{{ route('user.pixel-coins') }}" class="member-only-nav-link" hidden><i class="bi bi-coin"></i><span>Pixel Coins</span></a>
         <a href="/user/terms" class="member-only-nav-link" data-member-nav="terms" hidden><i class="bi bi-shield-check"></i><span>Terms &amp; Originality</span></a>
         <a href="/user/profile-settings" class="member-only-nav-link" data-member-nav="profile-settings" hidden><i class="bi bi-person-gear"></i><span>Profile Settings</span></a>
         <a href="/user/about" class="member-only-nav-link" data-member-nav="about" hidden><i class="bi bi-info-circle"></i><span>About</span></a>
@@ -49,6 +50,7 @@
             <a href="/user/create" data-member-action="create"><i class="bi bi-plus-circle"></i> Create</a>
             <a href="/user/purchases" data-member-action="history"><i class="bi bi-receipt"></i> Purchases</a>
             <a href="/user/earnings" data-member-action="earnings"><i class="bi bi-graph-up-arrow"></i> Earnings balance</a>
+            <a href="{{ route('user.pixel-coins') }}" data-member-action="earnings"><i class="bi bi-coin"></i> Pixel Coins &amp; withdrawals</a>
             <a href="/user/terms" data-member-action="terms"><i class="bi bi-shield-check"></i> Terms &amp; Originality</a>
             <a href="/user/profile-settings" data-member-action="profile-settings"><i class="bi bi-person-gear"></i> Profile Settings</a>
             <a href="{{ route('user.notifications') }}" data-member-action="notifications"><i class="bi bi-bell"></i> Notifications</a>
@@ -103,8 +105,8 @@
               </div>
             </section>
             <section class="member-panel-card member-price-dashboard">
-              <div class="member-panel-heading"><div><h3>Price analytics</h3><p>Only verified marketplace transactions can support a market estimate.</p></div><span class="member-demo-label">UNAVAILABLE</span></div>
-              <p class="member-empty-state">Price analytics are hidden during beta while GCash and Maya receipts are manually reviewed. Listed prices are set by creators.</p>
+              <div class="member-panel-heading"><div><h3>Price analytics</h3><p>Only recorded marketplace transactions can support a market estimate.</p></div><span class="member-demo-label">UNAVAILABLE</span></div>
+              <p class="member-empty-state">Price analytics are hidden during beta while GCash receipts are manually reviewed. Listed prices are set by creators.</p>
             </section>
           </section>
           <section class="member-dashboard-panel active" data-member-panel-content="me">
@@ -152,7 +154,7 @@
                   @forelse ($ownedArtworks as $artwork)
                     <a class="member-art-tile" href="{{ route('week12.client.artwork', ['id' => $artwork->id]) }}">
                       <span class="member-art-tile-image"><img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}" loading="lazy"></span>
-                      <span class="member-art-tile-details"><strong>{{ $artwork->title }}</strong><small>Owned collection</small></span>
+                      <span class="member-art-tile-details"><strong>{{ $artwork->title }}</strong><small>Edition {{ $artwork->edition_number }} · Item ID {{ $artwork->item_id }}</small></span>
                     </a>
                   @empty
                     <p class="member-empty-state">Your collection is empty. Approved purchases will appear here.</p>
@@ -177,35 +179,35 @@
             <div class="member-panel-heading"><div><h3>Purchases</h3><p>Payment receipts remain pending until an administrator confirms payment.</p></div></div>
             <section class="member-panel-card member-transactions-card">
               <h4>Purchase orders</h4>
-              <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Purchase ID</th><th>Artwork</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead><tbody>
+              <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Purchase ID</th><th>Artwork</th><th>Item ID</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead><tbody>
                 @forelse ($purchaseOrders as $purchaseOrder)
-                  <tr><td>{{ $purchaseOrder->purchase_id }}</td><td>{{ $purchaseOrder->artwork?->title ?? 'Artwork unavailable' }}</td><td>PHP {{ number_format($purchaseOrder->amount_minor / 100, 2) }}</td><td>{{ $purchaseOrder->payment_method }}</td><td>{{ str_replace('_', ' ', $purchaseOrder->status) }}</td></tr>
+                  <tr><td>{{ $purchaseOrder->purchase_id }}</td><td>{{ $purchaseOrder->artwork?->title ?? 'Artwork unavailable' }}</td><td>{{ $purchaseOrder->item_id ?? '—' }}</td><td>PHP {{ number_format($purchaseOrder->amount_minor / 100, 2) }}</td><td>{{ $purchaseOrder->payment_method }}</td><td>{{ str_replace('_', ' ', $purchaseOrder->status) }}</td></tr>
                 @empty
-                  <tr><td colspan="5" class="member-empty-state">No manual purchase orders yet.</td></tr>
+                  <tr><td colspan="6" class="member-empty-state">No purchase orders yet.</td></tr>
                 @endforelse
               </tbody></table></div>
             </section>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="earnings" hidden>
-            <div class="member-panel-heading"><div><h3>Creator earnings</h3><p>Only approved purchase orders are included. Payments are made directly to creators.</p></div><span class="member-demo-label"><i class="bi bi-info-circle"></i> DIRECT PAYMENTS</span></div>
-            <article class="member-panel-card member-earnings-hero" data-earnings-total="{{ $creatorEarnings['totalCashMinor'] ?? 0 }}">
+            <div class="member-panel-heading"><div><h3>Creator earnings</h3><p>Pixel Coins are credited after GCash payment review or direct Pixel Coin purchase.</p></div><span class="member-demo-label"><i class="bi bi-coin"></i> PIXEL COINS</span></div>
+            <article class="member-panel-card member-earnings-hero" data-earnings-total="{{ $creatorEarnings['totalCoinMinor'] ?? 0 }}">
               <span class="member-earnings-icon"><i class="bi bi-stars"></i></span>
               <div>
-                <small>APPROVED SALES</small>
-                <strong>PHP {{ number_format(($creatorEarnings['totalCashMinor'] ?? 0) / 100, 2) }}</strong>
-                <p>Recorded from approved orders attributed to you as seller.</p>
+                <small>PIXEL COINS EARNED FROM SALES</small>
+                <strong>{{ \App\Support\PixelCoinLedger::format((int) ($creatorEarnings['totalCoinMinor'] ?? 0)) }} PC</strong>
+                <p>Recorded from credited artwork sales.</p>
               </div>
             </article>
             <div class="member-stat-grid member-earnings-stats">
-              <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-bag-check"></i></span><div><small>Approved sales</small><strong>{{ number_format($creatorEarnings['salesCount'] ?? 0) }}</strong></div></article>
-              <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-calendar-check"></i></span><div><small>Approved sales, last 30 days</small><strong>PHP {{ number_format(($creatorEarnings['last30DaysCashMinor'] ?? 0) / 100, 2) }}</strong></div></article>
+              <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-bag-check"></i></span><div><small>Credited sales</small><strong>{{ number_format($creatorEarnings['salesCount'] ?? 0) }}</strong></div></article>
+              <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-calendar-check"></i></span><div><small>Sales, last 30 days</small><strong>{{ \App\Support\PixelCoinLedger::format((int) ($creatorEarnings['last30DaysCoinMinor'] ?? 0)) }} PC</strong></div></article>
             </div>
-            <div class="member-earnings-notice"><i class="bi bi-shield-check" aria-hidden="true"></i><p><strong>Direct payments</strong> Buyers pay creators directly; Pixmoree does not hold a seller balance or process payouts.</p></div>
+            <div class="member-earnings-notice"><i class="bi bi-shield-check" aria-hidden="true"></i><p><strong>Manual GCash review</strong> Pixel Coins are credited after approval. Manage your balance and request a withdrawal from <a href="{{ route('user.pixel-coins') }}">Pixel Coins</a>.</p></div>
             <section class="member-panel-card member-transactions-card">
               <div class="member-panel-heading"><div><h4>Recent artwork sales</h4><p>Latest approved purchase orders for your listings.</p></div></div>
               <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Artwork</th><th>Sale value</th><th>Date</th></tr></thead><tbody>
                 @forelse (($creatorEarnings['recentSales'] ?? []) as $sale)
-                  <tr><td>{{ $sale->title }}</td><td class="member-earnings-sale-amount">PHP {{ number_format((int) $sale->amount_minor / 100, 2) }}</td><td>{{ \Illuminate\Support\Carbon::parse($sale->created_at)->format('M j, Y') }}</td></tr>
+                  <tr><td>{{ $sale->title ?? 'Artwork unavailable' }}</td><td class="member-earnings-sale-amount">{{ \App\Support\PixelCoinLedger::format((int) $sale->coin_minor) }} PC</td><td>{{ \Illuminate\Support\Carbon::parse($sale->created_at)->format('M j, Y') }}</td></tr>
                 @empty
                   <tr><td colspan="3" class="member-empty-state">No approved sales for your artwork yet.</td></tr>
                 @endforelse
@@ -214,7 +216,7 @@
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="payment" hidden>
             <div class="member-panel-heading"><div><h3>Purchases and payments</h3><p>Use the Store to buy a listed NFT from its creator.</p></div><span class="member-demo-label">MANUAL REVIEW</span></div>
-            <div class="member-payment-safety" role="status"><i class="bi bi-info-circle"></i><span>Pay directly to the creator by GCash or Maya QR and submit the receipt number and proof. Admins manually verify payment before NFT ownership changes. No automatic receipt-verification API is connected.</span></div>
+            <div class="member-payment-safety" role="status"><i class="bi bi-info-circle"></i><span>Send GCash payments to the admin QR, then submit your receipt for manual verification. Pixel Coin purchases transfer coins directly to the creator. <a href="{{ route('user.pixel-coins') }}">Top up or withdraw Pixel Coins</a>.</span></div>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="terms" hidden>
             <div class="member-panel-heading"><div><h3>Terms &amp; Originality Policy</h3><p>Marketplace rules for creators and collectors.</p></div><span class="member-demo-label">BETA</span></div>
@@ -224,7 +226,7 @@
               <h4>2. Originality and anti-plagiarism</h4><p>Only upload work you created or have clear permission and appropriate licenses to use. Do not copy, trace, repackage, or mint another creator’s artwork, photographs, characters, logos, writing, or other protected material as your own. Credit alone does not replace permission.</p>
               <p>Do not use unauthorized AI training outputs, reference material, or third-party assets in a way that infringes another person’s rights. Keep source files and permission records where appropriate. If a work includes licensed or collaborative material, disclose that clearly and follow the license terms.</p>
               <h4>3. Reports, review, and consequences</h4><p>Rights holders should provide the listing link, identify the material at issue, and explain their rights when reporting suspected copying. Pixmoree should review reports, give creators a reasonable opportunity to respond where appropriate, and may hide or remove disputed listings, restrict accounts, or refer serious matters for further review. False or abusive reports are not permitted.</p>
-              <h4>4. Payments and transactions</h4><p>NFT purchases use direct GCash or Maya payments to the current creator or owner. Pixmoree does not hold balances or process payouts. Buyers submit a receipt reference and proof; an admin must manually verify the exact amount before ownership is recorded. No automatic payment-verification API or blockchain transfer is provided.</p>
+              <h4>4. Payments and transactions</h4><p>NFT GCash purchases use the admin QR and require a receipt reference and proof. An admin manually verifies each payment before assigning one unique edition item. Pixel Coin top-ups add a 1.5% fee; at the current rate a PHP 200 base top-up awards up to 166.66 PC. Creators can withdraw from 200 PC at PHP 1.20 per PC after manual GCash review. The coin award is capped so its cash-out value does not exceed the base top-up amount. No automatic payment-verification API or blockchain transfer is provided.</p>
               <h4>5. Respect intellectual property</h4><p>Creators retain rights they hold in their work. A listing does not transfer copyright unless a separate, valid agreement says so. Collectors should not reproduce, sell, or commercially exploit artwork without the creator’s permission or a license that allows it.</p>
               <h4>6. Policy updates and contact</h4><p>These draft rules may change as the project evolves. For a real service, publish the effective date, operator identity, contact and appeal process, governing law, and privacy terms after professional review.</p>
             </article>
@@ -445,7 +447,7 @@
         @forelse ($ownedArtworks as $ownedArtwork)
           <article class="resale-owner-card">
             <div><strong>{{ $ownedArtwork->title }}</strong><p>Resale status: {{ $ownedArtwork->resale_status ?? 'Not listed' }}</p></div>
-            @if (config('payments.enabled') && !in_array($ownedArtwork->resale_status, ['pending_review', 'listed'], true))
+            @if (config('payments.enabled') && (int) $ownedArtwork->item_count === 1 && !in_array($ownedArtwork->resale_status, ['pending_review', 'listed'], true))
               <form method="post" action="{{ route('user.artworks.resale', $ownedArtwork->id) }}" enctype="multipart/form-data">
                 @csrf
                 <label>Resale price (PHP)<input name="price_php" type="number" min="1" max="10000000" required></label>

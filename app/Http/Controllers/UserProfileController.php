@@ -3,11 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Image;
-use App\Support\EmailDeliveryNotConfigured;
-use App\Support\EmailVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -23,13 +20,14 @@ class UserProfileController extends Controller
         ]);
     }
 
-    public function update(Request $request, EmailVerification $emailVerification): RedirectResponse
+    public function update(Request $request): RedirectResponse
     {
         $user = $request->user();
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'string', 'email', 'max:254', 'unique:users,email,'.$user->id],
             'phone' => ['nullable', 'string', 'max:30'],
+            'gcash_number' => ['nullable', 'string', 'max:30', 'regex:/^[0-9+() -]+$/'],
             'bio' => ['nullable', 'string', 'max:2000'],
             'avatar' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
             'banner' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:10240'],
@@ -37,10 +35,6 @@ class UserProfileController extends Controller
         $avatar = $validated['avatar'] ?? null;
         $banner = $validated['banner'] ?? null;
         unset($validated['avatar'], $validated['banner']);
-
-        if ($user->email !== $validated['email']) {
-            $user->email_verified_at = null;
-        }
 
         $previousPaths = [
             'avatar_path' => $user->avatar_path,
@@ -90,23 +84,6 @@ class UserProfileController extends Controller
             }
         }
 
-        if ($user->wasChanged('email')) {
-            $request->session()->put('email_verification_user_id', $user->id);
-            Auth::logout();
-            $request->session()->regenerate();
-            try {
-                $sent = $emailVerification->sendCode($user, false);
-            } catch (EmailDeliveryNotConfigured) {
-                return redirect()->route('verification.notice')->withErrors([
-                    'code' => 'Your email address was changed, but we could not send a verification email. Configure MAIL_* in .env, then request a new code.',
-                ]);
-            }
-
-            return redirect()->route('verification.notice')->with('status', $sent
-                ? 'A verification code was sent to your new email address.'
-                : 'A verification code could not be sent. Please request a new one.');
-        }
-
         return redirect()
             ->route('user.profile-settings')
             ->with('status', 'Your profile has been updated.');
@@ -134,15 +111,12 @@ class UserProfileController extends Controller
     {
         $validated = $request->validate([
             'gcash_qr' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            'maya_qr' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'remove_gcash_qr' => ['sometimes', 'boolean'],
-            'remove_maya_qr' => ['sometimes', 'boolean'],
         ]);
         $user = $request->user();
         $disk = Storage::disk('local');
         $changes = [
             'gcash_qr_path' => ['file' => $validated['gcash_qr'] ?? null, 'remove' => (bool) ($validated['remove_gcash_qr'] ?? false)],
-            'maya_qr_path' => ['file' => $validated['maya_qr'] ?? null, 'remove' => (bool) ($validated['remove_maya_qr'] ?? false)],
         ];
         $newPaths = [];
         $oldPaths = [];
@@ -176,12 +150,12 @@ class UserProfileController extends Controller
             }
         }
 
-        return redirect()->route('user.profile-settings')->with('status', 'Your creator payment QR codes have been updated.');
+        return redirect()->route('user.profile-settings')->with('status', 'Your private GCash payout QR has been updated.');
     }
 
     public function paymentQrPreview(Request $request, string $method)
     {
-        abort_unless(in_array($method, ['gcash', 'maya'], true), 404);
+        abort_unless($method === 'gcash', 404);
         $path = $request->user()->getAttribute($method . '_qr_path');
         abort_unless(is_string($path) && Storage::disk('local')->exists($path), 404);
 

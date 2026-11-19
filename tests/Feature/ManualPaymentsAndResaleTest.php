@@ -41,11 +41,12 @@ class ManualPaymentsAndResaleTest extends TestCase
             ->assertOk()
             ->assertSee('class="cms-admin-page payment-review-page"', false)
             ->assertSee('ADMIN STUDIO')
-            ->assertSee('NFT purchase receipts')
-            ->assertSee('There is no automatic receipt-verification API.');
+            ->assertSee('Admin GCash account for NFT purchases and top-ups')
+            ->assertSee('Replace GCash QR screenshot')
+            ->assertSee('NFT GCash purchase receipts');
     }
 
-    public function test_creator_qr_checkout_requires_a_receipt_and_admin_approval_before_transfer(): void
+    public function test_admin_qr_checkout_requires_a_receipt_and_approval_before_transfer(): void
     {
         config(['payments.enabled' => true]);
         Storage::fake('local');
@@ -53,12 +54,20 @@ class ManualPaymentsAndResaleTest extends TestCase
         $buyer = $this->user('buyer@example.test');
         $admin = $this->admin();
         $artwork = $this->artwork($seller);
-        $seller->forceFill(['gcash_qr_path' => 'creator-payment-qrs/seller-gcash.png'])->save();
-        Storage::disk('local')->put('creator-payment-qrs/seller-gcash.png', 'private qr');
+        $qrPath = 'admin-payment-qrs/admin-gcash.png';
+        Storage::disk('local')->put($qrPath, 'private qr');
+        DB::table('admin_payment_settings')->where('id', 1)->update([
+            'gcash_qr_path' => $qrPath,
+            'gcash_account_name' => 'Pixmoree Admin',
+            'gcash_number' => '09170000000',
+        ]);
+        $itemId = DB::table('artwork_items')->where('artwork_id', $artwork->id)->value('item_id');
 
         $this->actingAs($buyer)->get(route('user.checkout', $artwork->id))
             ->assertOk()
             ->assertSee('PHP 200,000.00')
+            ->assertSee('Pixmoree Admin')
+            ->assertSee('09170000000')
             ->assertSee(route('user.checkout.qr', ['artworkId' => $artwork->id, 'method' => 'gcash']))
             ->assertSee('Receipt checks are manual; there is no automatic payment-verification API.');
         $this->get(route('user.checkout.qr', ['artworkId' => $artwork->id, 'method' => 'gcash']))->assertOk();
@@ -66,6 +75,7 @@ class ManualPaymentsAndResaleTest extends TestCase
 
         $this->post(route('user.purchase-orders.store'), [
             'artwork_id' => $artwork->id,
+            'item_id' => $itemId,
             'payment_method' => 'gcash',
             'transaction_reference' => 'GC-REFERENCE-001',
             'proof' => $this->proofImage('proof.png'),
@@ -76,12 +86,17 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->assertSame(20000000, $order->amount_minor);
         $this->assertDatabaseMissing('artwork_ownerships', ['artwork_id' => $artwork->id]);
         $this->assertSame(0, (int) $seller->fresh()->cash_balance_minor);
+        $this->assertDatabaseHas('artwork_items', [
+            'item_id' => $itemId,
+            'status' => 'reserved',
+            'reserved_purchase_id' => $order->purchase_id,
+        ]);
 
         $this->actingAs($admin)->get(route('admin.payment-orders'))
             ->assertOk()
             ->assertSee('GC-REFERENCE-001')
             ->assertSee('PHP 200,000.00')
-            ->assertSee('View private proof');
+            ->assertSee('View private receipt');
         $this->post(route('admin.payment-orders.review', $order), ['decision' => 'approve'])->assertRedirect();
 
         $this->assertDatabaseHas('artwork_ownerships', [
@@ -91,13 +106,20 @@ class ManualPaymentsAndResaleTest extends TestCase
         ]);
         $this->assertSame('approved', $order->fresh()->status);
         $this->assertSame(0, (int) $seller->fresh()->cash_balance_minor);
+        $this->assertSame(16666666, (int) $seller->fresh()->pixel_coin_balance);
+        $this->assertDatabaseHas('artwork_items', [
+            'item_id' => $itemId,
+            'status' => 'owned',
+            'owner_id' => $buyer->id,
+            'acquired_purchase_id' => $order->purchase_id,
+        ]);
         $this->assertDatabaseHas('ownership_transfers', [
             'product_id' => $artwork->product_id,
             'purchase_id' => $order->purchase_id,
         ]);
     }
 
-    public function test_checkout_explains_when_a_creator_has_not_configured_a_payment_qr(): void
+    public function test_checkout_explains_when_admin_payment_details_are_not_configured(): void
     {
         config(['payments.enabled' => true]);
         $seller = $this->user('unconfigured-seller@example.test');
@@ -106,55 +128,45 @@ class ManualPaymentsAndResaleTest extends TestCase
 
         $this->actingAs($buyer)->get(route('user.checkout', $artwork->id))
             ->assertOk()
-            ->assertSee('This creator has not configured a GCash or Maya QR code yet.')
+            ->assertSee('Admin GCash instructions are not configured yet.')
             ->assertDontSee('name="transaction_reference"', false);
     }
 
-    public function test_creator_payment_qr_uploads_are_private_and_can_be_shown_to_verified_buyers(): void
+    public function test_admin_payment_qr_is_private_and_available_only_after_checkout(): void
     {
         config(['payments.enabled' => true]);
         Storage::fake('local');
-        $seller = $this->user('qr-seller@example.test');
+        $admin = $this->admin();
         $buyer = $this->user('qr-buyer@example.test');
+        $other = $this->user('qr-other@example.test');
+        $seller = $this->user('qr-seller@example.test');
         $artwork = $this->artwork($seller);
+        $path = 'admin-payment-qrs/private-admin.png';
+        Storage::disk('local')->put($path, 'private qr');
+        DB::table('admin_payment_settings')->where('id', 1)->update([
+            'gcash_qr_path' => $path,
+            'gcash_account_name' => 'Private Admin',
+            'gcash_number' => '09170000000',
+        ]);
 
-        $this->actingAs($seller)->post(route('user.payment-qr.update'), [
-            'gcash_qr' => $this->proofImage('seller-qr.png'),
-        ])->assertRedirect(route('user.profile-settings'));
-
-        $path = $seller->fresh()->gcash_qr_path;
-        $this->assertIsString($path);
-        Storage::disk('local')->assertExists($path);
-        $this->actingAs($seller)->get(route('user.payment-qr.preview', 'gcash'))->assertOk();
+        $this->actingAs($admin)->get(route('admin.payment-settings.gcash-qr'))->assertOk();
+        $this->actingAs($other)->get(route('user.checkout.qr', ['artworkId' => $artwork->id, 'method' => 'gcash']))->assertForbidden();
         $this->actingAs($buyer)->get(route('user.checkout', $artwork->id))->assertOk();
         $this->actingAs($buyer)->get(route('user.checkout.qr', ['artworkId' => $artwork->id, 'method' => 'gcash']))->assertOk();
-        $this->actingAs($buyer)->get(route('user.payment-qr.preview', 'gcash'))->assertNotFound();
     }
 
-    public function test_unverified_user_is_redirected_before_checkout_or_receipt_submission(): void
+    public function test_signed_in_user_can_checkout_without_email_verification(): void
     {
         config(['payments.enabled' => true]);
-        $seller = $this->user('seller-unverified@example.test');
-        $buyer = User::create([
-            'name' => 'Unverified buyer',
-            'email' => 'unverified-buyer@example.test',
-            'password' => 'secret-password',
-        ]);
+        $seller = $this->user('seller-no-verification@example.test');
+        $buyer = User::create(['name' => 'Buyer', 'email' => 'buyer-no-verification@example.test', 'password' => 'secret-password']);
         $artwork = $this->artwork($seller);
 
-        $this->withSession(['email_verification_user_id' => $buyer->id])
-            ->actingAs($buyer)
+        $this->actingAs($buyer)
             ->get(route('user.checkout', $artwork->id))
-            ->assertRedirect(route('verification.notice'));
-        $this->post(route('user.purchase-orders.store'), [
-            'artwork_id' => $artwork->id,
-            'payment_method' => 'gcash',
-            'transaction_reference' => 'UNVERIFIED-BUYER-001',
-            'proof' => $this->proofImage('proof.png'),
-        ])->assertRedirect(route('verification.notice'));
+            ->assertOk();
 
         $this->assertDatabaseCount('payment_orders', 0);
-        $this->get(route('verification.notice'))->assertOk()->assertSee($buyer->email);
     }
 
     public function test_checkout_rejects_receipts_if_the_listing_price_changes_after_checkout(): void
@@ -164,18 +176,21 @@ class ManualPaymentsAndResaleTest extends TestCase
         $seller = $this->user('changing-price-seller@example.test');
         $buyer = $this->user('changing-price-buyer@example.test');
         $artwork = $this->artwork($seller);
-        $seller->forceFill(['gcash_qr_path' => 'creator-payment-qrs/changing-price.png'])->save();
-        Storage::disk('local')->put('creator-payment-qrs/changing-price.png', 'private qr');
+        $path = 'admin-payment-qrs/changing-price.png';
+        Storage::disk('local')->put($path, 'private qr');
+        DB::table('admin_payment_settings')->where('id', 1)->update(['gcash_qr_path' => $path]);
+        $itemId = DB::table('artwork_items')->where('artwork_id', $artwork->id)->value('item_id');
 
         $this->actingAs($buyer)->get(route('user.checkout', $artwork->id))->assertOk();
         $artwork->update(['price' => 2]);
 
         $this->post(route('user.purchase-orders.store'), [
             'artwork_id' => $artwork->id,
+            'item_id' => $itemId,
             'payment_method' => 'gcash',
             'transaction_reference' => 'STALE-PRICE-001',
             'proof' => $this->proofImage('proof.png'),
-        ])->assertSessionHasErrors('payment_method');
+        ])->assertStatus(409);
         $this->assertDatabaseCount('payment_orders', 0);
     }
 
@@ -188,6 +203,7 @@ class ManualPaymentsAndResaleTest extends TestCase
         $buyer = $this->user('resale-buyer@example.test');
         $admin = $this->admin();
         $artwork = $this->artwork($creator);
+        $itemId = DB::table('artwork_items')->where('artwork_id', $artwork->id)->value('item_id');
         $originalOrder = PaymentOrder::create([
             'purchase_id' => (string) Str::uuid(),
             'buyer_id' => $seller->id,
@@ -198,6 +214,11 @@ class ManualPaymentsAndResaleTest extends TestCase
             'payment_method' => 'gcash',
             'status' => 'approved',
         ]);
+        DB::table('artwork_items')->where('item_id', $itemId)->update([
+            'owner_id' => $seller->id,
+            'status' => 'owned',
+            'acquired_purchase_id' => $originalOrder->purchase_id,
+        ]);
         DB::table('artwork_ownerships')->insert([
             'artwork_id' => $artwork->id,
             'owner_id' => $seller->id,
@@ -205,8 +226,13 @@ class ManualPaymentsAndResaleTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $seller->forceFill(['maya_qr_path' => 'creator-payment-qrs/reseller-maya.png'])->save();
-        Storage::disk('local')->put('creator-payment-qrs/reseller-maya.png', 'private qr');
+        $qrPath = 'admin-payment-qrs/resale-purchase.png';
+        Storage::disk('local')->put($qrPath, 'private qr');
+        DB::table('admin_payment_settings')->where('id', 1)->update([
+            'gcash_qr_path' => $qrPath,
+            'gcash_account_name' => 'Pixmoree Admin',
+            'gcash_number' => '09170000000',
+        ]);
 
         $this->actingAs($seller)->post(route('user.artworks.resale', $artwork), [
             'price_php' => 200,
@@ -220,14 +246,17 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->actingAs($buyer)->get(route('user.checkout', $artwork->id))->assertOk()->assertSee('PHP 200.00');
         $this->post(route('user.purchase-orders.store'), [
             'artwork_id' => $artwork->id,
-            'payment_method' => 'maya',
-            'transaction_reference' => 'MAYA-RESALE-001',
+            'item_id' => $itemId,
+            'payment_method' => 'gcash',
+            'transaction_reference' => 'GCASH-RESALE-001',
             'proof' => $this->proofImage('payment.png'),
         ])->assertRedirect('/user/purchases');
         $resaleOrder = PaymentOrder::query()->where('buyer_id', $buyer->id)->where('type', 'nft_purchase')->firstOrFail();
 
         $this->actingAs($admin)->post(route('admin.payment-orders.review', $resaleOrder), ['decision' => 'approve'])->assertRedirect();
         $this->assertSame($buyer->id, (int) DB::table('artwork_ownerships')->where('artwork_id', $artwork->id)->value('owner_id'));
+        $this->assertSame($buyer->id, (int) DB::table('artwork_items')->where('item_id', $itemId)->value('owner_id'));
+        $this->assertSame(16666, (int) $seller->fresh()->pixel_coin_balance);
         $this->assertSame('sold', DB::table('resale_listings')->where('id', $listingId)->value('status'));
         $this->assertSame(0, (int) $seller->fresh()->cash_balance_minor);
     }
@@ -245,6 +274,10 @@ class ManualPaymentsAndResaleTest extends TestCase
             'owner_id' => $resaleSeller->id,
             'created_at' => now(),
             'updated_at' => now(),
+        ]);
+        DB::table('artwork_items')->where('artwork_id', $resaleArtwork->id)->update([
+            'owner_id' => $resaleSeller->id,
+            'status' => 'owned',
         ]);
         DB::table('resale_listings')->insert([
             'artwork_id' => $resaleArtwork->id,
@@ -299,13 +332,14 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->actingAs($buyer)->get(route('user.checkout', $artwork->id))->assertStatus(503);
         $this->post(route('user.purchase-orders.store'), [
             'artwork_id' => $artwork->id,
+            'item_id' => DB::table('artwork_items')->where('artwork_id', $artwork->id)->value('item_id'),
             'payment_method' => 'gcash',
             'transaction_reference' => 'UNUSED-BETA-REF',
             'proof' => $this->proofImage('proof.png'),
         ])->assertStatus(503);
-        $this->get('/user/pixel-coin')->assertRedirect(route('user.purchases'));
-        $this->post('/user/pixel-coin/top-ups')->assertNotFound();
-        $this->post('/user/pixel-coin/withdrawals')->assertNotFound();
+        $this->get('/user/pixel-coins')->assertOk();
+        $this->post(route('user.pixel-coins.topups'))->assertStatus(503);
+        $this->post(route('user.pixel-coins.withdrawals'))->assertStatus(503);
         $this->get('/api/pixel-coins')->assertNotFound();
 
         $this->assertDatabaseCount('payment_orders', 0);
@@ -315,8 +349,6 @@ class ManualPaymentsAndResaleTest extends TestCase
     private function user(string $email): User
     {
         $user = User::create(['name' => 'Test user', 'email' => $email, 'password' => 'secret-password']);
-        $user->markEmailAsVerified();
-
         return $user;
     }
 

@@ -16,7 +16,8 @@
 .payment-checkout-method input{accent-color:#d66ae4}
 .payment-checkout-method img{grid-column:1/-1;width:100%;height:180px;object-fit:contain;border-radius:5px;background:#fff}
 .payment-checkout-field{display:block;margin:16px 0;color:#e8e2eb;font-size:12px;font-weight:650}
-.payment-checkout-field input{display:block;width:100%;margin-top:7px;padding:10px;border:1px solid #ffffff2b;border-radius:6px;background:#100f14;color:#fff}
+.payment-checkout-field input,.payment-checkout-field select{display:block;width:100%;margin-top:7px;padding:10px;border:1px solid #ffffff2b;border-radius:6px;background:#100f14;color:#fff}
+.admin-payment-qr{display:block;width:min(100%,320px);max-height:380px;margin:12px auto;object-fit:contain;border:1px solid #ffffff24;border-radius:8px;background:#fff}
 .payment-checkout-field small{display:block;margin-top:6px;color:#a49dab;font-size:10px;font-weight:400}
 .payment-checkout-warning,.payment-checkout-notice{margin:16px 0;padding:12px;border:1px solid #e8ab5944;border-radius:7px;background:#9c611319;color:#f2d5a5;font-size:11px;line-height:1.55}
 .payment-checkout-error{border-color:#e35d6744;background:#9c1d2919;color:#ffb6bb}

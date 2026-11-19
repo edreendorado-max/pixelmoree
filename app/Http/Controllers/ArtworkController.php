@@ -6,6 +6,7 @@ use App\Models\Artwork;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -58,6 +59,10 @@ class ArtworkController extends Controller
             'image' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
+        if (isset($validated['item_count']) && (int) $validated['item_count'] < (int) $artwork->item_count) {
+            throw ValidationException::withMessages(['item_count' => 'Edition supply cannot be reduced after item IDs are issued. Increase the supply instead.']);
+        }
+
         $newPath = null;
         $oldPath = null;
         if (isset($validated['image'])) {
@@ -88,6 +93,12 @@ class ArtworkController extends Controller
 
         try {
             $artwork->save();
+            $currentItems = (int) DB::table('artwork_items')->where('artwork_id', $artwork->id)->max('edition_number');
+            $rows = [];
+            for ($edition = $currentItems + 1; $edition <= (int) $artwork->item_count; $edition++) {
+                $rows[] = ['item_id' => (string) Str::uuid(), 'artwork_id' => $artwork->id, 'edition_number' => $edition, 'owner_id' => null, 'status' => 'available', 'created_at' => now(), 'updated_at' => now()];
+            }
+            foreach (array_chunk($rows, 500) as $chunk) DB::table('artwork_items')->insert($chunk);
         } catch (Throwable $exception) {
             if ($newPath !== null) {
                 Storage::disk('public')->delete($newPath);

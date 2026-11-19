@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Image;
 use App\Models\User;
 use App\Mail\NewAccountWelcomeMail;
-use App\Mail\EmailVerificationCodeMail;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -13,9 +12,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
-use Laravel\Socialite\Contracts\Provider as SocialProvider;
-use Laravel\Socialite\Contracts\User as SocialUser;
-use Laravel\Socialite\Facades\Socialite;
 use Tests\TestCase;
 
 class AccountAndImageCrudTest extends TestCase
@@ -41,7 +37,7 @@ class AccountAndImageCrudTest extends TestCase
             'password' => 'StrongPass1!',
             'password_confirmation' => 'StrongPass1!',
             'terms' => '1',
-        ])->assertRedirect('/email/verify');
+        ])->assertRedirect('/user/profile-settings');
 
         $this->assertDatabaseHas('users', [
             'email' => 'artist@example.test',
@@ -51,28 +47,17 @@ class AccountAndImageCrudTest extends TestCase
             return $mail->hasTo('artist@example.test')
                 && $mail->user->name === 'Pixel Artist';
         });
-        $this->get('/email/verify')
+        $user = User::where('email', 'artist@example.test')->firstOrFail();
+        $this->assertSame('pixelartist', $user->username);
+        $this->assertAuthenticatedAs($user);
+        $this->get('/user/profile-settings')
             ->assertOk()
             ->assertSee('data-notification-popup', false)
             ->assertSee('Welcome to Pixmoree, Pixel Artist!');
-        $user = User::where('email', 'artist@example.test')->firstOrFail();
-        $this->assertSame('pixelartist', $user->username);
-        $this->assertGuest();
-        $this->assertFalse($user->hasVerifiedEmail());
-        $this->post('/login', [
-            'email' => $user->email,
-            'password' => 'StrongPass1!',
-        ])->assertRedirect('/user');
-        $this->assertAuthenticatedAs($user);
-        $this->get('/user')->assertOk()->assertDontSee('Verify your email before buying NFTs.');
-        $this->get('/email/verify')->assertOk()->assertSee('artist@example.test');
-        $this->post('/email/verify', ['code' => $this->verificationCodeFor($user)])
-            ->assertRedirect('/user/profile-settings');
 
         $user->refresh();
         $this->assertAuthenticatedAs($user);
         $this->assertTrue(Hash::check('StrongPass1!', $user->password));
-        $this->assertTrue($user->hasVerifiedEmail());
         $this->assertSame('user', $user->role);
 
         $this->get('/user/profile-settings')->assertOk()->assertSee('Pixel Artist')->assertSee('Back to account');
@@ -99,7 +84,7 @@ class AccountAndImageCrudTest extends TestCase
             'name' => 'Returning Artist',
             'email' => 'returning@example.test',
             'password' => Hash::make('secret-password'),
-        ])->markEmailAsVerified();
+        ]);
 
         $this->post('/login', [
             'email' => 'returning@example.test',
@@ -117,41 +102,20 @@ class AccountAndImageCrudTest extends TestCase
             ->assertSee('You are logged out');
     }
 
-    public function test_unverified_user_can_log_in_without_email_delivery_or_an_unrequested_prompt(): void
+    public function test_registration_does_not_require_email_delivery_or_a_verification_code(): void
     {
         config(['mail.default' => 'array']);
-        $user = User::create([
-            'name' => 'Unverified Artist',
-            'email' => 'unverified@example.test',
-            'password' => 'secret-password',
-        ]);
-
-        $this->from('/login')->post('/login', [
-            'email' => $user->email,
-            'password' => 'secret-password',
-        ])->assertRedirect('/user');
-
-        $this->assertAuthenticatedAs($user);
-        $this->assertFalse($user->fresh()->hasVerifiedEmail());
-        $this->get('/user')->assertOk()->assertDontSee('Verify your email');
-    }
-
-    public function test_registration_with_unconfigured_mailer_keeps_the_account_and_shows_a_recoverable_error(): void
-    {
-        config(['mail.default' => 'array']);
-
         $this->post('/register', [
             'name' => 'New Artist',
             'email' => 'new-artist@example.test',
             'password' => 'StrongPass1!',
             'password_confirmation' => 'StrongPass1!',
             'terms' => '1',
-        ])->assertRedirect('/email/verify')
-            ->assertSessionHasErrors('code');
+        ])->assertRedirect('/user/profile-settings');
 
         $user = User::where('email', 'new-artist@example.test')->firstOrFail();
-        $this->assertFalse($user->hasVerifiedEmail());
-        $this->assertGuest();
+        $this->assertAuthenticatedAs($user);
+        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasTable('email_verification_codes'));
     }
 
     public function test_a_user_can_request_and_complete_a_password_reset(): void
@@ -162,7 +126,6 @@ class AccountAndImageCrudTest extends TestCase
             'email' => 'reset@example.test',
             'password' => 'old-password',
         ]);
-        $user->markEmailAsVerified();
 
         $this->get('/forgot-password')->assertOk()->assertSee('Reset password');
         $this->post('/forgot-password', ['email' => $user->email])
@@ -210,53 +173,28 @@ class AccountAndImageCrudTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'password-test@example.test']);
     }
 
-    public function test_verification_rejects_incorrect_codes_and_enforces_the_attempt_limit(): void
+    public function test_email_verification_routes_have_been_removed(): void
     {
-        $this->post('/register', [
-            'name' => 'Code Test',
-            'email' => 'code-test@example.test',
-            'password' => 'StrongPass1!',
-            'password_confirmation' => 'StrongPass1!',
-            'terms' => '1',
-        ]);
-        $user = User::where('email', 'code-test@example.test')->firstOrFail();
-        $code = $this->verificationCodeFor($user);
-
-        for ($attempt = 0; $attempt < 5; $attempt++) {
-            $this->post('/email/verify', ['code' => '000000'])
-                ->assertSessionHasErrors('code');
-        }
-
-        $this->assertDatabaseHas('email_verification_codes', [
-            'user_id' => $user->id,
-            'attempts' => 5,
-        ]);
-        $this->post('/email/verify', ['code' => $code])
-            ->assertSessionHasErrors('code');
-        $this->assertFalse($user->fresh()->hasVerifiedEmail());
+        $this->get('/email/verify')->assertNotFound();
+        $this->post('/email/verify', ['code' => '123456'])->assertNotFound();
+        $this->post('/email/verification/resend')->assertNotFound();
     }
 
-    public function test_changing_email_requires_verification_of_the_new_address(): void
+    public function test_changing_email_does_not_sign_the_user_out_or_require_verification(): void
     {
         $user = User::create([
             'name' => 'Email Change',
             'email' => 'old-address@example.test',
             'password' => Hash::make('SecretPass1!'),
         ]);
-        $user->markEmailAsVerified();
-
         $this->actingAs($user)->post('/user/profile', [
             'name' => $user->name,
             'email' => 'new-address@example.test',
-        ])->assertRedirect('/email/verify');
+        ])->assertRedirect('/user/profile-settings');
 
         $user->refresh();
-        $this->assertFalse($user->hasVerifiedEmail());
-        $this->assertGuest();
-        $this->post('/email/verify', ['code' => $this->verificationCodeFor($user)])
-            ->assertRedirect('/user/profile-settings');
         $this->assertAuthenticatedAs($user->fresh());
-        $this->assertTrue($user->fresh()->hasVerifiedEmail());
+        $this->assertSame('new-address@example.test', $user->email);
     }
 
     public function test_password_reset_request_does_not_disclose_unknown_emails(): void
@@ -270,72 +208,43 @@ class AccountAndImageCrudTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    public function test_google_sign_in_requires_email_verification_before_authentication(): void
+    public function test_google_sign_in_routes_are_removed(): void
     {
-        $this->mockSocialProvider('google', 'google-user-123', 'google@example.test', 'Google Person');
-
-        $this->get('/auth/google/callback')->assertRedirect('/email/verify');
-
-        $user = User::where('email', 'google@example.test')->firstOrFail();
-        $this->assertSame('google-user-123', $user->google_id);
-        $this->assertSame('user', $user->role);
-        $this->assertGuest();
-        $this->assertDatabaseHas('notifications', [
-            'notifiable_id' => $user->id,
-            'type' => \App\Notifications\AccountWelcomeNotification::class,
-        ]);
-        Mail::assertSent(NewAccountWelcomeMail::class, fn (NewAccountWelcomeMail $mail): bool => $mail->hasTo($user->email));
-        $this->get('/email/verify')
-            ->assertOk()
-            ->assertSee('data-notification-popup', false)
-            ->assertSee('Welcome to Pixmoree, Google Person!');
-        $this->post('/email/verify', ['code' => $this->verificationCodeFor($user)])
-            ->assertRedirect('/user/profile-settings');
-        $this->assertAuthenticatedAs($user->fresh());
+        $this->get('/auth/google/redirect')->assertNotFound();
+        $this->get('/auth/google/callback')->assertNotFound();
+        $this->get('/login')->assertOk()->assertDontSee('Continue with Google');
+        $this->assertDatabaseMissing('users', ['email' => 'google@example.test']);
     }
 
-    public function test_facebook_sign_in_requires_email_verification_before_authentication(): void
+    public function test_facebook_sign_in_routes_are_removed(): void
     {
-        $this->mockSocialProvider('facebook', 'facebook-user-456', 'facebook@example.test', 'Facebook Person');
-
-        $this->get('/auth/facebook/callback')->assertRedirect('/email/verify');
-
-        $user = User::where('email', 'facebook@example.test')->firstOrFail();
-        $this->assertSame('facebook-user-456', $user->facebook_id);
-        $this->assertSame('user', $user->role);
-        $this->assertGuest();
-        $this->post('/email/verify', ['code' => $this->verificationCodeFor($user)])
-            ->assertRedirect('/user/profile-settings');
-        $this->assertAuthenticatedAs($user->fresh());
+        $this->get('/auth/facebook/redirect')->assertNotFound();
+        $this->get('/auth/facebook/callback')->assertNotFound();
+        $this->get('/login')->assertOk()->assertDontSee('Continue with Facebook');
+        $this->assertDatabaseMissing('users', ['email' => 'facebook@example.test']);
     }
 
-    public function test_social_sign_in_does_not_link_an_existing_password_account_by_email(): void
+    public function test_removed_social_routes_do_not_authenticate_existing_accounts(): void
     {
         $user = User::create([
             'name' => 'Existing Account',
             'email' => 'existing@example.test',
             'password' => 'secret-password',
         ]);
-        $this->mockSocialProvider('google', 'unlinked-google-id', $user->email, 'Existing Account');
-
-        $this->get('/auth/google/callback')
-            ->assertRedirect('/login')
-            ->assertSessionHasErrors('social');
-
-        $this->assertNull($user->fresh()->google_id);
+        $this->get('/auth/google/callback')->assertNotFound();
+        $this->get('/auth/facebook/callback')->assertNotFound();
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'email' => 'existing@example.test']);
         $this->assertGuest();
     }
 
-    public function test_unconfigured_social_provider_returns_a_login_error(): void
+    public function test_email_password_login_remains_the_only_login_path(): void
     {
-        config([
-            'services.google.client_id' => null,
-            'services.google.client_secret' => null,
-        ]);
-
-        $this->get('/auth/google/redirect')
-            ->assertRedirect('/login')
-            ->assertSessionHasErrors('social');
+        $this->get('/login')
+            ->assertOk()
+            ->assertSee('name="email"', false)
+            ->assertSee('name="password"', false)
+            ->assertDontSee('Continue with Google')
+            ->assertDontSee('Continue with Facebook');
     }
 
     public function test_a_user_can_upload_and_replace_their_profile_banner(): void
@@ -389,7 +298,6 @@ class AccountAndImageCrudTest extends TestCase
             'email' => 'password@example.test',
             'password' => 'secret-password',
         ]);
-        $user->markEmailAsVerified();
 
         $this->actingAs($user)
             ->get('/user/profile-settings')
@@ -515,7 +423,6 @@ class AccountAndImageCrudTest extends TestCase
             'email' => 'admin@example.test',
             'password' => Hash::make('secret-password'),
         ]);
-        $user->markEmailAsVerified();
 
         $this->actingAs($user)->get('/week12/admin')->assertForbidden();
 
@@ -545,35 +452,4 @@ class AccountAndImageCrudTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'missing@example.test']);
     }
 
-    private function mockSocialProvider(string $providerName, string $providerId, string $email, string $name): void
-    {
-        $socialUser = \Mockery::mock(SocialUser::class);
-        $socialUser->shouldReceive('getId')->once()->andReturn($providerId);
-        $socialUser->shouldReceive('getEmail')->once()->andReturn($email);
-        $socialUser->shouldReceive('getName')->andReturn($name);
-        $socialUser->shouldReceive('getNickname')->andReturn(null);
-
-        $provider = \Mockery::mock(SocialProvider::class);
-        $provider->shouldReceive('user')->once()->andReturn($socialUser);
-
-        Socialite::shouldReceive('driver')->once()->with($providerName)->andReturn($provider);
-    }
-
-    private function verificationCodeFor(User $user): string
-    {
-        $code = null;
-        Mail::assertSent(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use ($user, &$code): bool {
-            if ($mail->hasTo($user->email)) {
-                $code = $mail->code;
-
-                return true;
-            }
-
-            return false;
-        });
-
-        $this->assertIsString($code);
-
-        return $code;
-    }
 }

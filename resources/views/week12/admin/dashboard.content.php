@@ -16,7 +16,7 @@
         <span><strong>Beta status:</strong> Payments remain subject to the configured feature gate. Review submitted requests only when enabled.</span>
     </div>
     <div class="row g-3 mb-4">
-        <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Accounts</span><strong><?= number_format($userCount) ?></strong><small><i class="bi bi-people"></i> <?= number_format($unverifiedUserCount) ?> email unverified</small></article></div>
+        <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Accounts</span><strong><?= number_format($userCount) ?></strong><small><i class="bi bi-people"></i> Registered members</small></article></div>
         <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Artwork listings</span><strong><?= number_format($counts['total']) ?></strong><small><i class="bi bi-image"></i> <?= number_format($counts['listed']) ?> listed · <?= number_format($counts['review']) ?> in review</small></article></div>
         <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Payments to review</span><strong><?= number_format($pendingPayments) ?></strong><small><i class="bi bi-receipt"></i> <?= number_format($completedPayments) ?> approved or paid</small></article></div>
         <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Resales to review</span><strong><?= number_format($pendingResaleCount) ?></strong><small><i class="bi bi-shield-check"></i> Ownership evidence pending</small></article></div>

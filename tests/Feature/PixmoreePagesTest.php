@@ -31,7 +31,7 @@ class PixmoreePagesTest extends TestCase
         $this->get('/week12')->assertRedirect('/store');
     }
 
-    public function test_store_lists_only_listed_artworks_and_prompts_unverified_users_on_purchase(): void
+    public function test_store_and_checkout_work_without_email_verification(): void
     {
         config(['payments.enabled' => true]);
         $user = User::create([
@@ -39,7 +39,12 @@ class PixmoreePagesTest extends TestCase
             'email' => 'store-buyer@example.test',
             'password' => 'secret-password',
         ]);
-        DB::table('artworks')->insert([
+        $seller = User::create([
+            'name' => 'Store Seller',
+            'email' => 'store-seller@example.test',
+            'password' => 'secret-password',
+        ]);
+        foreach ([
             [
                 'id' => 'store-listed-artwork',
                 'user_id' => $user->id,
@@ -50,8 +55,6 @@ class PixmoreePagesTest extends TestCase
                 'image' => 'store-listed.png',
                 'description' => 'A listed piece.',
                 'status' => 'Listed',
-                'created_at' => now(),
-                'updated_at' => now(),
             ],
             [
                 'id' => 'store-draft-artwork',
@@ -63,16 +66,26 @@ class PixmoreePagesTest extends TestCase
                 'image' => 'store-draft.png',
                 'description' => 'A draft piece.',
                 'status' => 'Draft',
-                'created_at' => now(),
-                'updated_at' => now(),
             ],
-        ]);
+            [
+                'id' => 'store-seller-artwork',
+                'user_id' => $seller->id,
+                'title' => 'Store Seller Artwork',
+                'creator' => $seller->name,
+                'category' => 'Digital Art',
+                'price' => 3.50,
+                'image' => 'store-seller.png',
+                'description' => 'A seller piece.',
+                'status' => 'Listed',
+            ],
+        ] as $artwork) {
+            Artwork::create($artwork + ['item_count' => 1]);
+        }
 
         $this->get('/store')->assertRedirect('/login');
         $this->get('/week12')->assertRedirect('/store');
 
-        $this->withSession(['email_verification_user_id' => $user->id])
-            ->actingAs($user)
+        $this->actingAs($user)
             ->get('/store')
             ->assertOk()
             ->assertSee('Store Listed Artwork')
@@ -80,13 +93,8 @@ class PixmoreePagesTest extends TestCase
             ->assertSee('Your artwork')
             ->assertDontSee('href="' . route('user.checkout', ['artworkId' => 'store-listed-artwork']) . '"', false);
 
-        $this->get(route('user.checkout', ['artworkId' => 'store-listed-artwork']))
-            ->assertRedirect(route('verification.notice'));
-
-        $this->get(route('verification.notice'))
-            ->assertOk()
-            ->assertSee('Verify your email before buying NFTs.')
-            ->assertSee($user->email);
+        $this->get(route('user.checkout', ['artworkId' => 'store-seller-artwork']))->assertOk();
+        $this->get('/email/verify')->assertNotFound();
         $this->assertDatabaseCount('payment_orders', 0);
     }
 
@@ -325,7 +333,7 @@ class PixmoreePagesTest extends TestCase
 
         $this->getJson('/api/pixel-coins')->assertNotFound();
         $this->postJson('/api/pixel-coins/top-ups', ['amount' => 1000])->assertNotFound();
-        $this->actingAs($user)->get('/user/pixel-coin')->assertRedirect(route('user.purchases'));
+        $this->actingAs($user)->get('/user/pixel-coin')->assertRedirect(route('user.pixel-coins'));
 
         $this->assertDatabaseHas('users', ['id' => $user->id, 'pixel_coin_balance' => 0]);
         $this->assertDatabaseCount('pixel_coin_transactions', 0);
@@ -458,54 +466,29 @@ class PixmoreePagesTest extends TestCase
             ]);
         }
 
-        DB::table('payment_orders')->insert([
-            [
-                'purchase_id' => (string) Str::uuid(),
-                'buyer_id' => $buyer->id,
-                'seller_id' => $seller->id,
-                'artwork_id' => 'seller-artwork',
-                'type' => 'nft_purchase',
-                'amount_minor' => 24500,
-                'payment_method' => 'gcash',
-                'status' => 'approved',
+        foreach ([
+            ['user_id' => $seller->id, 'artwork_id' => 'seller-artwork', 'amount' => 16666, 'balance_after' => 16666],
+            ['user_id' => $otherSeller->id, 'artwork_id' => 'other-artwork', 'amount' => 25000, 'balance_after' => 25000],
+        ] as $sale) {
+            DB::table('pixel_coin_transactions')->insert($sale + [
+                'transaction_id' => (string) Str::uuid(),
+                'type' => 'sale',
+                'direction' => 'credit',
+                'description' => 'Approved sale',
                 'created_at' => $now,
                 'updated_at' => $now,
-            ],
-            [
-                'purchase_id' => (string) Str::uuid(),
-                'buyer_id' => $buyer->id,
-                'seller_id' => $otherSeller->id,
-                'artwork_id' => 'other-artwork',
-                'type' => 'nft_purchase',
-                'amount_minor' => 25000,
-                'payment_method' => 'gcash',
-                'status' => 'approved',
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-            [
-                'purchase_id' => (string) Str::uuid(),
-                'buyer_id' => $buyer->id,
-                'seller_id' => $seller->id,
-                'artwork_id' => 'seller-artwork',
-                'type' => 'nft_purchase',
-                'amount_minor' => 5000,
-                'payment_method' => 'gcash',
-                'status' => 'pending_review',
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-        ]);
+            ]);
+        }
 
         $this->actingAs($seller)
             ->get('/user/earnings')
             ->assertOk()
             ->assertSee('Creator earnings')
-            ->assertSee('PHP 245.00')
+            ->assertSee('166.66 PC')
             ->assertSee('Seller Artwork')
             ->assertDontSee('Other Artwork</td>')
-            ->assertSee('data-earnings-total="24500"', false)
-            ->assertSee('Payments are made directly to creators.');
+            ->assertSee('data-earnings-total="16666"', false)
+            ->assertSee('credited after GCash payment review');
     }
 
     public function test_store_has_no_wallet_or_top_up_ui(): void

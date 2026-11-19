@@ -5,12 +5,11 @@ namespace App\Http\Controllers;
 use App\Mail\NewAccountWelcomeMail;
 use App\Models\User;
 use App\Notifications\AccountWelcomeNotification;
-use App\Support\EmailDeliveryNotConfigured;
-use App\Support\EmailVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -24,7 +23,7 @@ class AuthController extends Controller
         return view('register');
     }
 
-    public function store(Request $request, EmailVerification $emailVerification): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -52,32 +51,27 @@ class AuthController extends Controller
             'password' => $validated['password'],
         ]);
         $user->notify(new AccountWelcomeNotification());
+        Auth::login($user);
+        $request->session()->regenerate();
 
-        $welcomePopup = [
+        $redirect = redirect()->route('user.profile-settings')->with('notification_popup', [
             'title' => 'Welcome to Pixmoree, '.$user->name.'!',
-            'message' => 'Your account is ready. Check your inbox for a welcome note and verify your email to finish setting up.',
-        ];
-        $request->session()->put('email_verification_user_id', $user->id);
-        try {
-            $emailVerification->sendCode($user, false);
-        } catch (EmailDeliveryNotConfigured) {
-            return redirect()->route('verification.notice')
-                ->withErrors([
-                    'code' => 'Your account was created, but we could not send a verification email. Configure MAIL_* in .env, then request a new code.',
-                ])
-                ->with('notification_popup', $welcomePopup);
-        }
-
-        $redirect = redirect()->route('verification.notice')
-            ->with('status', 'A verification code was sent to your email address. Verify it before signing in.')
-            ->with('notification_popup', $welcomePopup);
-
-        try {
-            Mail::to($user->email)->send(new NewAccountWelcomeMail($user));
-        } catch (TransportExceptionInterface) {
-            $redirect->withErrors([
-                'email' => 'Your account was created and the verification code was sent, but we could not send the welcome email.',
+            'message' => 'Your account is ready. You can explore the marketplace and share your work.',
+        ]);
+        $senderAddress = config('mail.from.address');
+        if (! is_string($senderAddress) || filter_var($senderAddress, FILTER_VALIDATE_EMAIL) === false) {
+            Log::warning('Optional account welcome email skipped because MAIL_FROM_ADDRESS is not configured.', [
+                'user_id' => $user->id,
             ]);
+        } else {
+            try {
+                Mail::to($user->email)->send(new NewAccountWelcomeMail($user));
+            } catch (TransportExceptionInterface $exception) {
+                Log::warning('Optional account welcome email could not be delivered.', [
+                    'user_id' => $user->id,
+                    'exception' => $exception::class,
+                ]);
+            }
         }
 
         return $redirect;
@@ -103,65 +97,10 @@ class AuthController extends Controller
                 ->onlyInput('email');
         }
 
-        if (! $user->hasVerifiedEmail()) {
-            $request->session()->put('email_verification_user_id', $user->id);
-        }
-
         Auth::login($user);
         $request->session()->regenerate();
 
         return redirect()->intended(route($user->isAdmin() ? 'week12.admin' : 'user'));
-    }
-
-    public function verificationNotice(Request $request): RedirectResponse|View
-    {
-        $user = User::query()->find($request->session()->get('email_verification_user_id'));
-        if ($user === null) {
-            return redirect()->route('login')->withErrors([
-                'email' => 'Sign in or create an account to verify an email address.',
-            ]);
-        }
-        if ($user->hasVerifiedEmail()) {
-            return redirect()->route('login')->with('status', 'Your email is verified. You can now sign in.');
-        }
-
-        return view('auth.verify-email', ['user' => $user]);
-    }
-
-    public function verifyEmail(Request $request, EmailVerification $emailVerification): RedirectResponse
-    {
-        $validated = $request->validate(['code' => ['required', 'digits:6']]);
-        $user = User::query()->findOrFail($request->session()->get('email_verification_user_id'));
-        if (! $emailVerification->verify($user, $validated['code'])) {
-            throw ValidationException::withMessages(['code' => 'That verification code is incorrect.']);
-        }
-
-        Auth::login($user->fresh());
-        $request->session()->forget('email_verification_user_id');
-        $request->session()->regenerate();
-
-        return redirect()->route('user.profile-settings')
-            ->with('status', 'Your email has been verified and your account is ready.');
-    }
-
-    public function resendVerification(Request $request, EmailVerification $emailVerification): RedirectResponse
-    {
-        $user = User::query()->findOrFail($request->session()->get('email_verification_user_id'));
-        if ($user->hasVerifiedEmail()) {
-            return redirect()->route('login')->with('status', 'Your email is already verified.');
-        }
-
-        try {
-            $sent = $emailVerification->sendCode($user);
-        } catch (EmailDeliveryNotConfigured) {
-            return back()->withErrors([
-                'code' => 'Email delivery is not configured. Configure MAIL_* in .env, then request a new code.',
-            ]);
-        }
-
-        return back()->with('status', $sent
-            ? 'A new verification code was sent to your email address.'
-            : 'A code was sent recently. Check your inbox before requesting another.');
     }
 
     public function logout(Request $request): RedirectResponse

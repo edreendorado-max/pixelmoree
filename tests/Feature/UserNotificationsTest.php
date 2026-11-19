@@ -20,8 +20,7 @@ class UserNotificationsTest extends TestCase
             'password' => 'StrongPass1!',
             'password_confirmation' => 'StrongPass1!',
             'terms' => '1',
-        ])->assertRedirect(route('verification.notice'))
-            ->assertSessionHasErrors('code');
+        ])->assertRedirect(route('user.profile-settings'));
 
         $user = User::query()->where('email', 'new-artist@example.test')->firstOrFail();
 
@@ -40,7 +39,7 @@ class UserNotificationsTest extends TestCase
             ->get(route('user.notifications'))
             ->assertOk()
             ->assertSee('Welcome to Pixmoree')
-            ->assertSee('Verify your email address to complete setup.');
+            ->assertSee('Your account is ready. Explore the marketplace and share your work.');
     }
 
     public function test_users_can_only_manage_their_own_notifications(): void
