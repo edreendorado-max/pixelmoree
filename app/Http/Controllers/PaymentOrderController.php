@@ -73,7 +73,8 @@ class PaymentOrderController extends Controller
             'artwork_id' => ['required', 'string', 'exists:artworks,id'],
             'item_id' => ['required', 'uuid', 'exists:artwork_items,item_id'],
             'payment_method' => ['required', 'in:simulation'],
-            'checkout_option' => ['required', 'in:card,gcash,maya'],
+            'checkout_option' => ['required', 'in:card,bank_transfer,gcash,maya'],
+            'simulation_reference' => ['required', 'string', 'max:120', 'regex:/\A[A-Za-z0-9][A-Za-z0-9_-]*\z/'],
             'transaction_reference' => ['prohibited'],
             'proof' => ['prohibited'],
         ]);
@@ -95,7 +96,9 @@ class PaymentOrderController extends Controller
                 'purchase_id' => $orderId, 'buyer_id' => $buyer->id, 'seller_id' => $seller->id,
                 'artwork_id' => $artwork->id, 'item_id' => $item->item_id, 'type' => 'nft_purchase',
                 'amount_minor' => $amountMinor, 'currency' => 'PHP',
-                'payment_method' => 'simulation', 'status' => 'approved', 'reviewed_at' => now(),
+                'payment_method' => 'simulation', 'payment_provider' => $validated['checkout_option'],
+                'simulation_reference' => $validated['simulation_reference'],
+                'status' => 'approved', 'reviewed_at' => now(),
             ]);
             $this->acquireItem($order, $item);
             $ledger->credit($seller, $amountMinor, 'sale', $orderId);

@@ -93,7 +93,13 @@ class PixmoreePagesTest extends TestCase
             ->assertSee('Store Listed Artwork')
             ->assertDontSee('Store Draft Artwork')
             ->assertSee('Your artwork')
+            ->assertSee('Back to account')
             ->assertDontSee('href="' . route('user.checkout', ['artworkId' => 'store-listed-artwork']) . '"', false);
+
+        $this->get(route('week12.client.artwork', ['id' => 'store-seller-artwork']))
+            ->assertOk()
+            ->assertSee('href="' . route('user.checkout', ['artworkId' => 'store-seller-artwork']) . '"', false)
+            ->assertSee('Buy NFT');
 
         $this->get(route('user.checkout', ['artworkId' => 'store-seller-artwork']))->assertOk();
         $this->get('/email/verify')->assertNotFound();

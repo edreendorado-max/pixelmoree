@@ -34,6 +34,12 @@
                     <div><dt>Artwork</dt><dd>{{ $order->artwork?->title ?? 'Artwork unavailable' }}</dd></div>
                     <div><dt>Edition</dt><dd>{{ $editionNumber ? number_format((int) $editionNumber) : 'Not available' }}</dd></div>
                     <div><dt>Unique item ID</dt><dd class="receipt-id">{{ $order->item_id ?? 'Not available' }}</dd></div>
+                    @if ($order->payment_provider)
+                        <div><dt>Payment account</dt><dd>{{ ['bank_transfer' => 'Bank transfer', 'gcash' => 'GCash', 'maya' => 'Maya', 'card' => 'Card'][$order->payment_provider] ?? 'Other' }}</dd></div>
+                    @endif
+                    @if ($order->simulation_reference)
+                        <div><dt>Simulation reference</dt><dd class="receipt-id">{{ $order->simulation_reference }}</dd></div>
+                    @endif
                 @endif
                 <div><dt>{{ $isWithdrawal ? 'Recorded withdrawal' : 'Recorded amount' }}</dt><dd class="receipt-amount">PHP {{ number_format($order->amount_minor / 100, 2) }}</dd></div>
             </dl>

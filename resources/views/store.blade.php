@@ -9,7 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ asset('css/site.css') }}?v=20261127-creator-ui" rel="stylesheet">
-    <link href="{{ asset('css/store.css') }}?v=20261122" rel="stylesheet">
+    <link href="{{ asset('css/store.css') }}?v=20261122-back-nav" rel="stylesheet">
     <link href="{{ asset('css/typography.css') }}?v=20261127-creator-ui" rel="stylesheet">
 </head>
 <body class="store-page">
@@ -28,6 +28,7 @@
     </nav>
 </header>
 <main class="store-main">
+    <a class="store-back-link" href="{{ route('user') }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to account</a>
     <header class="store-heading">
         <p class="store-eyebrow"><i class="bi bi-shop-window" aria-hidden="true"></i> PIXMOREE MARKETPLACE</p>
         <h1>NFT Store</h1>

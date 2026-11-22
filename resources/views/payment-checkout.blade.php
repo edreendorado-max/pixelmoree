@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ asset('css/site.css') }}?v=20261127-creator-ui" rel="stylesheet">
     <link href="{{ asset('css/store.css') }}?v=20261122" rel="stylesheet">
-    <link href="{{ asset('css/payment-checkout.css') }}?v=20261122-checkout" rel="stylesheet">
+    <link href="{{ asset('css/payment-checkout.css') }}?v=20261122-simulated-account" rel="stylesheet">
     <link href="{{ asset('css/typography.css') }}?v=20261127-creator-ui" rel="stylesheet">
 </head>
 <body class="payment-checkout-page">
@@ -37,11 +37,16 @@
         <form id="checkout-purchase" method="post" action="{{ route('user.purchase-orders.store') }}">
             @csrf<input type="hidden" name="artwork_id" value="{{ $artwork->id }}"><input type="hidden" name="payment_method" value="simulation">
             <fieldset class="payment-checkout-methods">
-                <legend>Choose a payment option</legend>
+                <legend>Choose a payment account</legend>
                 <label class="payment-checkout-method">
                     <input type="radio" name="checkout_option" value="card" @checked(old('checkout_option', 'card') === 'card') required>
                     <i class="bi bi-credit-card-2-front" aria-hidden="true"></i>
                     <span>Card</span>
+                </label>
+                <label class="payment-checkout-method">
+                    <input type="radio" name="checkout_option" value="bank_transfer" @checked(old('checkout_option') === 'bank_transfer') required>
+                    <i class="bi bi-bank" aria-hidden="true"></i>
+                    <span>Bank transfer</span>
                 </label>
                 <label class="payment-checkout-method">
                     <input type="radio" name="checkout_option" value="gcash" @checked(old('checkout_option') === 'gcash') required>
@@ -54,10 +59,14 @@
                     <span>Maya</span>
                 </label>
             </fieldset>
+            <label class="payment-checkout-field" for="simulation_reference">Simulated payment reference
+                <input id="simulation_reference" name="simulation_reference" type="text" value="{{ old('simulation_reference') }}" maxlength="120" pattern="[A-Za-z0-9][A-Za-z0-9_-]*" autocomplete="off" placeholder="e.g. DEMO-ORDER-001" required>
+                <small>Enter a demo reference only. Do not enter real bank or e-wallet credentials or transaction details.</small>
+            </label>
             <label class="payment-checkout-field">Choose the edition item
                 <select name="item_id" required>@foreach ($items as $item)<option value="{{ $item->item_id }}">Edition {{ $item->edition_number }}</option>@endforeach</select>
             </label>
-            <p class="payment-checkout-notice" role="note">No payment provider is connected. Your selected option does not charge you; this order records the purchase and edition transfer in your Pixmoree account.</p>
+            <p class="payment-checkout-notice" role="note">No payment provider is connected. Your selected option and demo reference do not charge you; this order records the purchase and edition transfer in your Pixmoree account.</p>
             <button class="store-buy-button" type="submit">Place order · PHP {{ number_format($amountMinor / 100, 2) }}</button>
         </form>
     </section>

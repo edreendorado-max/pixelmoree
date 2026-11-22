@@ -9,6 +9,9 @@
 .store-header nav form{margin:0}
 .store-header nav button{border-color:#ffffff20;cursor:pointer}
 .store-main{width:min(1280px,calc(100% - 48px));margin:0 auto;padding:42px 0 72px}
+.store-back-link{display:inline-flex;align-items:center;gap:7px;margin-bottom:16px;color:#c6a4d5;font-size:11px;text-decoration:none}
+.store-back-link:hover{color:#8be3f3}
+.store-back-link:focus-visible{outline:3px solid #8be3f3;outline-offset:3px}
 .store-heading{margin:0 0 22px}
 .store-heading .store-eyebrow{display:flex;align-items:center;gap:8px;margin:0 0 9px;color:#dc8eea;font-size:10px;font-weight:750;letter-spacing:.14em}
 .store-heading .store-eyebrow i{font-size:13px}

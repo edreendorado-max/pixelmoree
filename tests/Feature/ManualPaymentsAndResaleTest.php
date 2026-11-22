@@ -31,10 +31,12 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->actingAs($buyer)->get(route('user.checkout', $artwork->id))
             ->assertOk()
             ->assertSee('ORDER CHECKOUT')
-            ->assertSee('Choose a payment option')
+            ->assertSee('Choose a payment account')
             ->assertSee('value="card"', false)
+            ->assertSee('value="bank_transfer"', false)
             ->assertSee('value="gcash"', false)
             ->assertSee('value="maya"', false)
+            ->assertSee('name="simulation_reference"', false)
             ->assertSee('No payment provider is connected.')
             ->assertSee(asset('css/store.css'), false)
             ->assertSee('Choose the edition item');
@@ -43,11 +45,14 @@ class ManualPaymentsAndResaleTest extends TestCase
             'item_id' => $itemId,
             'payment_method' => 'simulation',
             'checkout_option' => 'card',
+            'simulation_reference' => 'DEMO-PURCHASE-001',
         ])->assertRedirect(route('user.purchases'))->assertSessionHas('status');
 
         $order = PaymentOrder::query()->where('buyer_id', $buyer->id)->firstOrFail();
         $this->assertSame('approved', $order->status);
         $this->assertSame('simulation', $order->payment_method);
+        $this->assertSame('card', $order->payment_provider);
+        $this->assertSame('DEMO-PURCHASE-001', $order->simulation_reference);
         $this->assertSame($buyer->id, (int) DB::table('artwork_items')->where('item_id', $itemId)->value('owner_id'));
         $this->assertDatabaseHas('ownership_transfers', ['item_id' => $itemId, 'purchase_id' => $order->purchase_id]);
         $this->assertSame((int) $order->amount_minor, (int) $seller->fresh()->cash_balance_minor);
@@ -68,6 +73,9 @@ class ManualPaymentsAndResaleTest extends TestCase
             ->assertSee('Edition ownership transfer')
             ->assertSee($seller->name)
             ->assertSee($buyer->name)
+            ->assertSee('Payment account')
+            ->assertSee('Simulation reference')
+            ->assertSee('DEMO-PURCHASE-001')
             ->assertSee($itemId);
         $this->actingAs($seller)->get(route('admin.payment-orders'))->assertForbidden();
         $this->actingAs($this->admin())->get(route('admin.payment-orders'))
@@ -90,7 +98,15 @@ class ManualPaymentsAndResaleTest extends TestCase
             'artwork_id' => $artwork->id,
             'item_id' => $itemId,
             'payment_method' => 'simulation',
+            'checkout_option' => 'bank_transfer',
+        ])->assertSessionHasErrors('simulation_reference');
+
+        $this->post(route('user.purchase-orders.store'), [
+            'artwork_id' => $artwork->id,
+            'item_id' => $itemId,
+            'payment_method' => 'simulation',
             'checkout_option' => 'card',
+            'simulation_reference' => 'DEMO-REFERENCE-001',
             'transaction_reference' => 'NO-EXTERNAL-PAYMENT',
         ])->assertSessionHasErrors('transaction_reference');
 
@@ -99,6 +115,7 @@ class ManualPaymentsAndResaleTest extends TestCase
             'item_id' => $itemId,
             'payment_method' => 'simulation',
             'checkout_option' => 'cash',
+            'simulation_reference' => 'DEMO-REFERENCE-002',
         ])->assertSessionHasErrors('checkout_option');
 
         $this->post(route('user.purchase-orders.store'), [
@@ -113,9 +130,9 @@ class ManualPaymentsAndResaleTest extends TestCase
     {
         $seller = $this->user('options-seller@example.test');
         $buyer = $this->user('options-buyer@example.test');
-        $artwork = $this->artwork($seller, 3);
+        $artwork = $this->artwork($seller, 4);
 
-        foreach (['card', 'gcash', 'maya'] as $option) {
+        foreach (['card', 'bank_transfer', 'gcash', 'maya'] as $index => $option) {
             $itemId = DB::table('artwork_items')
                 ->where('artwork_id', $artwork->id)
                 ->where('status', 'available')
@@ -130,13 +147,18 @@ class ManualPaymentsAndResaleTest extends TestCase
                 'item_id' => $itemId,
                 'payment_method' => 'simulation',
                 'checkout_option' => $option,
+                'simulation_reference' => 'DEMO-OPTION-' . $index,
             ])->assertRedirect(route('user.purchases'));
         }
 
-        $this->assertDatabaseCount('payment_orders', 3);
+        $this->assertDatabaseCount('payment_orders', 4);
         $this->assertSame(
-            ['simulation', 'simulation', 'simulation'],
+            ['simulation', 'simulation', 'simulation', 'simulation'],
             PaymentOrder::query()->orderBy('created_at')->pluck('payment_method')->all(),
+        );
+        $this->assertSame(
+            ['card', 'bank_transfer', 'gcash', 'maya'],
+            PaymentOrder::query()->orderBy('created_at')->pluck('payment_provider')->all(),
         );
     }
 
@@ -169,7 +191,7 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->actingAs($buyer)->get(route('user.checkout', $artwork->id))->assertOk();
         $this->post(route('user.purchase-orders.store'), [
             'artwork_id' => $artwork->id, 'item_id' => $itemId, 'payment_method' => 'simulation',
-            'checkout_option' => 'card',
+            'checkout_option' => 'card', 'simulation_reference' => 'DEMO-RESALE-001',
         ])->assertRedirect(route('user.purchases'));
 
         $this->assertSame($buyer->id, (int) DB::table('artwork_items')->where('item_id', $itemId)->value('owner_id'));

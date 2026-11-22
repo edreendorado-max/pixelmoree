@@ -17,6 +17,11 @@
                 <strong><?= week12_escape($artwork['price']) ?> ETH</strong>
                 <span><?= number_format((int) $artwork['item_count']) ?> items in this edition</span>
             </div>
+            <?php if ($artwork['status'] === 'Listed' && config('payments.enabled') && (int) ($artwork['user_id'] ?? 0) !== (int) auth()->id()): ?>
+                <a class="btn w12-btn-primary w12-detail-buy mt-3" href="<?= week12_escape(route('user.checkout', ['artworkId' => $artwork['id']])) ?>">
+                    <i class="bi bi-bag-check" aria-hidden="true"></i> Buy NFT
+                </a>
+            <?php endif; ?>
             <div class="w12-engagement-panel" data-engagement-metrics="artwork" data-entity-id="<?= week12_escape($artwork['id']) ?>" data-views="<?= (int) $artwork['views_count'] ?>" data-likes="<?= (int) $artwork['likes_count'] ?>">
                 <span><i class="bi bi-eye" aria-label="Views"></i> <span data-engagement-views><?= number_format((int) $artwork['views_count']) ?></span> views</span>
                 <?php if (auth()->check() && (int) auth()->id() !== (int) ($artwork['user_id'] ?? 0)): ?>

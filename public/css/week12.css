@@ -77,6 +77,7 @@ body {
 .w12-price-panel span, .w12-info-panel dt { color: var(--w12-muted); font-size: .82rem; }
 .w12-price-panel span small { font-size: .72rem; }
 .w12-price-panel strong { color: var(--w12-cyan); font-size: 1.45rem; }
+.w12-detail-buy { display: inline-flex; align-items: center; gap: .5rem; min-height: 46px; padding: .7rem 1.25rem; }
 .w12-info-panel dd { color: #f1eff8; font-size: .86rem; }
 .w12-stat-card { height: 100%; padding: 1.1rem; }
 .w12-stat-card span { display: block; color: #c3bfd4; font-size: .82rem; }

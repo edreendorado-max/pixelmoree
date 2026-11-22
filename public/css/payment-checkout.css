@@ -10,7 +10,7 @@
 .payment-checkout-summary small,.payment-checkout-summary p{color:#a9a2b0;font-size:11px}
 .payment-checkout-summary h2{margin:5px 0 8px;font-size:18px}
 .payment-checkout-summary strong{color:#f0a2f5;font-size:20px}
-.payment-checkout-methods{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0;padding:0;border:0}
+.payment-checkout-methods{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0;padding:0;border:0}
 .payment-checkout-methods legend{grid-column:1/-1;margin-bottom:1px;color:#f4eff7;font-size:13px;font-weight:700}
 .payment-checkout-method{display:flex;align-items:center;gap:10px;min-height:54px;padding:13px;border:1px solid #ffffff25;border-radius:8px;background:#111016;color:#eee;font-size:12px;font-weight:700;cursor:pointer;transition:border-color .16s ease,background .16s ease}
 .payment-checkout-method:has(input:checked){border-color:#d66cdd;background:#d66cdd16;box-shadow:0 0 0 1px #d66cdd33}
