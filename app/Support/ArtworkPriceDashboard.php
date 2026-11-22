@@ -3,11 +3,47 @@
 namespace App\Support;
 
 use App\Models\Artwork;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ArtworkPriceDashboard
 {
+    public function simulatedEstimate(Artwork $artwork, CarbonInterface|string|null $date = null): array
+    {
+        $estimate = $artwork->marketEstimate();
+        $baseValue = (float) $estimate['value'];
+        $simulatedValue = self::simulatedDailyPrice(
+            $baseValue,
+            (string) $artwork->getKey(),
+            $date,
+        );
+        $estimate['simulation_change_percent'] = $baseValue > 0
+            ? round(($simulatedValue - $baseValue) / $baseValue * 100, 1)
+            : 0.0;
+        $estimate['value'] = $simulatedValue;
+
+        return $estimate;
+    }
+
+    public static function simulatedDailyPrice(
+        float $baseValue,
+        string $artworkId,
+        CarbonInterface|string|null $date = null,
+    ): float {
+        $day = $date === null
+            ? CarbonImmutable::today()
+            : ($date instanceof CarbonInterface ? CarbonImmutable::instance($date) : CarbonImmutable::parse($date));
+        $dailySignal = hexdec(substr(hash('sha256', $artworkId.'|'.$day->toDateString()), 0, 8));
+        $basisPoints = ($dailySignal % 501) - 250;
+        if ($basisPoints === 0) {
+            $basisPoints = 5;
+        }
+
+        return round(max(0, $baseValue * (1 + $basisPoints / 10000)), 2);
+    }
+
     public function captureDailySnapshot(): int
     {
         $artworks = Artwork::query()
@@ -33,13 +69,13 @@ class ArtworkPriceDashboard
 
         $now = now();
         $snapshotDate = $now->toDateString();
-        $rows = $artworks->map(static function (Artwork $artwork) use ($creatorSales, $now, $snapshotDate): array {
+        $rows = $artworks->map(function (Artwork $artwork) use ($creatorSales, $now, $snapshotDate): array {
             $artwork->setAttribute('creator_sold_count', (int) ($creatorSales[$artwork->user_id] ?? 0));
 
             return [
                 'artwork_id' => $artwork->id,
                 'snapshot_date' => $snapshotDate,
-                'price' => $artwork->marketEstimate()['value'],
+                'price' => $this->simulatedEstimate($artwork, $now)['value'],
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
@@ -66,14 +102,19 @@ class ArtworkPriceDashboard
             ->where('snapshot_date', $comparisonDate)
             ->pluck('price', 'artwork_id');
 
-        $movers = $artworks->map(static function (Artwork $artwork) use ($previousPrices): ?Artwork {
-            $previousPrice = (float) ($previousPrices[$artwork->id] ?? 0);
-
-            if ($previousPrice <= 0) {
-                return null;
+        $movers = $artworks->map(function (Artwork $artwork) use ($previousPrices, $comparisonDate): ?Artwork {
+            $currentEstimate = $artwork->getAttribute('simulated_market_estimate');
+            if (! is_array($currentEstimate)) {
+                $currentEstimate = $this->simulatedEstimate($artwork);
+                $artwork->setAttribute('simulated_market_estimate', $currentEstimate);
             }
 
-            $currentPrice = (float) $artwork->marketEstimate()['value'];
+            $previousPrice = (float) ($previousPrices[$artwork->id] ?? 0);
+            if ($previousPrice <= 0) {
+                $previousPrice = $this->simulatedEstimate($artwork, $comparisonDate)['value'];
+            }
+
+            $currentPrice = (float) $currentEstimate['value'];
             $change = $currentPrice - $previousPrice;
 
             if ($change == 0.0) {

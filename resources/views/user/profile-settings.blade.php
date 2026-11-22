@@ -140,7 +140,7 @@
                         <label for="new-password-confirmation">Confirm new password</label>
                         <input id="new-password-confirmation" name="new_password_confirmation" type="password" minlength="6" maxlength="128" autocomplete="new-password" required>
                     </div>
-                    <small class="profile-settings-help">Use at least 6 characters, including an uppercase letter, a number, and a special character.</small>
+                    <small class="profile-settings-help">Use at least 6 characters, including an uppercase letter, a number, and a special character. This updates your password in-app; no email is sent.</small>
                     <button class="profile-settings-secondary-button" type="submit">Update password</button>
                 </form>
             </section>

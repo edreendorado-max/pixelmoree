@@ -57,7 +57,7 @@ This makes the development server reachable to devices on the same trusted Wi-Fi
 
 ## Accounts and password reset
 
-Registration signs the new account in immediately; email verification is not required. Members sign in with email or username and password. Social sign-in is disabled. Password reset links expire after 60 minutes and require a configured SMTP provider to arrive in a real inbox. Optional welcome emails use the same mail configuration. Never commit SMTP credentials.
+Registration signs the new account in immediately; email verification is not required. Members sign in with email or username and password. Social sign-in is disabled. In local development, password reset generates a temporary link on the page and sends no email. Outside local development, reset links expire after 60 minutes and require a configured SMTP provider to arrive in a real inbox. Changing a password from profile settings updates it directly after confirming the current password and does not send email. Optional welcome emails use the same mail configuration. Never commit SMTP credentials.
 
 New passwords, including reset and profile password changes, must be at least six characters and include an uppercase letter, a number, and a special character.
 
@@ -91,7 +91,7 @@ Users can update their name, email, phone, bio, and profile image in `/user/prof
 
 Admins can manage users, moderate artwork, update listing prices, review resale ownership evidence, inspect transaction records and analytics, and edit website content from `/week12/admin`. Simulated transactions complete automatically; there is no payment approval screen. Resale approval publishes a listing and is not a copyright determination.
 
-Marketplace cards show creator asking prices in ETH. Checkout displays the simulated PHP amount using `PAYMENTS_PHP_PER_ETH`. The member dashboard shows estimated artwork values and daily gainers/decliners; these are not completed sale prices. Run Laravel's scheduler so `artworks:prices:snapshot` can record a daily estimate.
+Marketplace cards show creator asking prices in ETH. Checkout displays the simulated PHP amount using `PAYMENTS_PHP_PER_ETH`. The member dashboard shows estimated artwork values and daily gainers/decliners. A repeatable, date-based simulation supplies daily market movement immediately; the estimates are not completed sale prices. Run Laravel's scheduler so `artworks:prices:snapshot` can preserve each day's simulated values as history.
 
 ## Production readiness
 

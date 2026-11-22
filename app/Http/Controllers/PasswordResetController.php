@@ -20,11 +20,26 @@ class PasswordResetController extends Controller
 
     public function sendLink(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'email' => ['required', 'email', 'max:254'],
         ]);
+        $email = mb_strtolower(trim($validated['email']));
 
-        Password::sendResetLink($request->only('email'));
+        if (config('app.env') === 'local') {
+            $user = Password::broker()->getUser(['email' => $email]);
+            $simulatedResetUrl = $user === null
+                ? null
+                : route('password.reset', [
+                    'token' => Password::broker()->createToken($user),
+                    'email' => $user->email,
+                ]);
+
+            return back()
+                ->with('status', 'If an account exists for that email, a reset link is ready.')
+                ->with('simulated_reset_url', $simulatedResetUrl);
+        }
+
+        Password::sendResetLink(['email' => $email]);
 
         return back()->with('status', 'If an account exists for that email, a reset link has been sent.');
     }

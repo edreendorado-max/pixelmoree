@@ -158,6 +158,41 @@ class AccountAndImageCrudTest extends TestCase
         ])->assertRedirect('/user');
     }
 
+    public function test_local_password_reset_shows_a_simulated_link_without_sending_email(): void
+    {
+        Notification::fake();
+        config(['app.env' => 'local']);
+        $user = User::create([
+            'name' => 'Local Password Reset User',
+            'email' => 'local-reset@example.test',
+            'password' => 'OldSecret1!',
+        ]);
+
+        $this->get('/forgot-password')
+            ->assertOk()
+            ->assertSee('Local demo mode: no email is sent.');
+
+        $response = $this->from('/forgot-password')->post('/forgot-password', ['email' => $user->email]);
+        $response->assertRedirect('/forgot-password')
+            ->assertSessionHas('status', 'If an account exists for that email, a reset link is ready.');
+
+        $resetUrl = $response->getSession()->get('simulated_reset_url');
+        $this->assertIsString($resetUrl);
+        $this->assertStringContainsString('/reset-password/', $resetUrl);
+        $this->get($resetUrl)->assertOk()->assertSee('no email is sent');
+
+        $token = basename((string) parse_url($resetUrl, PHP_URL_PATH));
+        $this->post('/reset-password', [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'NewSecret1!',
+            'password_confirmation' => 'NewSecret1!',
+        ])->assertRedirect(route('login'));
+
+        $this->assertTrue(Hash::check('NewSecret1!', $user->fresh()->password));
+        Notification::assertNotSentTo($user, ResetPassword::class);
+    }
+
     public function test_registration_rejects_passwords_missing_required_character_types(): void
     {
         foreach (['short', 'lowercase1!', 'Uppercase!', 'NoSpecial1'] as $password) {
@@ -333,6 +368,7 @@ class AccountAndImageCrudTest extends TestCase
             'password' => 'EasyPass8!',
         ])->assertRedirect('/user');
         $this->assertAuthenticatedAs($user->fresh());
+        Mail::assertNothingOutgoing();
     }
 
     public function test_a_user_can_create_read_update_and_delete_their_images(): void

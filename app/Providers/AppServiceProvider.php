@@ -56,10 +56,12 @@ class AppServiceProvider extends ServiceProvider
                 ->groupBy('sold_artworks.user_id')
                 ->selectRaw('sold_artworks.user_id, COUNT(*) AS sold_count')
                 ->pluck('sold_count', 'user_id');
+            $priceDashboard = new ArtworkPriceDashboard();
             foreach ($homeArtworks as $artwork) {
                 $artwork->setAttribute('creator_sold_count', (int) ($creatorSales[$artwork->user_id] ?? 0));
+                $artwork->setAttribute('simulated_market_estimate', $priceDashboard->simulatedEstimate($artwork));
             }
-            $dailyPriceMovers = (new ArtworkPriceDashboard())->dailyMovers($homeArtworks);
+            $dailyPriceMovers = $priceDashboard->dailyMovers($homeArtworks);
 
             $view->with('homeContent', SitePageContent::get('home'));
             $view->with('aboutContent', SitePageContent::get('about'));

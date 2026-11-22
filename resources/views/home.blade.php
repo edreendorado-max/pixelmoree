@@ -93,9 +93,16 @@
               <div class="member-panel-heading"><div><h3>For You</h3><p>Recommendations based on your likes, purchases, and artwork views. Updated with your latest activity.</p></div><a href="/user#explore">Explore <i class="bi bi-arrow-up-right"></i></a></div>
               <div class="member-recent-grid member-for-you-grid" id="memberForYouItems">
                 @forelse ($forYouArtworks as $artwork)
+                  @php($marketEstimate = $artwork->simulated_market_estimate)
                   <a class="member-art-tile member-for-you-tile" href="{{ route('week12.client.artwork', ['id' => $artwork->id]) }}">
                     <span class="member-art-tile-image"><img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}" loading="lazy"></span>
-                    <span class="member-art-tile-details"><strong>{{ $artwork->title }}</strong><small>By {{ $artwork->creator }}</small><span>{{ number_format((float) $artwork->price, 2) }} ETH</span><small class="member-for-you-engagement"><i class="bi bi-eye" aria-label="Views"></i> {{ number_format($artwork->views_count) }} <i class="bi bi-heart" aria-label="Likes"></i> {{ number_format($artwork->likes_count) }}</small></span>
+                    <span class="member-art-tile-details">
+                      <strong>{{ $artwork->title }}</strong>
+                      <small>By {{ $artwork->creator }}</small>
+                      <span class="member-for-you-prices"><small>Ask {{ number_format((float) $artwork->price, 2) }} ETH</small><strong>Market {{ number_format($marketEstimate['value'], 2) }} ETH</strong></span>
+                      <small class="member-for-you-change {{ $marketEstimate['simulation_change_percent'] >= 0 ? 'up' : 'down' }}">{{ $marketEstimate['simulation_change_percent'] >= 0 ? '+' : '' }}{{ number_format($marketEstimate['simulation_change_percent'], 1) }}% simulated today</small>
+                      <small class="member-for-you-engagement"><i class="bi bi-eye" aria-label="Views"></i> {{ number_format($artwork->views_count) }} <i class="bi bi-heart" aria-label="Likes"></i> {{ number_format($artwork->likes_count) }}</small>
+                    </span>
                   </a>
                 @empty
                   <p class="member-empty-state">New artwork will appear here as creators publish listings.</p>
@@ -103,24 +110,36 @@
               </div>
             </section>
             <section class="member-panel-card member-price-dashboard">
-              <div class="member-panel-heading"><div><h3>Simulated NFT market values</h3><p>Estimates respond to likes, views, completed simulated sales, edition supply, and inactivity.</p></div><span class="member-demo-label">DEMO ESTIMATE</span></div>
-              <p>These values are estimates based on the creator's asking price. They are recalculated from marketplace signals and are not payments or guaranteed sale prices.</p>
-              <div class="member-stat-grid">
-                <section><h4>Daily gainers</h4>
+              <div class="member-panel-heading"><div><h3>Simulated NFT market values</h3><p>Daily demo prices combine marketplace activity with a repeatable simulated market movement.</p></div><span class="member-demo-label">SIMULATED MARKET</span></div>
+              <p class="member-market-disclaimer">Values are estimates based on creator asking prices, likes, views, simulated sales, edition supply, and inactivity. Daily movement is generated for this demo; it is not a real market price or payment.</p>
+              <div class="member-price-movers">
+                <section class="member-price-mover-panel" aria-label="Top 10 price increases"><h4><i class="bi bi-graph-up-arrow" aria-hidden="true"></i> Daily gainers</h4>
                   @forelse ($dailyPriceGainers as $mover)
-                    <p><a href="{{ route('week12.client.artwork', ['id' => $mover->id]) }}">{{ $mover->title }}</a> · {{ number_format($mover->daily_current_price, 2) }} ETH · <strong>+{{ number_format($mover->daily_price_change_percent, 1) }}%</strong></p>
-                  @empty<p class="member-empty-state">Daily movers will appear after price snapshots have been recorded.</p>@endforelse
+                    <a class="member-price-mover-row" href="{{ route('week12.client.artwork', ['id' => $mover->id]) }}">
+                      <span class="member-price-mover-rank">{{ $loop->iteration }}</span>
+                      <img src="{{ asset(str_starts_with($mover->image, 'storage/') ? $mover->image : 'assets/' . $mover->image) }}" alt="" loading="lazy">
+                      <span class="member-price-mover-name"><strong>{{ $mover->title }}</strong><small>By {{ $mover->creator }}</small></span>
+                      <span class="member-price-mover-value"><strong>{{ number_format($mover->daily_current_price, 2) }} ETH</strong><small>was {{ number_format($mover->daily_previous_price, 2) }} ETH</small></span>
+                      <span class="member-price-mover-change up">+{{ number_format($mover->daily_price_change_percent, 1) }}%</span>
+                    </a>
+                  @empty<p class="member-empty-state">Listed artwork will appear here when available.</p>@endforelse
                 </section>
-                <section><h4>Daily decliners</h4>
+                <section class="member-price-mover-panel" aria-label="Top 10 price decreases"><h4><i class="bi bi-graph-down-arrow" aria-hidden="true"></i> Daily decliners</h4>
                   @forelse ($dailyPriceDecliners as $mover)
-                    <p><a href="{{ route('week12.client.artwork', ['id' => $mover->id]) }}">{{ $mover->title }}</a> · {{ number_format($mover->daily_current_price, 2) }} ETH · <strong>{{ number_format($mover->daily_price_change_percent, 1) }}%</strong></p>
-                  @empty<p class="member-empty-state">No estimated declines against the previous snapshot.</p>@endforelse
+                    <a class="member-price-mover-row" href="{{ route('week12.client.artwork', ['id' => $mover->id]) }}">
+                      <span class="member-price-mover-rank">{{ $loop->iteration }}</span>
+                      <img src="{{ asset(str_starts_with($mover->image, 'storage/') ? $mover->image : 'assets/' . $mover->image) }}" alt="" loading="lazy">
+                      <span class="member-price-mover-name"><strong>{{ $mover->title }}</strong><small>By {{ $mover->creator }}</small></span>
+                      <span class="member-price-mover-value"><strong>{{ number_format($mover->daily_current_price, 2) }} ETH</strong><small>was {{ number_format($mover->daily_previous_price, 2) }} ETH</small></span>
+                      <span class="member-price-mover-change down">{{ number_format($mover->daily_price_change_percent, 1) }}%</span>
+                    </a>
+                  @empty<p class="member-empty-state">Listed artwork will appear here when available.</p>@endforelse
                 </section>
               </div>
               <div class="member-owned-grid">
                 @foreach ($homeArtworks->take(6) as $marketArtwork)
-                  @php($marketEstimate = $marketArtwork->marketEstimate())
-                  <article class="member-art-tile"><span class="member-art-tile-image"><img src="{{ asset(str_starts_with($marketArtwork->image, 'storage/') ? $marketArtwork->image : 'assets/' . $marketArtwork->image) }}" alt="{{ $marketArtwork->title }}" loading="lazy"></span><span class="member-art-tile-details"><strong>{{ $marketArtwork->title }}</strong><small>Asking {{ number_format((float) $marketArtwork->price, 2) }} ETH</small><span>Estimated {{ number_format($marketEstimate['value'], 2) }} ETH</span><small>{{ $marketEstimate['change_percent'] >= 0 ? '+' : '' }}{{ number_format($marketEstimate['change_percent'], 1) }}% simulated adjustment</small></span></article>
+                  @php($marketEstimate = $marketArtwork->simulated_market_estimate)
+                  <article class="member-art-tile"><span class="member-art-tile-image"><img src="{{ asset(str_starts_with($marketArtwork->image, 'storage/') ? $marketArtwork->image : 'assets/' . $marketArtwork->image) }}" alt="{{ $marketArtwork->title }}" loading="lazy"></span><span class="member-art-tile-details"><strong>{{ $marketArtwork->title }}</strong><small>Asking {{ number_format((float) $marketArtwork->price, 2) }} ETH</small><span>Estimated {{ number_format($marketEstimate['value'], 2) }} ETH</span><small class="{{ $marketEstimate['simulation_change_percent'] >= 0 ? 'member-market-up' : 'member-market-down' }}">{{ $marketEstimate['simulation_change_percent'] >= 0 ? '+' : '' }}{{ number_format($marketEstimate['simulation_change_percent'], 1) }}% simulated today</small></span></article>
                 @endforeach
               </div>
             </section>

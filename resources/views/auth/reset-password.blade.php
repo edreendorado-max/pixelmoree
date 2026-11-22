@@ -16,7 +16,13 @@
     </a>
     <p class="auth-eyebrow">ACCOUNT RECOVERY</p>
     <h1 id="auth-title">Choose a new password</h1>
-    <p class="auth-intro">Use at least 6 characters, including an uppercase letter, a number, and a special character.</p>
+    <p class="auth-intro">
+      @if (config('app.env') === 'local')
+        Local demo mode: no email is sent. Use at least 6 characters, including an uppercase letter, a number, and a special character.
+      @else
+        Use at least 6 characters, including an uppercase letter, a number, and a special character.
+      @endif
+    </p>
 
     @if ($errors->any())
       <div class="auth-feedback" role="alert">{{ $errors->first() }}</div>

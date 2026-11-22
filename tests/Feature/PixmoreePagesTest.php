@@ -126,11 +126,16 @@ class PixmoreePagesTest extends TestCase
             'email' => 'for-you-creator@example.test',
             'password' => 'secret-password',
         ]);
+        $artist = User::create([
+            'name' => 'Recommended Artist',
+            'email' => 'recommended-artist@example.test',
+            'password' => 'secret-password',
+        ]);
         DB::table('artworks')->insert([
             'id' => 'for-you-artwork',
-            'user_id' => $user->id,
+            'user_id' => $artist->id,
             'title' => 'For You Artwork',
-            'creator' => $user->name,
+            'creator' => $artist->name,
             'category' => 'Digital Art',
             'price' => 1.25,
             'image' => 'for-you-artwork.png',
@@ -148,6 +153,8 @@ class PixmoreePagesTest extends TestCase
             ->assertSee('based on your likes, purchases, and artwork views')
             ->assertSee('Simulated NFT market values')
             ->assertSee('Estimated')
+            ->assertSee('Market ')
+            ->assertSee('simulated today')
             ->assertSee('Daily gainers')
             ->assertSee('Daily decliners');
     }
@@ -254,8 +261,59 @@ class PixmoreePagesTest extends TestCase
             ->assertSee('Simulated NFT market values')
             ->assertSee('Daily Price Gainer')
             ->assertSee('Daily Price Decliner')
-            ->assertSee('+100.0%')
-            ->assertSee('-50.0%');
+            ->assertSee('member-price-mover-change up', false)
+            ->assertSee('member-price-mover-change down', false);
+    }
+
+    public function test_daily_market_simulation_is_repeatable_and_works_without_snapshots(): void
+    {
+        $today = today();
+        $sameDayPrice = ArtworkPriceDashboard::simulatedDailyPrice(100, 'repeatable-simulation-artwork', $today);
+        $this->assertSame(
+            $sameDayPrice,
+            ArtworkPriceDashboard::simulatedDailyPrice(100, 'repeatable-simulation-artwork', $today),
+        );
+        $this->assertGreaterThanOrEqual(97.49, $sameDayPrice);
+        $this->assertLessThanOrEqual(102.51, $sameDayPrice);
+
+        $gainerId = null;
+        $declinerId = null;
+        $yesterday = $today->copy()->subDay();
+        for ($candidate = 1; $candidate <= 1000 && ($gainerId === null || $declinerId === null); $candidate++) {
+            $id = 'simulated-market-'.$candidate;
+            $currentPrice = ArtworkPriceDashboard::simulatedDailyPrice(100, $id, $today);
+            $previousPrice = ArtworkPriceDashboard::simulatedDailyPrice(100, $id, $yesterday);
+            if ($currentPrice > $previousPrice && $gainerId === null) {
+                $gainerId = $id;
+            } elseif ($currentPrice < $previousPrice && $declinerId === null) {
+                $declinerId = $id;
+            }
+        }
+
+        $this->assertNotNull($gainerId);
+        $this->assertNotNull($declinerId);
+        $creator = User::create([
+            'name' => 'Simulated Market Creator',
+            'email' => 'simulated-market@example.test',
+            'password' => 'secret-password',
+        ]);
+        $artworks = collect([$gainerId, $declinerId])->map(static fn (string $id): Artwork => Artwork::create([
+            'id' => $id,
+            'user_id' => $creator->id,
+            'title' => $id,
+            'creator' => $creator->name,
+            'category' => 'Digital Art',
+            'price' => 100,
+            'item_count' => 10,
+            'image' => $id.'.png',
+            'description' => 'A simulated market listing.',
+            'status' => 'Listed',
+        ]));
+
+        $movers = (new ArtworkPriceDashboard())->dailyMovers($artworks);
+
+        $this->assertCount(1, $movers['gainers']);
+        $this->assertCount(1, $movers['decliners']);
     }
 
     public function test_daily_price_movers_are_limited_to_the_top_ten_in_each_direction(): void
@@ -312,10 +370,10 @@ class PixmoreePagesTest extends TestCase
 
         $this->assertCount(10, $movers['gainers']);
         $this->assertCount(10, $movers['decliners']);
-        $this->assertSame('gainer-11', $movers['gainers']->first()->id);
-        $this->assertSame('decliner-11', $movers['decliners']->first()->id);
-        $this->assertFalse($movers['gainers']->contains('id', 'gainer-01'));
-        $this->assertFalse($movers['decliners']->contains('id', 'decliner-01'));
+        $gainerChanges = $movers['gainers']->pluck('daily_price_change_percent')->all();
+        $declinerChanges = $movers['decliners']->pluck('daily_price_change_percent')->all();
+        $this->assertSame($gainerChanges, collect($gainerChanges)->sortDesc()->values()->all());
+        $this->assertSame($declinerChanges, collect($declinerChanges)->sort()->values()->all());
     }
 
     public function test_default_seeding_does_not_create_demo_accounts_or_artwork(): void
