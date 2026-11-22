@@ -272,6 +272,32 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->assertSame(1, (int) DB::table('artwork_items')->where('artwork_id', $artwork->id)->where('owner_id', $seller->id)->count());
     }
 
+    public function test_artwork_detail_shows_resale_action_only_to_a_purchased_item_owner(): void
+    {
+        $creator = $this->user('detail-creator@example.test');
+        $owner = $this->user('detail-owner@example.test');
+        $visitor = $this->user('detail-visitor@example.test');
+        $artwork = $this->artwork($creator);
+        $itemId = DB::table('artwork_items')->where('artwork_id', $artwork->id)->value('item_id');
+        $purchaseId = (string) Str::uuid();
+        PaymentOrder::create([
+            'purchase_id' => $purchaseId, 'buyer_id' => $owner->id, 'seller_id' => $creator->id,
+            'artwork_id' => $artwork->id, 'item_id' => $itemId, 'type' => 'nft_purchase',
+            'amount_minor' => 10000, 'payment_method' => 'simulation', 'status' => 'approved',
+        ]);
+        DB::table('artwork_items')->where('item_id', $itemId)->update([
+            'owner_id' => $owner->id, 'status' => 'owned', 'acquired_purchase_id' => $purchaseId,
+        ]);
+
+        $this->actingAs($owner)->get(route('week12.client.artwork', ['id' => $artwork->id]))
+            ->assertOk()
+            ->assertSee('Resell owned item')
+            ->assertSee(route('user').'#resale', false);
+        $this->actingAs($visitor)->get(route('week12.client.artwork', ['id' => $artwork->id]))
+            ->assertOk()
+            ->assertDontSee('Resell owned item');
+    }
+
     private function user(string $email): User
     {
         return User::create(['name' => 'Test user', 'email' => $email, 'password' => 'secret-password']);

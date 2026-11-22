@@ -25,12 +25,31 @@ class PixmoreePagesTest extends TestCase
 
     public function test_guest_pages_render(): void
     {
-        $this->get('/')->assertOk()->assertSee('Pixmoree');
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Pixmoree')
+            ->assertSee('Join the community')
+            ->assertSee('href="' . route('register') . '"', false);
         $this->get('/about')->assertOk();
         $this->get('/login')->assertOk();
         $this->get('/register')->assertOk();
         $this->get('/store')->assertRedirect('/login');
         $this->get('/week12')->assertRedirect('/store');
+    }
+
+    public function test_community_call_to_action_sends_signed_in_members_to_the_marketplace(): void
+    {
+        $user = User::create([
+            'name' => 'Homepage Member',
+            'email' => 'homepage-member@example.test',
+            'password' => 'secret-password',
+        ]);
+
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertSee('Explore the marketplace')
+            ->assertSee('href="' . route('store') . '"', false)
+            ->assertDontSee('Join the community');
     }
 
     public function test_store_and_checkout_work_without_email_verification(): void

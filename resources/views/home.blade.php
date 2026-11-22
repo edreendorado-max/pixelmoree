@@ -12,7 +12,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/site.css') }}?v=20261122-member-subpages" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}?v=20261122-resale-layout" rel="stylesheet">
     <link href="{{ asset('css/typography.css') }}?v=20261127-creator-ui" rel="stylesheet">
 </head>
 <body class="{{ $account ? 'member-home' : 'guest-home' }}{{ $isMemberSubpage ? ' member-subpage' : '' }}">
@@ -498,7 +498,11 @@
       @endif
     @endauth
   </section>
-  <section id="about" class="guest-about"><h2>{{ $homeContent['closing_heading'] }}</h2><p>{{ $homeContent['closing_body'] }}</p><a href="/login" class="btn hero-explore">{{ $homeContent['closing_cta'] }}</a></section>
+  <section id="about" class="guest-about">
+    <h2>{{ $homeContent['closing_heading'] }}</h2>
+    <p>{{ $homeContent['closing_body'] }}</p>
+    <a href="{{ $account ? route('store') : route('register') }}" class="btn hero-explore">{{ $account ? 'Explore the marketplace' : $homeContent['closing_cta'] }}</a>
+  </section>
   <footer class="site-footer"><a href="#"><img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree" class="footer-logo"></a><p>{{ $homeContent['footer_tagline'] }}</p><div class="footer-links"><a href="#explore">{{ $homeContent['footer_links'][0] }}</a><a href="#creators">{{ $homeContent['footer_links'][1] }}</a><a href="#">{{ $homeContent['footer_links'][2] }}</a><a href="#">{{ $homeContent['footer_links'][3] }}</a></div><small>© {{ date('Y') }} Pixmoree. {{ $homeContent['footer_note'] }}</small></footer>
 </main>
 <dialog class="nft-preview" id="nftPreview" aria-labelledby="nftPreviewTitle">

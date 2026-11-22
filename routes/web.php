@@ -243,6 +243,14 @@ Route::get('/week12/artworks/{id}', function (string $id) use ($week12ArtworkSto
         ->where('user_id', auth()->id())
         ->where('artwork_id', $id)
         ->exists();
+    $artwork['owned_item_count'] = auth()->check()
+        ? DB::table('artwork_items')
+            ->where('artwork_id', $id)
+            ->where('owner_id', auth()->id())
+            ->where('status', 'owned')
+            ->whereNotNull('acquired_purchase_id')
+            ->count()
+        : 0;
 
     return view('week12.client.show', ['artwork' => $artwork]);
 })->where('id', '[a-z0-9-]+')->name('week12.client.artwork');
