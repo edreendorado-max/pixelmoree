@@ -628,6 +628,7 @@ class PixmoreePagesTest extends TestCase
         $this->actingAs($buyer)->get('/store')
             ->assertOk()
             ->assertSee('NFT Store')
+            ->assertSee('css/store.css')
             ->assertDontSee('Pixel Coin')
             ->assertDontSee('wallet');
         $this->assertDatabaseHas('artworks', ['id' => 'neon-wanderer', 'price' => '0.86']);
