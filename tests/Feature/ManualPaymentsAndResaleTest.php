@@ -29,11 +29,20 @@ class ManualPaymentsAndResaleTest extends TestCase
         $itemId = DB::table('artwork_items')->where('artwork_id', $artwork->id)->value('item_id');
 
         $this->actingAs($buyer)->get(route('user.checkout', $artwork->id))
-            ->assertOk()->assertSee('ORDER CHECKOUT')->assertSee('No payment is processed');
+            ->assertOk()
+            ->assertSee('ORDER CHECKOUT')
+            ->assertSee('Choose a payment option')
+            ->assertSee('value="card"', false)
+            ->assertSee('value="gcash"', false)
+            ->assertSee('value="maya"', false)
+            ->assertSee('No payment provider is connected.')
+            ->assertSee(asset('css/store.css'), false)
+            ->assertSee('Choose the edition item');
         $this->post(route('user.purchase-orders.store'), [
             'artwork_id' => $artwork->id,
             'item_id' => $itemId,
             'payment_method' => 'simulation',
+            'checkout_option' => 'card',
         ])->assertRedirect(route('user.purchases'))->assertSessionHas('status');
 
         $order = PaymentOrder::query()->where('buyer_id', $buyer->id)->firstOrFail();
@@ -81,14 +90,54 @@ class ManualPaymentsAndResaleTest extends TestCase
             'artwork_id' => $artwork->id,
             'item_id' => $itemId,
             'payment_method' => 'simulation',
+            'checkout_option' => 'card',
             'transaction_reference' => 'NO-EXTERNAL-PAYMENT',
         ])->assertSessionHasErrors('transaction_reference');
 
         $this->post(route('user.purchase-orders.store'), [
             'artwork_id' => $artwork->id,
             'item_id' => $itemId,
+            'payment_method' => 'simulation',
+            'checkout_option' => 'cash',
+        ])->assertSessionHasErrors('checkout_option');
+
+        $this->post(route('user.purchase-orders.store'), [
+            'artwork_id' => $artwork->id,
+            'item_id' => $itemId,
             'payment_method' => 'pixel_coin',
+            'checkout_option' => 'card',
         ])->assertSessionHasErrors('payment_method');
+    }
+
+    public function test_each_checkout_option_records_the_same_account_purchase_without_processing_payment(): void
+    {
+        $seller = $this->user('options-seller@example.test');
+        $buyer = $this->user('options-buyer@example.test');
+        $artwork = $this->artwork($seller, 3);
+
+        foreach (['card', 'gcash', 'maya'] as $option) {
+            $itemId = DB::table('artwork_items')
+                ->where('artwork_id', $artwork->id)
+                ->where('status', 'available')
+                ->orderBy('edition_number')
+                ->value('item_id');
+
+            $this->actingAs($buyer)
+                ->get(route('user.checkout', $artwork->id))
+                ->assertOk();
+            $this->post(route('user.purchase-orders.store'), [
+                'artwork_id' => $artwork->id,
+                'item_id' => $itemId,
+                'payment_method' => 'simulation',
+                'checkout_option' => $option,
+            ])->assertRedirect(route('user.purchases'));
+        }
+
+        $this->assertDatabaseCount('payment_orders', 3);
+        $this->assertSame(
+            ['simulation', 'simulation', 'simulation'],
+            PaymentOrder::query()->orderBy('created_at')->pluck('payment_method')->all(),
+        );
     }
 
     public function test_simulated_resale_purchase_transfers_the_owned_item_to_the_next_buyer(): void
@@ -120,6 +169,7 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->actingAs($buyer)->get(route('user.checkout', $artwork->id))->assertOk();
         $this->post(route('user.purchase-orders.store'), [
             'artwork_id' => $artwork->id, 'item_id' => $itemId, 'payment_method' => 'simulation',
+            'checkout_option' => 'card',
         ])->assertRedirect(route('user.purchases'));
 
         $this->assertSame($buyer->id, (int) DB::table('artwork_items')->where('item_id', $itemId)->value('owner_id'));
@@ -140,12 +190,12 @@ class ManualPaymentsAndResaleTest extends TestCase
         return $admin;
     }
 
-    private function artwork(User $creator): Artwork
+    private function artwork(User $creator, int $itemCount = 1): Artwork
     {
         return Artwork::create([
             'id' => 'test-artwork-' . Str::lower(Str::random(8)), 'user_id' => $creator->id,
             'title' => 'Test artwork', 'creator' => $creator->name, 'category' => 'Digital Art',
-            'price' => 1, 'item_count' => 1, 'image' => 'test-artwork.png',
+            'price' => 1, 'item_count' => $itemCount, 'image' => 'test-artwork.png',
             'description' => 'A test artwork.', 'status' => 'Listed',
         ]);
     }

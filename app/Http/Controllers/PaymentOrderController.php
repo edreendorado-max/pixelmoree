@@ -73,6 +73,7 @@ class PaymentOrderController extends Controller
             'artwork_id' => ['required', 'string', 'exists:artworks,id'],
             'item_id' => ['required', 'uuid', 'exists:artwork_items,item_id'],
             'payment_method' => ['required', 'in:simulation'],
+            'checkout_option' => ['required', 'in:card,gcash,maya'],
             'transaction_reference' => ['prohibited'],
             'proof' => ['prohibited'],
         ]);

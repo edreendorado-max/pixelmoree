@@ -8,7 +8,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ asset('css/site.css') }}?v=20261127-creator-ui" rel="stylesheet">
-    <link href="{{ asset('css/payment-checkout.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/store.css') }}?v=20261122" rel="stylesheet">
+    <link href="{{ asset('css/payment-checkout.css') }}?v=20261122-checkout" rel="stylesheet">
     <link href="{{ asset('css/typography.css') }}?v=20261127-creator-ui" rel="stylesheet">
 </head>
 <body class="payment-checkout-page">
@@ -31,14 +32,32 @@
     <section class="payment-checkout-card">
         <div class="payment-checkout-summary">
             <img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}">
-            <div><small>Creator: {{ $seller->name }}</small><h2>{{ $artwork->title }}</h2><strong>PHP {{ number_format($amountMinor / 100, 2) }}</strong><p>Each purchase transfers one edition item with its own unique Item ID.</p></div>
+            <div><small>Creator: {{ $seller->name }}</small><h2>{{ $artwork->title }}</h2><strong>PHP {{ number_format($amountMinor / 100, 2) }}</strong><p>{{ number_format((float) $artwork->price, 2) }} ETH · Each purchase transfers one edition item to your collection.</p></div>
         </div>
-        <form id="simulation-purchase" method="post" action="{{ route('user.purchase-orders.store') }}">
+        <form id="checkout-purchase" method="post" action="{{ route('user.purchase-orders.store') }}">
             @csrf<input type="hidden" name="artwork_id" value="{{ $artwork->id }}"><input type="hidden" name="payment_method" value="simulation">
+            <fieldset class="payment-checkout-methods">
+                <legend>Choose a payment option</legend>
+                <label class="payment-checkout-method">
+                    <input type="radio" name="checkout_option" value="card" @checked(old('checkout_option', 'card') === 'card') required>
+                    <i class="bi bi-credit-card-2-front" aria-hidden="true"></i>
+                    <span>Card</span>
+                </label>
+                <label class="payment-checkout-method">
+                    <input type="radio" name="checkout_option" value="gcash" @checked(old('checkout_option') === 'gcash') required>
+                    <i class="bi bi-phone" aria-hidden="true"></i>
+                    <span>GCash</span>
+                </label>
+                <label class="payment-checkout-method">
+                    <input type="radio" name="checkout_option" value="maya" @checked(old('checkout_option') === 'maya') required>
+                    <i class="bi bi-wallet2" aria-hidden="true"></i>
+                    <span>Maya</span>
+                </label>
+            </fieldset>
             <label class="payment-checkout-field">Choose the edition item
-                <select name="item_id" required>@foreach ($items as $item)<option value="{{ $item->item_id }}">Edition {{ $item->edition_number }} · {{ $item->item_id }}</option>@endforeach</select>
+                <select name="item_id" required>@foreach ($items as $item)<option value="{{ $item->item_id }}">Edition {{ $item->edition_number }}</option>@endforeach</select>
             </label>
-            <p class="payment-checkout-notice" role="note">No payment is processed and no blockchain asset is transferred. This order updates your Pixmoree account records only.</p>
+            <p class="payment-checkout-notice" role="note">No payment provider is connected. Your selected option does not charge you; this order records the purchase and edition transfer in your Pixmoree account.</p>
             <button class="store-buy-button" type="submit">Place order · PHP {{ number_format($amountMinor / 100, 2) }}</button>
         </form>
     </section>
