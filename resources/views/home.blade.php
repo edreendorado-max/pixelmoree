@@ -30,7 +30,6 @@
         <a class="guest-only-nav-link" href="/about"><i class="bi bi-info-circle"></i><span>About</span></a>
         <a href="/user/purchases" class="member-only-nav-link" data-member-nav="history" hidden><i class="bi bi-receipt"></i><span>Purchases</span></a>
         <a href="/user/earnings" class="member-only-nav-link" data-member-nav="earnings" hidden><i class="bi bi-graph-up-arrow"></i><span>Earnings</span></a>
-        <a href="{{ route('user.pixel-coins') }}" class="member-only-nav-link" hidden><i class="bi bi-coin"></i><span>Pixel Coins</span></a>
         <a href="/user/terms" class="member-only-nav-link" data-member-nav="terms" hidden><i class="bi bi-shield-check"></i><span>Terms &amp; Originality</span></a>
         <a href="/user/profile-settings" class="member-only-nav-link" data-member-nav="profile-settings" hidden><i class="bi bi-person-gear"></i><span>Profile Settings</span></a>
         <a href="/user/about" class="member-only-nav-link" data-member-nav="about" hidden><i class="bi bi-info-circle"></i><span>About</span></a>
@@ -50,7 +49,6 @@
             <a href="/user/create" data-member-action="create"><i class="bi bi-plus-circle"></i> Create</a>
             <a href="/user/purchases" data-member-action="history"><i class="bi bi-receipt"></i> Purchases</a>
             <a href="/user/earnings" data-member-action="earnings"><i class="bi bi-graph-up-arrow"></i> Earnings balance</a>
-            <a href="{{ route('user.pixel-coins') }}" data-member-action="earnings"><i class="bi bi-coin"></i> Pixel Coin wallet</a>
             <a href="/user/terms" data-member-action="terms"><i class="bi bi-shield-check"></i> Terms &amp; Originality</a>
             <a href="/user/profile-settings" data-member-action="profile-settings"><i class="bi bi-person-gear"></i> Profile Settings</a>
             <a href="{{ route('user.notifications') }}" data-member-action="notifications"><i class="bi bi-bell"></i> Notifications</a>
@@ -207,34 +205,56 @@
             </section>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="earnings" hidden>
-            <div class="member-panel-heading"><div><h3>Creator earnings</h3><p>Pixel Coin purchases update the simulated creator balance immediately.</p></div><span class="member-demo-label"><i class="bi bi-coin"></i> PIXEL COINS</span></div>
-            <article class="member-panel-card member-earnings-hero" data-earnings-total="{{ $creatorEarnings['totalCoinMinor'] ?? 0 }}">
+            <div class="member-panel-heading"><div><h3>Creator earnings</h3><p>Completed simulated sales add their PHP value to your earnings balance.</p></div><span class="member-demo-label">SIMULATION</span></div>
+            <article class="member-panel-card member-earnings-hero" data-earnings-total="{{ $creatorEarnings['totalMinor'] ?? 0 }}">
               <span class="member-earnings-icon"><i class="bi bi-stars"></i></span>
               <div>
-                <small>PIXEL COINS EARNED FROM SALES</small>
-                <strong>{{ \App\Support\PixelCoinLedger::format((int) ($creatorEarnings['totalCoinMinor'] ?? 0)) }} PC</strong>
-                <p>Recorded from credited artwork sales.</p>
+                <small>AVAILABLE SIMULATED EARNINGS</small>
+                <strong>PHP {{ number_format(($creatorEarnings['availableMinor'] ?? 0) / 100, 2) }}</strong>
+                <p>Recorded from completed simulated artwork sales, after simulated withdrawals.</p>
               </div>
             </article>
             <div class="member-stat-grid member-earnings-stats">
               <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-bag-check"></i></span><div><small>Credited sales</small><strong>{{ number_format($creatorEarnings['salesCount'] ?? 0) }}</strong></div></article>
-              <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-calendar-check"></i></span><div><small>Sales, last 30 days</small><strong>{{ \App\Support\PixelCoinLedger::format((int) ($creatorEarnings['last30DaysCoinMinor'] ?? 0)) }} PC</strong></div></article>
+              <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-calendar-check"></i></span><div><small>Sales, last 30 days</small><strong>PHP {{ number_format(($creatorEarnings['last30DaysMinor'] ?? 0) / 100, 2) }}</strong></div></article>
             </div>
-            <div class="member-earnings-notice"><i class="bi bi-shield-check" aria-hidden="true"></i><p><strong>Simulation only</strong> These balances are in-app records and do not represent cash payments or withdrawals. View your ledger in <a href="{{ route('user.pixel-coins') }}">Pixel Coins</a>.</p></div>
+            <div class="member-earnings-notice"><i class="bi bi-shield-check" aria-hidden="true"></i><p><strong>Simulation only</strong> Purchases and withdrawals update in-app records. No real payment is charged and no cash is transferred.</p></div>
+            <section class="member-panel-card member-transactions-card">
+              <h4>Simulate a withdrawal</h4>
+              <p>Withdraw from your recorded simulated earnings balance. This does not send money to a bank, GCash, or another account.</p>
+              @if (session('status'))<p class="payment-checkout-notice" role="status">{{ session('status') }}</p>@endif
+              @if ($errors->any())<p class="payment-checkout-notice payment-checkout-error" role="alert">{{ $errors->first() }}</p>@endif
+              <form method="post" action="{{ route('user.earnings.withdrawals') }}" class="member-earnings-withdraw-form">
+                @csrf
+                <label for="earningsWithdrawalAmount">Amount in PHP</label>
+                <input id="earningsWithdrawalAmount" name="amount_php" type="number" min="0.01" max="{{ number_format(($creatorEarnings['availableMinor'] ?? 0) / 100, 2, '.', '') }}" step="0.01" value="{{ old('amount_php') }}" required>
+                <button type="submit" {{ ($creatorEarnings['availableMinor'] ?? 0) < 1 ? 'disabled' : '' }}>Simulate withdrawal</button>
+              </form>
+            </section>
             <section class="member-panel-card member-transactions-card">
               <div class="member-panel-heading"><div><h4>Recent artwork sales</h4><p>Latest approved purchase orders for your listings.</p></div></div>
               <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Artwork</th><th>Sale value</th><th>Date</th></tr></thead><tbody>
                 @forelse (($creatorEarnings['recentSales'] ?? []) as $sale)
-                  <tr><td>{{ $sale->title ?? 'Artwork unavailable' }}</td><td class="member-earnings-sale-amount">{{ \App\Support\PixelCoinLedger::format((int) $sale->coin_minor) }} PC</td><td>{{ \Illuminate\Support\Carbon::parse($sale->created_at)->format('M j, Y') }}</td></tr>
+                  <tr><td>{{ $sale->title ?? 'Artwork unavailable' }}</td><td class="member-earnings-sale-amount">PHP {{ number_format($sale->amount_minor / 100, 2) }}</td><td>{{ \Illuminate\Support\Carbon::parse($sale->created_at)->format('M j, Y') }}</td></tr>
                 @empty
                   <tr><td colspan="3" class="member-empty-state">No approved sales for your artwork yet.</td></tr>
+                @endforelse
+              </tbody></table></div>
+            </section>
+            <section class="member-panel-card member-transactions-card">
+              <div class="member-panel-heading"><div><h4>Recent simulated withdrawals</h4><p>Receipts for in-app withdrawal records.</p></div></div>
+              <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Receipt</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody>
+                @forelse (($creatorEarnings['recentWithdrawals'] ?? []) as $withdrawal)
+                  <tr><td><a href="{{ route('user.purchase-orders.receipt', ['order' => $withdrawal->purchase_id]) }}">{{ $withdrawal->purchase_id }}</a></td><td>PHP {{ number_format($withdrawal->amount_minor / 100, 2) }}</td><td>{{ ucfirst($withdrawal->status) }}</td><td>{{ \Illuminate\Support\Carbon::parse($withdrawal->created_at)->format('M j, Y') }}</td></tr>
+                @empty
+                  <tr><td colspan="4" class="member-empty-state">No simulated withdrawals yet.</td></tr>
                 @endforelse
               </tbody></table></div>
             </section>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="payment" hidden>
             <div class="member-panel-heading"><div><h3>Purchases and payments</h3><p>Use the Store to simulate a purchase from a creator.</p></div><span class="member-demo-label">SIMULATION</span></div>
-            <div class="member-payment-safety" role="status"><i class="bi bi-info-circle"></i><span>Purchases are simulations only. Completing one creates an in-app receipt and transfers the edition to your collection; no real payment is made. Pixel Coin purchases use the simulated in-app balance. <a href="{{ route('user.pixel-coins') }}">Manage Pixel Coins</a>.</span></div>
+            <div class="member-payment-safety" role="status"><i class="bi bi-info-circle"></i><span>Purchases are simulations only. Completing one creates an in-app receipt and transfers the edition to your collection; no real payment is made.</span></div>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="terms" hidden>
             <div class="member-panel-heading"><div><h3>Terms &amp; Originality Policy</h3><p>Marketplace rules for creators and collectors.</p></div><span class="member-demo-label">BETA</span></div>
@@ -244,7 +264,7 @@
               <h4>2. Originality and anti-plagiarism</h4><p>Only upload work you created or have clear permission and appropriate licenses to use. Do not copy, trace, repackage, or mint another creator’s artwork, photographs, characters, logos, writing, or other protected material as your own. Credit alone does not replace permission.</p>
               <p>Do not use unauthorized AI training outputs, reference material, or third-party assets in a way that infringes another person’s rights. Keep source files and permission records where appropriate. If a work includes licensed or collaborative material, disclose that clearly and follow the license terms.</p>
               <h4>3. Reports, review, and consequences</h4><p>Rights holders should provide the listing link, identify the material at issue, and explain their rights when reporting suspected copying. Pixmoree should review reports, give creators a reasonable opportunity to respond where appropriate, and may hide or remove disputed listings, restrict accounts, or refer serious matters for further review. False or abusive reports are not permitted.</p>
-              <h4>4. Simulated transactions</h4><p>NFT purchases, Pixel Coin top-ups, and withdrawals are in-app simulations. A purchase creates a receipt and transfers one unique edition item immediately; the creator receives simulated Pixel Coins. No cash, payment credentials, or blockchain tokens are involved. Simulated top-ups and withdrawals update the in-app wallet and ledger only.</p>
+              <h4>4. Simulated transactions</h4><p>NFT purchases and creator withdrawals are in-app simulations. A purchase creates a receipt, transfers one unique edition item, and records simulated PHP earnings for the creator. A withdrawal updates that in-app balance and creates a receipt, but no real payment or payout occurs.</p>
               <h4>5. Respect intellectual property</h4><p>Creators retain rights they hold in their work. A listing does not transfer copyright unless a separate, valid agreement says so. Collectors should not reproduce, sell, or commercially exploit artwork without the creator’s permission or a license that allows it.</p>
               <h4>6. Policy updates and contact</h4><p>These draft rules may change as the project evolves. For a real service, publish the effective date, operator identity, contact and appeal process, governing law, and privacy terms after professional review.</p>
             </article>

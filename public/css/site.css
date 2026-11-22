@@ -996,11 +996,6 @@ body{font-family:Inter,system-ui,sans-serif}
 .member-area .guest-nav .nav-actions>.guest-search.is-open{flex-basis:220px;width:220px}
 .member-area .guest-nav .nav-actions>.guest-search.is-open .search-input{width:182px}
 .member-area .guest-nav .nav-actions>.member-notification-button{position:relative;display:grid;width:38px;height:38px;place-items:center;border:1px solid #ffffff20;border-radius:8px;background:#15151a;color:#eae6ef;font-size:16px;text-decoration:none}
-.member-area .guest-nav .nav-actions>.member-pixel-coin-link{position:relative;display:flex;min-height:38px;align-items:center;gap:5px;padding:0 10px;border:1px solid #e6c76755;border-radius:9px;background:#15151a;color:#f2d46e;font-size:11px;font-weight:750;text-decoration:none}
-.member-area .guest-nav .nav-actions>.member-pixel-coin-link small{color:#d8c483;font-size:8px;letter-spacing:.04em}
-.member-area .member-pixel-coin-link[hidden]{display:none}
-.member-pixel-coin-status{position:absolute;top:-5px;right:-5px;display:grid;width:17px;height:17px;place-items:center;border:2px solid #15151a;border-radius:50%;background:#c64654;color:#fff;font-size:9px}
-.member-pixel-coin-status[hidden]{display:none}
 .member-area .guest-nav .nav-actions>.member-notification-button[hidden]{display:none}
 .member-area .member-notification-button>span{position:absolute;top:-5px;right:-5px;display:grid;min-width:17px;height:17px;place-items:center;padding:0 4px;border:2px solid #15151a;border-radius:99px;background:#ed4dbb;color:#fff;font-family:Inter,sans-serif;font-size:9px;font-weight:700}
 .member-area .member-notification-button>span[hidden]{display:none}
@@ -1156,7 +1151,13 @@ body{font-family:Inter,system-ui,sans-serif}
 .member-earnings-notice>a{display:inline-flex;align-items:center;gap:5px;color:#c7e9d5;font-size:9px;text-decoration:none;white-space:nowrap}
 .member-earnings-notice>a:hover{color:#fff}
 .member-earnings-sale-amount{color:#9fe2b8!important;font-weight:700;white-space:nowrap}
-@media(max-width:650px){.member-earnings-hero{min-height:110px;padding:15px}.member-earnings-icon{width:42px;height:42px;flex-basis:42px}.member-earnings-notice{flex-wrap:wrap;padding:10px}.member-earnings-notice p{flex-basis:calc(100% - 28px)}.member-earnings-notice>a{margin-left:26px}}
+.member-earnings-withdraw-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+.member-earnings-withdraw-form label{grid-column:1/-1;color:#ded8e4;font-size:10px;font-weight:600}
+.member-earnings-withdraw-form input{min-height:40px;padding:9px 11px;border:1px solid #ffffff27;border-radius:7px;outline:0;background:#100f16;color:#fff;font-size:11px}
+.member-earnings-withdraw-form input:focus{border-color:#d15bdc;box-shadow:0 0 0 3px #d15bdc26}
+.member-earnings-withdraw-form button{min-height:40px;padding:9px 13px;border:0;border-radius:7px;background:linear-gradient(100deg,#d72bdf,#00bff2);color:#fff;font-size:10px;font-weight:650}
+.member-earnings-withdraw-form button:disabled{cursor:not-allowed;opacity:.55}
+@media(max-width:650px){.member-earnings-hero{min-height:110px;padding:15px}.member-earnings-icon{width:42px;height:42px;flex-basis:42px}.member-earnings-notice{flex-wrap:wrap;padding:10px}.member-earnings-notice p{flex-basis:calc(100% - 28px)}.member-earnings-notice>a{margin-left:26px}.member-earnings-withdraw-form{grid-template-columns:1fr}.member-earnings-withdraw-form label{grid-column:auto}}
 
 @media(min-width:1600px){
   .guest-hero{height:calc(100vh - 52px);min-height:590px}
@@ -1268,31 +1269,6 @@ body.nft-detail-page-active #nftPreview{display:none!important}
 .member-payment-safety{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;padding:12px 14px;border:1px solid #62c99935;border-radius:9px;background:#62c9990b;color:#c4d9cf;font-size:10px;line-height:1.6}
 .member-payment-safety>i{flex:0 0 auto;color:#79d9a9;font-size:16px}
 .member-payment-safety strong{display:block;color:#c6f4da;font-size:11px}
-.member-pixel-wallet{display:grid;grid-template-columns:minmax(190px,.65fr) minmax(0,1.35fr);gap:18px;align-items:center;margin-bottom:13px;padding:15px}
-.member-wallet-overview{display:flex;align-items:center;gap:12px;min-width:0}
-.member-wallet-icon{display:grid;width:43px;height:43px;flex:0 0 43px;place-items:center;border:1px solid #e6c76755;border-radius:12px;background:linear-gradient(135deg,#f2cc5820,#d8873220);color:#f2d46e;font-size:21px}
-.member-wallet-overview>div{display:grid;min-width:0;gap:4px}
-.member-wallet-overview small{color:#c2a85a;font-size:8px;font-weight:750;letter-spacing:.1em}
-.member-wallet-overview strong{color:#fff;font-size:19px;line-height:1.15}
-.member-wallet-overview strong span{color:#ead48a;font-size:10px;letter-spacing:.04em}
-.member-wallet-overview p{margin:0;color:#9d97a8;font-size:9px}
-.member-wallet-topups{display:grid;gap:8px}
-.member-wallet-topups>strong{color:#f0ebf4;font-size:10px}
-.member-wallet-topup-options{display:flex;flex-wrap:wrap;gap:7px}
-.member-wallet-topup-options button{display:grid;min-width:95px;gap:3px;padding:8px 10px;border:1px solid #ffffff1c;border-radius:7px;background:#ffffff07;color:#f4e9ac;font-size:12px;font-weight:700;text-align:left}
-.member-wallet-topup-options button:hover{border-color:#d7bd5d88;background:#d7bd5d12}
-.member-wallet-topup-options button small{color:#aaa3b5;font-size:7px;font-weight:600}
-.member-wallet-topups>small{color:#9991a5;font-size:8px;line-height:1.5}
-.member-wallet-topup-options button:disabled{cursor:wait;opacity:.55}
-.member-wallet-topup-link{display:inline-flex;align-items:center;gap:7px;justify-self:start;color:#e4c96e;font-size:10px;font-weight:650;text-decoration:none}
-.member-wallet-topup-link:hover{color:#fff}
-.member-wallet-feedback{margin:0;color:#a9eccb;font-size:9px}
-.member-wallet-feedback[hidden]{display:none}
-.member-wallet-activity:empty{display:none}
-.member-wallet-activity>strong{display:block;margin-bottom:4px;color:#c3bdca;font-size:8px}
-.member-wallet-activity ul{display:flex;flex-wrap:wrap;gap:6px 12px;margin:0;padding:0;list-style:none}
-.member-wallet-activity li{display:flex;gap:7px;color:#a9eccb;font-size:8px}
-.member-wallet-activity li small{color:#8e8798;font-size:8px}
 .member-payment-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:stretch;margin-bottom:13px}
 .member-checkout-card,.member-transactions-card{min-width:0}
 .member-checkout-card h4,.member-transactions-card h4{margin:0;color:#f4eff8;font-size:13px;font-weight:700}
@@ -1322,9 +1298,6 @@ body.nft-detail-page-active #nftPreview{display:none!important}
 .member-payment-totals dd{margin:0;color:#e9e3ed;text-align:right}
 .member-payment-totals .member-payment-total{margin-top:4px;padding-top:11px;border-top:1px solid #ffffff18;color:#fff;font-size:11px;font-weight:700}
 .member-payment-totals .member-payment-total dd{color:#f5d7fa;font-size:12px}
-.member-pixel-rate{margin:8px 0 0;padding:8px;border-left:2px solid #d9c15c;background:#d9c15c0b;color:#d9ce9b;font-size:8px;line-height:1.5}
-.member-pixel-rate[hidden],.member-pixel-insufficient[hidden]{display:none!important}
-.member-pixel-insufficient{margin:8px 0 0;color:#f0c47e;font-size:9px;line-height:1.6}
 .member-policy-accept{display:flex;align-items:flex-start;gap:8px;color:#c3bdca;font-size:10px;line-height:1.6}
 .member-policy-accept input{flex:0 0 auto;margin-top:3px;accent-color:#d74cbd}
 .member-policy-accept a{color:#e6a5f1;text-decoration:underline}
@@ -1335,8 +1308,7 @@ body.nft-detail-page-active #nftPreview{display:none!important}
 .member-policy-content .member-policy-notice{padding:11px;border:1px solid #d2a34d42;border-radius:7px;background:#d2a34d0c;color:#ead8ad}
 .member-policy-notice i{margin-right:6px}
 @media(max-width:850px){.member-payment-layout{grid-template-columns:1fr}}
-@media(max-width:850px){.member-pixel-wallet{grid-template-columns:1fr}}
-@media(max-width:480px){.member-payment-heading{align-items:flex-start;flex-direction:column}.member-payment-heading h3{font-size:17px}.member-payment-safety{padding:10px}.member-checkout-card{padding:11px}.member-wallet-topup-options button{min-width:0;flex:1;padding:8px}}
+@media(max-width:480px){.member-payment-heading{align-items:flex-start;flex-direction:column}.member-payment-heading h3{font-size:17px}.member-payment-safety{padding:10px}.member-checkout-card{padding:11px}}
 @media(max-width:650px){.member-policy-content{padding:13px}.member-payment-layout .member-history-table{font-size:9px}}
 .auth-demo-account{display:grid;gap:7px;margin-top:18px;padding:13px;border:1px solid #d77ce54a;border-radius:9px;background:#d77ce50d;color:#d6d0df;font-size:11px}
 .auth-demo-account strong{color:#f1d7f5;font-size:12px}
@@ -1474,80 +1446,3 @@ body.nft-detail-page-active #nftPreview{display:none!important}
 .engagement-feedback[hidden]{display:none}
 @media(max-width:800px){.creator-artwork-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:620px){.creator-main{width:min(100% - 28px,560px);padding:27px 0 44px}.creator-profile-hero{padding:15px}.creator-profile-banner{height:125px}.creator-profile-identity{align-items:flex-end}.creator-profile-avatar{width:58px;height:58px;flex-basis:58px;font-size:21px}.creator-profile-name h1{font-size:25px}.creator-profile-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.creator-artwork-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-
-.pixel-coin-page{min-height:100vh;background:radial-gradient(ellipse at 92% 0%,#a02a8522,transparent 45%),#111116;color:#f8f7ff;font-family:Inter,system-ui,sans-serif}
-.pixel-wallet-main{width:min(980px,calc(100% - 40px));margin:0 auto;padding:38px 0 64px}
-.pixel-wallet-heading{margin-bottom:20px}
-.pixel-wallet-heading .profile-settings-eyebrow{margin-bottom:8px}
-.pixel-wallet-heading h1{margin:0;color:#fff;font-family:'Pixelify Sans',Inter,sans-serif;font-size:34px;font-weight:600;line-height:1.15}
-.pixel-wallet-heading>p:last-child{margin:8px 0 0;color:#aaa5b7;font-size:12px;line-height:1.6}
-.pixel-wallet-summary{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:14px;padding:20px;border:1px solid #e6c76738;border-radius:9px;background:linear-gradient(110deg,#f2cc5812,#15151a 52%)}
-.pixel-wallet-summary-label{display:flex;align-items:center;gap:11px}
-.pixel-wallet-summary-icon{display:grid;width:44px;height:44px;flex:0 0 44px;place-items:center;border:1px solid #e6c76755;border-radius:10px;background:#f2cc5812;color:#f2d46e;font-size:21px}
-.pixel-wallet-summary-label small{display:block;color:#c2a85a;font-size:8px;font-weight:750;letter-spacing:.1em}
-.pixel-wallet-summary-label strong{display:block;margin-top:4px;color:#fff;font-size:23px}
-.pixel-wallet-summary-label strong span{color:#ead48a;font-size:10px}
-.pixel-wallet-options{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}
-.pixel-wallet-options button{display:flex;min-width:120px;min-height:40px;align-items:center;justify-content:center;gap:7px;padding:9px 12px;border:1px solid #e6c76755;border-radius:7px;background:#e6c7670b;color:#f4e9ac;font-size:11px;font-weight:700;cursor:pointer}
-.pixel-wallet-options button:hover:not(:disabled){border-color:#f2d46e;background:#f2d46e18}
-.pixel-wallet-options button:disabled{cursor:wait;opacity:.55}
-.pixel-wallet-note{margin:11px 0 0;color:#aaa3b5;font-size:10px;line-height:1.6}
-.pixel-wallet-safety{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;padding:13px 15px;border:1px solid #62c99935;border-radius:8px;background:#62c9990b;color:#c4d9cf;font-size:10px;line-height:1.6}
-.pixel-wallet-safety i{flex:0 0 auto;color:#79d9a9;font-size:15px}
-.pixel-wallet-feedback{margin:12px 0 0;color:#a9eccb;font-size:10px;line-height:1.5}
-.pixel-wallet-feedback[hidden]{display:none}
-.pixel-wallet-feedback.is-error{color:#ffd2d2}
-.pixel-wallet-activity{margin-top:14px;padding:17px;border:1px solid #ffffff16;border-radius:9px;background:#15141c}
-.pixel-wallet-activity h2{margin:0 0 11px;color:#f5f0f8;font-size:14px;font-weight:700}
-.pixel-wallet-back{display:inline-flex;align-items:center;gap:7px;margin-top:16px;color:#d9d3e1;font-size:11px;text-decoration:none}
-.pixel-wallet-back:hover{color:#fff}
-@media(max-width:620px){.pixel-wallet-main{width:min(100% - 28px,560px);padding:27px 0 44px}.pixel-wallet-heading h1{font-size:29px}.pixel-wallet-summary{align-items:flex-start;flex-direction:column;padding:15px}.pixel-wallet-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.pixel-wallet-options button{min-width:0;padding:8px 5px;font-size:10px}.pixel-wallet-activity{padding:12px}}
-
-.store-page{min-height:100vh;background:#101014;color:#f4f1f8;font-family:Inter,sans-serif}
-.store-header{position:sticky;top:0;z-index:5;display:flex;min-height:64px;align-items:center;justify-content:space-between;gap:20px;padding:8px clamp(16px,5vw,64px);border-bottom:1px solid #ffffff14;background:#15151a}
-.store-brand{display:flex;align-items:center}
-.store-brand img{width:150px;height:42px;object-fit:contain}
-.store-header nav{display:flex;align-items:center;gap:clamp(12px,3vw,32px)}
-.store-header nav a,.store-header nav button{border:0;background:none;color:#dcd9e2;font-size:13px;text-decoration:none}
-.store-header nav a:hover,.store-header nav a.active,.store-header nav button:hover{color:#f05acb}
-.store-header nav form{margin:0}
-.store-main{width:min(1440px,100%);min-height:calc(100vh - 64px);margin:auto;padding:clamp(24px,5vw,56px) clamp(16px,5vw,64px)}
-.store-heading{margin-bottom:26px}
-.store-eyebrow{margin:0 0 7px;color:#ed75d0;font-size:10px;font-weight:700;letter-spacing:.13em}
-.store-heading h1{margin:0;color:#fff;font-size:clamp(30px,5vw,46px);font-weight:750}
-.store-heading>p:last-child{margin:8px 0 0;color:#aaa4b2;font-size:14px}
-.store-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:18px}
-.store-card{overflow:hidden;border:1px solid #ffffff14;border-radius:12px;background:#19191f}
-.store-card-image{display:block;aspect-ratio:1/1;overflow:hidden;background:#22212a}
-.store-card-image img{width:100%;height:100%;object-fit:cover;transition:transform .2s ease}
-.store-card-image:hover img{transform:scale(1.035)}
-.store-card-content{padding:14px}
-.store-card-category{margin:0 0 5px;color:#d579c2;font-size:10px;text-transform:uppercase;letter-spacing:.07em}
-.store-card-content h2{margin:0;font-size:16px}
-.store-card-content h2 a{color:#fff;text-decoration:none}
-.store-card-content h2 a:hover{color:#f078cf}
-.store-card-creator{margin:5px 0 14px;color:#aaa4b2;font-size:12px}
-.store-card-details{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid #ffffff12}
-.store-card-details span{display:grid;gap:3px}
-.store-card-details small,.store-buy-note{color:#9993a2;font-size:10px}
-.store-card-details strong{color:#f5eef7;font-size:12px}
-.store-buy-button{display:flex;width:100%;min-height:38px;align-items:center;justify-content:center;margin-top:10px;border:1px solid #d66ae4;border-radius:7px;background:linear-gradient(100deg,#8a38a3,#315da5);color:#fff;font-size:12px;font-weight:650;text-decoration:none}
-.store-buy-button:hover:not(:disabled){filter:brightness(1.15);color:#fff}
-.store-buy-button:disabled{border-color:#ffffff20;background:#ffffff0b;color:#aaa3b5}
-.store-buy-note{display:block;margin-top:7px;text-align:center}
-.store-empty{grid-column:1/-1;padding:32px;border:1px dashed #ffffff25;border-radius:10px;color:#aaa4b2;text-align:center}
-@media(max-width:520px){.store-header{align-items:flex-start;flex-direction:column;gap:8px}.store-header nav{width:100%;justify-content:space-between}.store-header nav a,.store-header nav button{font-size:12px}}
-@media(max-width:900px){.member-area{--member-sidebar-width:66px}}
-.store-resale-section{margin-top:54px;padding-top:30px;border-top:1px solid #ffffff1a}
-.store-resale-section .store-heading{margin-bottom:20px}
-.resale-section{max-width:1500px;margin:12px auto 50px;padding:0 0 15px}
-.resale-owner-listings{display:grid;gap:12px;margin-top:28px}
-.resale-owner-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,1.3fr);gap:20px;align-items:start;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
-.resale-owner-card strong{font-size:13px}
-.resale-owner-card p,.resale-feedback{color:var(--muted);font-size:12px}
-.resale-owner-card form{display:grid;gap:10px}
-.resale-owner-card form label{display:grid;gap:5px;color:#ded9e9;font-size:11px}
-.resale-owner-card input:not([type=checkbox]){width:100%;padding:9px;border:1px solid #ffffff24;border-radius:6px;background:#0d0d16;color:#fff}
-.resale-owner-card .member-policy-accept{display:flex;align-items:flex-start}
-.store-owned-note{display:block;margin-top:10px;padding:9px;border:1px solid #ffffff1a;border-radius:7px;color:#b9b2c4;text-align:center;font-size:11px}
-@media(max-width:650px){.resale-owner-card{grid-template-columns:1fr}.resale-section{padding-right:7px;padding-left:7px}}

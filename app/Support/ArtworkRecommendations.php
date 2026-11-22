@@ -25,10 +25,12 @@ class ArtworkRecommendations
             );
 
             $this->recordInterests(
-                DB::table('pixel_coin_transactions')
-                    ->join('artworks', 'artworks.id', '=', 'pixel_coin_transactions.artwork_id')
-                    ->where('pixel_coin_transactions.user_id', $user->id)
-                    ->where('pixel_coin_transactions.type', 'purchase')
+                DB::table('payment_orders')
+                    ->join('artworks', 'artworks.id', '=', 'payment_orders.artwork_id')
+                    ->where('payment_orders.buyer_id', $user->id)
+                    ->where('payment_orders.type', 'nft_purchase')
+                    ->where('payment_orders.payment_method', 'simulation')
+                    ->where('payment_orders.status', 'approved')
                     ->get(['artworks.id', 'artworks.category']),
                 4,
                 $categoryInterests,

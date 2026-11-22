@@ -317,7 +317,7 @@ class SitePageContent
                     'heading_after' => 'world.',
                     'description' => 'Browse imaginative digital art from independent creators.',
                     'cta' => 'Explore the gallery',
-                    'note' => 'Purchases require an account and manual admin GCash review. Each edition item receives one recorded owner in Pixmoree; no blockchain transfer is provided.',
+                    'note' => 'Purchases require an account and run in simulation mode. Each edition item receives one recorded owner in Pixmoree; no real payment or blockchain transfer is provided.',
                     'image' => 'assets/guest-hero-background.png',
                     'image_alt' => 'Colorful Pixmoree digital art collage',
                 ],
@@ -331,7 +331,7 @@ class SitePageContent
                 ],
                 'footer' => [
                     'tagline' => 'Pixmoree Marketplace',
-                    'disclaimer' => 'GCash payments go to the configured Pixmoree admin account. Admins manually verify receipts; creators receive Pixel Coins after approval.',
+                    'disclaimer' => 'Purchases and creator withdrawals are simulations. Receipts and edition ownership are recorded in Pixmoree; no real payment or payout occurs.',
                 ],
             ],
             'about' => [

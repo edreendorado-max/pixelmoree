@@ -13,7 +13,7 @@
     </div>
     <div class="alert w12-alert" role="note">
         <i class="bi bi-info-circle-fill"></i>
-        <span><strong>Simulation mode:</strong> NFT purchases, Pixel Coin top-ups, and withdrawals update in-app records only. No real money is charged or sent.</span>
+        <span><strong>Simulation mode:</strong> NFT purchases and creator withdrawals update in-app records only. No real money is charged or sent.</span>
     </div>
     <div class="row g-3 mb-4">
         <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Accounts</span><strong><?= number_format($userCount) ?></strong><small><i class="bi bi-people"></i> Registered members</small></article></div>

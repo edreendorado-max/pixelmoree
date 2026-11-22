@@ -21,7 +21,7 @@ class ManualPaymentsAndResaleTest extends TestCase
         config(['payments.enabled' => true, 'payments.simulation' => true]);
     }
 
-    public function test_simulated_purchase_issues_receipt_transfers_item_notifies_both_accounts_and_credits_creator(): void
+    public function test_simulated_purchase_issues_receipt_transfers_item_notifies_both_accounts_and_credits_creator_earnings(): void
     {
         $seller = $this->user('seller@example.test');
         $buyer = $this->user('buyer@example.test');
@@ -41,7 +41,14 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->assertSame('simulation', $order->payment_method);
         $this->assertSame($buyer->id, (int) DB::table('artwork_items')->where('item_id', $itemId)->value('owner_id'));
         $this->assertDatabaseHas('ownership_transfers', ['item_id' => $itemId, 'purchase_id' => $order->purchase_id]);
-        $this->assertGreaterThan(0, (int) $seller->fresh()->pixel_coin_balance);
+        $this->assertSame((int) $order->amount_minor, (int) $seller->fresh()->cash_balance_minor);
+        $this->assertDatabaseHas('cash_ledger_entries', [
+            'user_id' => $seller->id,
+            'purchase_id' => $order->purchase_id,
+            'type' => 'sale',
+            'direction' => 'credit',
+            'amount_minor' => $order->amount_minor,
+        ]);
         $this->assertDatabaseHas('notifications', ['notifiable_id' => $buyer->id]);
         $this->assertDatabaseHas('notifications', ['notifiable_id' => $seller->id]);
 
@@ -50,7 +57,7 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->actingAs($seller)->get(route('admin.payment-orders'))->assertForbidden();
         $this->actingAs($this->admin())->get(route('admin.payment-orders'))
             ->assertOk()->assertSee('Simulated transactions')->assertSee($order->purchase_id)
-            ->assertDontSee('Verify and transfer item')->assertDontSee('Admin GCash account');
+            ->assertDontSee('Verify and transfer item')->assertDontSee('Admin GCash account')->assertDontSee('Pixel Coin');
     }
 
     public function test_simulation_configuration_is_required_and_real_payment_fields_are_rejected(): void
@@ -70,6 +77,12 @@ class ManualPaymentsAndResaleTest extends TestCase
             'payment_method' => 'simulation',
             'transaction_reference' => 'NO-EXTERNAL-PAYMENT',
         ])->assertSessionHasErrors('transaction_reference');
+
+        $this->post(route('user.purchase-orders.store'), [
+            'artwork_id' => $artwork->id,
+            'item_id' => $itemId,
+            'payment_method' => 'pixel_coin',
+        ])->assertSessionHasErrors('payment_method');
     }
 
     public function test_simulated_resale_purchase_transfers_the_owned_item_to_the_next_buyer(): void

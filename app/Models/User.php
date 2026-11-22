@@ -22,7 +22,6 @@ class User extends Authenticatable
         'email',
         'password',
         'phone',
-        'gcash_number',
         'bio',
         'avatar_path',
         'banner_path',
@@ -31,21 +30,14 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'pixel_coin_balance',
-        'pixel_coin_reserved',
-        'gcash_qr_path',
-        'gcash_number',
-        'maya_qr_path',
+        'cash_balance_minor',
     ];
 
     protected function casts(): array
     {
         return [
             'password' => 'hashed',
-            'pixel_coin_balance' => 'integer',
-            'pixel_coin_reserved' => 'integer',
             'cash_balance_minor' => 'integer',
-            'cash_reserved_minor' => 'integer',
         ];
     }
 
@@ -88,11 +80,6 @@ class User extends Authenticatable
     public function artworks(): HasMany
     {
         return $this->hasMany(Artwork::class);
-    }
-
-    public function pixelCoinTransactions(): HasMany
-    {
-        return $this->hasMany(PixelCoinTransaction::class);
     }
 
     public function paymentOrders(): HasMany

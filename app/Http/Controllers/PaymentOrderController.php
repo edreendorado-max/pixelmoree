@@ -6,8 +6,7 @@ use App\Models\Artwork;
 use App\Models\PaymentOrder;
 use App\Models\User;
 use App\Notifications\MarketplaceNotification;
-use App\Support\PixelCoinConversion;
-use App\Support\PixelCoinLedger;
+use App\Support\CashLedger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,12 +18,12 @@ class PaymentOrderController extends Controller
     public function receipt(Request $request, PaymentOrder $order): View
     {
         abort_unless(in_array((int) $request->user()->id, [(int) $order->buyer_id, (int) $order->seller_id], true), 404);
-        abort_unless(in_array($order->type, ['nft_purchase', 'nft_coin_purchase', 'pixel_coin_topup', 'creator_payout'], true), 404);
+        abort_unless(in_array($order->type, ['nft_purchase', 'creator_payout'], true), 404);
 
         return view('user.receipt', ['order' => $order->load(['artwork', 'buyer', 'seller'])]);
     }
 
-    public function checkout(Request $request, string $artworkId, PixelCoinConversion $conversion): View
+    public function checkout(Request $request, string $artworkId): View
     {
         $this->ensurePaymentsEnabled();
         $artwork = Artwork::query()->whereKey($artworkId)->where('status', 'Listed')->firstOrFail();
@@ -40,21 +39,20 @@ class PaymentOrderController extends Controller
         abort_if((int) $sellerId === (int) $request->user()->id, 422, 'You cannot buy your own artwork.');
         $seller = User::query()->findOrFail($sellerId);
         $amountMinor = $this->artworkPriceMinor($artwork);
-        $coinAmount = $conversion->coinsForCashMinor($amountMinor);
         $request->session()->put('payment_checkout.' . $artwork->id, [
             'started_at' => now()->timestamp, 'seller_id' => (int) $sellerId, 'amount_minor' => $amountMinor,
         ]);
 
-        return view('payment-checkout', compact('artwork', 'seller', 'amountMinor', 'items', 'coinAmount'));
+        return view('payment-checkout', compact('artwork', 'seller', 'amountMinor', 'items'));
     }
 
-    public function store(Request $request, PixelCoinLedger $ledger, PixelCoinConversion $conversion): RedirectResponse
+    public function store(Request $request, CashLedger $ledger): RedirectResponse
     {
         $this->ensurePaymentsEnabled();
         $validated = $request->validate([
             'artwork_id' => ['required', 'string', 'exists:artworks,id'],
             'item_id' => ['required', 'uuid', 'exists:artwork_items,item_id'],
-            'payment_method' => ['required', 'in:simulation,pixel_coin'],
+            'payment_method' => ['required', 'in:simulation'],
             'transaction_reference' => ['prohibited'],
             'proof' => ['prohibited'],
         ]);
@@ -65,54 +63,27 @@ class PaymentOrderController extends Controller
         abort_unless($this->validCheckoutSession($checkout) && $checkout['seller_id'] === (int) $sellerId, 403, 'Start checkout again before buying.');
         $amountMinor = $this->artworkPriceMinor($artwork);
         abort_unless($checkout['amount_minor'] === $amountMinor, 409, 'The price changed. Review checkout again.');
-        $coinAmount = $conversion->coinsForCashMinor($amountMinor);
-
-        if ($validated['payment_method'] === 'simulation') {
-            $orderId = (string) Str::uuid();
-            DB::transaction(function () use ($request, $validated, $sellerId, $artwork, $amountMinor, $coinAmount, $orderId, $ledger): void {
-                    $item = DB::table('artwork_items')->where('item_id', $validated['item_id'])->where('artwork_id', $artwork->id)->lockForUpdate()->first();
-                    $isResale = DB::table('resale_listings')->where('artwork_id', $artwork->id)->where('seller_id', $sellerId)->where('status', 'listed')->exists();
-                    abort_unless($item && ($item->status === 'available' || ($isResale && $item->status === 'owned' && (int) $item->owner_id === (int) $sellerId)), 409, 'That edition item is no longer available.');
-                    $order = PaymentOrder::create([
-                        'purchase_id' => $orderId, 'buyer_id' => $request->user()->id,
-                        'seller_id' => $sellerId, 'artwork_id' => $artwork->id, 'item_id' => $item->item_id,
-                        'type' => 'nft_purchase', 'amount_minor' => $amountMinor, 'coin_amount' => $coinAmount,
-                        'currency' => 'PHP', 'payment_method' => 'simulation', 'status' => 'approved', 'reviewed_at' => now(),
-                    ]);
-                    $this->acquireItem($order, $item);
-                    $buyer = User::query()->findOrFail($request->user()->id);
-                    $seller = User::query()->findOrFail($sellerId);
-                    $ledger->credit($seller, $coinAmount, 'sale', 'Simulated sale: '.$artwork->title, $artwork->id, $item->item_id, $orderId);
-                    $buyer->notify(new MarketplaceNotification('Simulated purchase complete', 'You purchased '.$artwork->title.'. Receipt '.$orderId.'. The edition is now in your collection.', route('user.purchases')));
-                    $seller->notify(new MarketplaceNotification('Artwork sold', $buyer->name.' purchased '.$artwork->title.' for PHP '.number_format($amountMinor / 100, 2).'. Simulated creator credit: '.PixelCoinLedger::format($coinAmount).' Pixel Coins. Receipt '.$orderId.'.', route('user.earnings')));
-                });
-            $request->session()->forget('payment_checkout.' . $artwork->id);
-
-            return redirect()->route('user.purchases')->with('status', 'Simulated purchase complete. Your receipt is ready and the edition is in your collection. No real payment was made.');
-        }
-
         $orderId = (string) Str::uuid();
-        DB::transaction(function () use ($request, $validated, $artwork, $sellerId, $amountMinor, $coinAmount, $orderId, $ledger): void {
+        DB::transaction(function () use ($request, $validated, $artwork, $sellerId, $amountMinor, $orderId, $ledger): void {
             $item = DB::table('artwork_items')->where('item_id', $validated['item_id'])->where('artwork_id', $artwork->id)->lockForUpdate()->first();
             $isResale = DB::table('resale_listings')->where('artwork_id', $artwork->id)->where('seller_id', $sellerId)->where('status', 'listed')->exists();
             abort_unless($item && ($item->status === 'available' || ($isResale && $item->status === 'owned' && (int) $item->owner_id === (int) $sellerId)), 409, 'That edition item was just purchased. Choose another available item.');
-            $buyer = User::query()->lockForUpdate()->findOrFail($request->user()->id);
-            $seller = User::query()->lockForUpdate()->findOrFail($sellerId);
+            $buyer = User::query()->findOrFail($request->user()->id);
+            $seller = User::query()->findOrFail($sellerId);
             $order = PaymentOrder::create([
                 'purchase_id' => $orderId, 'buyer_id' => $buyer->id, 'seller_id' => $seller->id,
-                'artwork_id' => $artwork->id, 'item_id' => $item->item_id, 'type' => 'nft_coin_purchase',
-                'amount_minor' => $amountMinor, 'coin_amount' => $coinAmount, 'currency' => 'PHP',
-                'payment_method' => 'pixel_coin', 'status' => 'approved', 'reviewed_at' => now(),
+                'artwork_id' => $artwork->id, 'item_id' => $item->item_id, 'type' => 'nft_purchase',
+                'amount_minor' => $amountMinor, 'currency' => 'PHP',
+                'payment_method' => 'simulation', 'status' => 'approved', 'reviewed_at' => now(),
             ]);
-            $ledger->debit($buyer, $coinAmount, 'purchase', 'NFT purchase: ' . $artwork->title, $artwork->id, $item->item_id, $orderId);
-            $ledger->credit($seller, $coinAmount, 'sale', 'Pixel Coin from sale: ' . $artwork->title, $artwork->id, $item->item_id, $orderId);
             $this->acquireItem($order, $item);
-            User::query()->findOrFail($buyer->id)->notify(new MarketplaceNotification('Pixel Coin purchase complete', 'You purchased '.$artwork->title.'. Receipt '.$orderId.'.', route('user.purchases')));
-            User::query()->findOrFail($seller->id)->notify(new MarketplaceNotification('Artwork sold', 'Your artwork '.$artwork->title.' was purchased for '.PixelCoinLedger::format($coinAmount).' Pixel Coins.', route('user.earnings')));
+            $ledger->credit($seller, $amountMinor, 'sale', $orderId);
+            $buyer->notify(new MarketplaceNotification('Simulated purchase complete', 'You purchased '.$artwork->title.'. Receipt '.$orderId.'. The edition is now in your collection. No real payment was made.', route('user.purchases')));
+            $seller->notify(new MarketplaceNotification('Artwork sold', $buyer->name.' purchased '.$artwork->title.' for PHP '.number_format($amountMinor / 100, 2).'. This simulated amount was added to your earnings balance. No cash was transferred.', route('user.earnings')));
         });
         $request->session()->forget('payment_checkout.' . $artwork->id);
 
-        return redirect()->route('user.purchases')->with('status', 'NFT purchased with Pixel Coin. Its unique edition item is now in your collection.');
+        return redirect()->route('user.purchases')->with('status', 'Simulated purchase complete. Your receipt is ready and the edition is in your collection. No real payment was made.');
     }
 
     private function acquireItem(PaymentOrder $order, object $item): void

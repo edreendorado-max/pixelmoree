@@ -1,6 +1,6 @@
 # Pixmoree Project Diagrams
 
-These diagrams describe the current Laravel MVC application and simulation-only transaction workflow. The database schema is defined by the Laravel migrations in database/migrations.
+These diagrams describe the current Laravel MVC application and its simulation-only purchase and withdrawal workflow. Laravel migrations define the current schema.
 
 ## 1. MVC request and data flow
 
@@ -31,21 +31,19 @@ sequenceDiagram
     Web->>DB: Authenticate credentials
 ```
 
-## 3. Client and admin transaction flow
+## 3. Simulated transaction flow
 
 ```mermaid
 flowchart TD
-    Client[Signed-in client] --> Choice{Choose action}
-    Choice -->|Simulate NFT purchase| Checkout[Select available edition item]
-    Checkout --> Order[Create approved simulated order]
-    Order --> Transfer[Transfer item to buyer]
+    Buyer[Signed-in buyer] --> Checkout[Choose an available edition]
+    Checkout --> Purchase[Create approved simulated PHP purchase]
+    Purchase --> Transfer[Transfer one edition item to buyer]
     Transfer --> Receipt[Issue receipt and notify buyer and seller]
-    Order --> Credit[Credit creator's simulated Pixel Coins]
-    Choice -->|Buy with Pixel Coins| CoinBuy[Debit buyer and credit creator]
-    CoinBuy --> CoinTransfer[Transfer selected item]
-    Choice -->|Simulate top-up| Topup[Credit simulated wallet and issue receipt]
-    Choice -->|Simulate withdrawal| Withdraw[Debit simulated wallet and issue receipt]
-    Admin[Admin Studio] --> Records[Inspect completed transaction records]
+    Purchase --> Earnings[Credit creator simulated PHP earnings]
+    Creator[Creator] --> Withdraw[Request simulated withdrawal up to balance]
+    Withdraw --> Debit[Debit simulated earnings and create payout record]
+    Debit --> PayoutReceipt[Issue withdrawal receipt; no cash is sent]
+    Admin[Admin Studio] --> Records[Inspect purchase and withdrawal records]
     Admin --> Review[Moderate artwork and resale evidence]
 ```
 
@@ -60,9 +58,8 @@ erDiagram
     USERS o|--o{ PAYMENT_ORDERS : sells
     ARTWORKS o|--o{ PAYMENT_ORDERS : concerns
     ARTWORK_ITEMS o|--o{ PAYMENT_ORDERS : item
-    USERS ||--o{ PIXEL_COIN_TRANSACTIONS : has
-    PAYMENT_ORDERS o|--o{ PIXEL_COIN_TRANSACTIONS : recorded_as
-    ARTWORK_ITEMS o|--o{ PIXEL_COIN_TRANSACTIONS : references
+    USERS ||--o{ CASH_LEDGER_ENTRIES : has
+    PAYMENT_ORDERS ||--o{ CASH_LEDGER_ENTRIES : records
     PAYMENT_ORDERS ||--o| OWNERSHIP_TRANSFERS : may_create
     USERS ||--o{ OWNERSHIP_TRANSFERS : receives
 
@@ -71,10 +68,7 @@ erDiagram
         string account_id UK
         string email UK
         string role
-        bigint pixel_coin_balance
-        bigint pixel_coin_reserved
-        string gcash_number
-        string gcash_qr_path
+        bigint cash_balance_minor
     }
     ARTWORKS {
         string id PK
@@ -100,20 +94,18 @@ erDiagram
         uuid item_id
         string type
         bigint amount_minor
-        bigint coin_amount
-        bigint fee_amount_minor
+        string currency
+        string payment_method
         string status
-        string transaction_reference
     }
-    PIXEL_COIN_TRANSACTIONS {
-        uuid transaction_id PK
+    CASH_LEDGER_ENTRIES {
+        bigint id PK
         bigint user_id FK
-        uuid payment_order_id
-        string artwork_id FK
-        uuid artwork_item_id
+        uuid purchase_id FK
+        string type
         string direction
-        bigint amount
-        bigint balance_after
+        bigint amount_minor
+        bigint balance_after_minor
     }
     OWNERSHIP_TRANSFERS {
         bigint id PK
@@ -124,6 +116,6 @@ erDiagram
     }
 ```
 
-Edition item IDs are unique. A simulated purchase transfers its selected item and records the order atomically. Coin balances and ledger amounts are stored in hundredths of a Pixel Coin.
+Edition item IDs are unique. Each simulated purchase transfers its selected item and records the purchase atomically. Cash balances and ledger amounts are stored as integer centavos and represent in-app demo values only. A purchase has one ledger entry for the creator; a simulated withdrawal has one debit entry for the creator. Historical migrations contain the removed Pixel Coin schema, and the cleanup migration drops its table and balance fields.
 
-Payment-order and ledger Item ID fields are application-validated UUID references; the current schema does not define foreign-key constraints for those item references. User, artwork, and purchase relationships marked FK are enforced by database constraints.
+Payment-order and ownership-transfer item ID fields are application-validated UUID references; the current schema does not define foreign-key constraints for those item references. User, artwork, purchase, and cash-ledger relationships marked FK are enforced by database constraints.

@@ -17,6 +17,7 @@ $artworkController = \App\Http\Controllers\ArtworkController::class;
 $earningsController = \App\Http\Controllers\UserEarningsController::class;
 $profileController = \App\Http\Controllers\UserProfileController::class;
 $paymentOrderController = \App\Http\Controllers\PaymentOrderController::class;
+$simulatedWithdrawalController = \App\Http\Controllers\SimulatedWithdrawalController::class;
 $resaleListingController = \App\Http\Controllers\ResaleListingController::class;
 $sitePageContentController = \App\Http\Controllers\SitePageContentController::class;
 $adminController = \App\Http\Controllers\AdminController::class;
@@ -60,8 +61,7 @@ Route::middleware('throttle:120,1')->group(function () use ($engagementControlle
         ->name('api.creators.views');
 });
 
-Route::middleware(['auth', 'member.account'])->group(function () use ($profileController, $artworkController, $earningsController, $engagementController, $paymentOrderController, $resaleListingController, $notificationController): void {
-    $pixelCoinController = \App\Http\Controllers\PixelCoinController::class;
+Route::middleware(['auth', 'member.account'])->group(function () use ($profileController, $artworkController, $earningsController, $engagementController, $paymentOrderController, $simulatedWithdrawalController, $resaleListingController, $notificationController): void {
     Route::get('/store', static fn () => view('store', [
         'artworks' => Artwork::query()
             ->where('status', 'Listed')
@@ -93,13 +93,11 @@ Route::middleware(['auth', 'member.account'])->group(function () use ($profileCo
     Route::view('/user/favorites', 'home')->name('user.favorites');
     Route::view('/user/history', 'home')->name('user.history');
     Route::get('/user/earnings', $earningsController)->name('user.earnings');
+    Route::post('/user/earnings/withdrawals', $simulatedWithdrawalController)
+        ->middleware('throttle:5,1')->name('user.earnings.withdrawals');
     Route::redirect('/user/settings', '/user/profile-settings')->name('user.settings');
     Route::redirect('/user/profile', '/user/profile-settings')->name('user.profile');
-      Route::redirect('/user/pixel-coin', '/user/pixel-coins')->name('user.pixel-coin.legacy');
-    Route::get('/user/payment', static fn () => redirect()->route('user.pixel-coins'))->name('user.payment');
-    Route::get('/user/pixel-coins', [$pixelCoinController, 'index'])->name('user.pixel-coins');
-    Route::post('/user/pixel-coins/top-ups', [$pixelCoinController, 'topUp'])->middleware('throttle:5,1')->name('user.pixel-coins.topups');
-    Route::post('/user/pixel-coins/withdrawals', [$pixelCoinController, 'withdraw'])->middleware('throttle:5,1')->name('user.pixel-coins.withdrawals');
+    Route::redirect('/user/payment', '/user/earnings');
     Route::redirect('/user/resales', '/user#resale')->name('user.resales');
     Route::view('/user/terms', 'home')->name('user.terms');
     Route::get('/user/nft/{id}', static fn (string $id) => redirect()->route('week12.client.artwork', ['id' => $id]))
@@ -168,8 +166,7 @@ Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12A
     Route::redirect('/admin', '/week12/admin')->name('admin');
     Route::get('/admin/payment-orders', function () {
         return view('admin.payment-orders', [
-            'orders' => \App\Models\PaymentOrder::query()->where('payment_method', 'simulation')->whereIn('type', ['nft_purchase', 'nft_coin_purchase'])->with(['buyer', 'seller', 'artwork'])->latest()->limit(100)->get(),
-            'topUps' => \App\Models\PaymentOrder::query()->where('payment_method', 'simulation')->where('type', 'pixel_coin_topup')->with('buyer')->latest()->limit(100)->get(),
+            'orders' => \App\Models\PaymentOrder::query()->where('payment_method', 'simulation')->where('type', 'nft_purchase')->with(['buyer', 'seller', 'artwork'])->latest()->limit(100)->get(),
             'payouts' => \App\Models\PaymentOrder::query()->where('payment_method', 'simulation')->where('type', 'creator_payout')->with('buyer')->latest()->limit(100)->get(),
             'resales' => DB::table('resale_listings')->join('artworks', 'artworks.id', '=', 'resale_listings.artwork_id')
                 ->join('users', 'users.id', '=', 'resale_listings.seller_id')

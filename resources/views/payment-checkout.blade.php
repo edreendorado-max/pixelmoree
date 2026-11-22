@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Checkout — Pixmoree</title>
+    <title>Checkout - Pixmoree</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ asset('css/site.css') }}" rel="stylesheet">
@@ -40,14 +40,6 @@
             </label>
             <p class="payment-checkout-notice" role="note">Simulation only: no money is charged. Completing the simulation creates a receipt, sends notifications, and transfers this edition to your collection.</p>
             <button class="store-buy-button" type="submit">Simulate purchase · PHP {{ number_format($amountMinor / 100, 2) }}</button>
-        </form>
-        <form id="coin-purchase" method="post" action="{{ route('user.purchase-orders.store') }}">
-            @csrf<input type="hidden" name="artwork_id" value="{{ $artwork->id }}"><input type="hidden" name="payment_method" value="pixel_coin">
-            <label class="payment-checkout-field">Choose the edition item
-                <select name="item_id" required>@foreach ($items as $item)<option value="{{ $item->item_id }}">Edition {{ $item->edition_number }} · {{ $item->item_id }}</option>@endforeach</select>
-            </label>
-            <p>Pay {{ \App\Support\PixelCoinLedger::format($coinAmount) }} Pixel Coins. Creator receives the same amount directly in their Pixmoree balance.</p>
-            <button class="store-buy-button" type="submit">Buy with Pixel Coins</button>
         </form>
     </section>
 </main>

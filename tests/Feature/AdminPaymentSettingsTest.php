@@ -22,7 +22,7 @@ class AdminPaymentSettingsTest extends TestCase
         $this->actingAs($admin)->get(route('admin.payment-orders'))
             ->assertOk()
             ->assertSee('Simulated transactions')
-            ->assertSee('No external payment is collected or sent')
+            ->assertSee('No external payment is collected and no cash is sent')
             ->assertDontSee('GCash account name')
             ->assertDontSee('Verify and transfer item');
 

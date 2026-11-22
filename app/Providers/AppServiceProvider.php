@@ -40,16 +40,17 @@ class AppServiceProvider extends ServiceProvider
                 ->with(['user' => static fn ($query) => $query->withCount(['followers', 'profileViews'])])
                 ->withCount(['likes', 'views'])
                 ->withCount(['paymentOrders as recent_market_sales_count' => static fn ($query) => $query
-                    ->whereIn('type', ['nft_purchase', 'nft_coin_purchase'])->where('status', 'approved')
+                    ->where('type', 'nft_purchase')->where('payment_method', 'simulation')->where('status', 'approved')
                     ->where('created_at', '>=', now()->subDays(30))])
                 ->withMax(['paymentOrders as last_market_sale_at' => static fn ($query) => $query
-                    ->whereIn('type', ['nft_purchase', 'nft_coin_purchase'])->where('status', 'approved')], 'created_at')
+                    ->where('type', 'nft_purchase')->where('payment_method', 'simulation')->where('status', 'approved')], 'created_at')
                 ->withCount(['items as available_items_count' => static fn ($query) => $query->where('status', 'available')])
                 ->latest()
                 ->get();
             $creatorSales = DB::table('payment_orders as purchases')
                 ->join('artworks as sold_artworks', 'sold_artworks.id', '=', 'purchases.artwork_id')
-                ->whereIn('purchases.type', ['nft_purchase', 'nft_coin_purchase'])
+                ->where('purchases.type', 'nft_purchase')
+                ->where('purchases.payment_method', 'simulation')
                 ->where('purchases.status', 'approved')
                 ->whereNotNull('sold_artworks.user_id')
                 ->groupBy('sold_artworks.user_id')
@@ -94,7 +95,7 @@ class AppServiceProvider extends ServiceProvider
                 ->get() ?? collect());
             $view->with('userArtworks', $account?->artworks()->latest()->get() ?? collect());
             $view->with('purchaseOrders', $account?->paymentOrders()
-                ->whereIn('type', ['nft_purchase', 'nft_coin_purchase'])
+                ->where('type', 'nft_purchase')
                 ->with('artwork')
                 ->latest()
                 ->limit(50)

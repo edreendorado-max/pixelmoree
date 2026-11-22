@@ -7,6 +7,7 @@ use App\Models\PaymentOrder;
 use App\Models\User;
 use App\Support\ArtworkPriceDashboard;
 use App\Support\ArtworkMarketValue;
+use App\Support\CashLedger;
 use Carbon\CarbonImmutable;
 use Database\Seeders\ArtworkFixtureSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -14,6 +15,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -324,7 +326,7 @@ class PixmoreePagesTest extends TestCase
         $this->assertDatabaseCount('artworks', 0);
     }
 
-    public function test_legacy_wallet_routes_are_removed_and_the_old_page_redirects(): void
+    public function test_legacy_wallet_routes_and_the_old_page_are_removed(): void
     {
         $user = User::create([
             'name' => 'Wallet User',
@@ -334,10 +336,10 @@ class PixmoreePagesTest extends TestCase
 
         $this->getJson('/api/pixel-coins')->assertNotFound();
         $this->postJson('/api/pixel-coins/top-ups', ['amount' => 1000])->assertNotFound();
-        $this->actingAs($user)->get('/user/pixel-coin')->assertRedirect(route('user.pixel-coins'));
+        $this->actingAs($user)->get('/user/pixel-coin')->assertNotFound();
 
-        $this->assertDatabaseHas('users', ['id' => $user->id, 'pixel_coin_balance' => 0]);
-        $this->assertDatabaseCount('pixel_coin_transactions', 0);
+        $this->assertFalse(Schema::hasColumn('users', 'pixel_coin_balance'));
+        $this->assertFalse(Schema::hasTable('pixel_coin_transactions'));
     }
 
     public function test_artwork_views_are_deduplicated_and_likes_require_authentication(): void
@@ -468,28 +470,35 @@ class PixmoreePagesTest extends TestCase
         }
 
         foreach ([
-            ['user_id' => $seller->id, 'artwork_id' => 'seller-artwork', 'amount' => 16666, 'balance_after' => 16666],
-            ['user_id' => $otherSeller->id, 'artwork_id' => 'other-artwork', 'amount' => 25000, 'balance_after' => 25000],
+            ['seller' => $seller, 'buyer' => $buyer, 'artwork_id' => 'seller-artwork', 'amount_minor' => 16666],
+            ['seller' => $otherSeller, 'buyer' => $buyer, 'artwork_id' => 'other-artwork', 'amount_minor' => 25000],
         ] as $sale) {
-            DB::table('pixel_coin_transactions')->insert($sale + [
-                'transaction_id' => (string) Str::uuid(),
-                'type' => 'sale',
-                'direction' => 'credit',
-                'description' => 'Approved sale',
+            $purchaseId = (string) Str::uuid();
+            PaymentOrder::create([
+                'purchase_id' => $purchaseId,
+                'buyer_id' => $sale['buyer']->id,
+                'seller_id' => $sale['seller']->id,
+                'artwork_id' => $sale['artwork_id'],
+                'type' => 'nft_purchase',
+                'amount_minor' => $sale['amount_minor'],
+                'currency' => 'PHP',
+                'payment_method' => 'simulation',
+                'status' => 'approved',
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
+            app(CashLedger::class)->credit($sale['seller'], $sale['amount_minor'], 'sale', $purchaseId);
         }
 
         $this->actingAs($seller)
             ->get('/user/earnings')
             ->assertOk()
             ->assertSee('Creator earnings')
-            ->assertSee('166.66 PC')
+            ->assertSee('PHP 166.66')
             ->assertSee('Seller Artwork')
             ->assertDontSee('Other Artwork</td>')
             ->assertSee('data-earnings-total="16666"', false)
-            ->assertSee('Pixel Coin purchases update the simulated creator balance immediately');
+            ->assertSee('Completed simulated sales add their PHP value to your earnings balance');
     }
 
     public function test_store_has_no_wallet_or_top_up_ui(): void
@@ -508,8 +517,8 @@ class PixmoreePagesTest extends TestCase
             ->assertDontSee('wallet');
         $this->assertDatabaseHas('artworks', ['id' => 'neon-wanderer', 'price' => '0.86']);
         $this->getJson('/api/pixel-coins/purchases')->assertNotFound();
-        $this->assertDatabaseHas('users', ['id' => $buyer->id, 'pixel_coin_balance' => 0]);
-        $this->assertDatabaseCount('pixel_coin_transactions', 0);
+        $this->assertFalse(Schema::hasColumn('users', 'pixel_coin_balance'));
+        $this->assertFalse(Schema::hasTable('pixel_coin_transactions'));
     }
 
     public function test_market_estimate_combines_popularity_creator_reputation_supply_and_inactivity(): void

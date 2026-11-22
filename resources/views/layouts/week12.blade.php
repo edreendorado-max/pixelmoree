@@ -49,7 +49,7 @@ if ($week12Area === 'admin') {
 <footer class="w12-footer">
     <div class="container d-flex flex-column flex-sm-row justify-content-between gap-2">
         <span><?= week12_escape($marketplaceContent['footer']['tagline'] ?? 'Pixmoree Marketplace') ?></span>
-        <span>Marketplace purchases and Pixel Coin actions are simulations; no real money is transferred.</span>
+        <span>Marketplace purchases and creator withdrawals are simulations; no real money is transferred.</span>
     </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

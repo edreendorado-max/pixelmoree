@@ -109,17 +109,23 @@ class AdminController extends Controller
             ->where('status', 'Listed')
             ->with(['user' => static fn ($query) => $query->withCount(['followers', 'profileViews', 'profileLikes'])])
             ->withCount(['likes', 'views'])
-            ->withCount(['pixelCoinTransactions as recent_market_sales_count' => static fn ($query) => $query
-                ->where('type', 'purchase')
+            ->withCount(['paymentOrders as recent_market_sales_count' => static fn ($query) => $query
+                ->where('type', 'nft_purchase')
+                ->where('payment_method', 'simulation')
+                ->where('status', 'approved')
                 ->where('created_at', '>=', now()->subDays(30))])
-            ->withMax(['pixelCoinTransactions as last_market_sale_at' => static fn ($query) => $query
-                ->where('type', 'purchase')], 'created_at')
+            ->withMax(['paymentOrders as last_market_sale_at' => static fn ($query) => $query
+                ->where('type', 'nft_purchase')
+                ->where('payment_method', 'simulation')
+                ->where('status', 'approved')], 'created_at')
             ->latest()
             ->get();
 
-        $creatorSales = DB::table('pixel_coin_transactions as purchases')
+        $creatorSales = DB::table('payment_orders as purchases')
             ->join('artworks as sold_artworks', 'sold_artworks.id', '=', 'purchases.artwork_id')
-            ->where('purchases.type', 'purchase')
+            ->where('purchases.type', 'nft_purchase')
+            ->where('purchases.payment_method', 'simulation')
+            ->where('purchases.status', 'approved')
             ->whereNotNull('sold_artworks.user_id')
             ->groupBy('sold_artworks.user_id')
             ->selectRaw('sold_artworks.user_id, COUNT(*) AS sold_count')

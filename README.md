@@ -1,111 +1,77 @@
 # Pixmoree
 
-Pixmoree is a Laravel 12 digital-art marketplace with accounts, artwork editions, profiles, engagement, simulated purchases, receipts, notifications, and a simulated Pixel Coin wallet. Registration uses email and password and makes the account available immediately; email verification is not required. Payment-like actions are local database simulations: no cash, GCash, payment gateway, or blockchain token is involved.
-
-## Website audit and improvement checklist
-
-The code-level website audit and prioritized recommendations are in [WEBSITE_AUDIT.md](WEBSITE_AUDIT.md). Key next steps are:
-
-- Review the main guest, member, creator, checkout, and admin journeys in a browser at mobile and desktop sizes.
-- Decide whether marketplace listings and artwork details should be publicly viewable before sign-in; the current Store requires authentication.
-- Add clear terms, privacy, content/copyright, payment dispute/refund, and support information before enabling payments.
-- Provide optional demo content for evaluating a fresh local install, and ensure navigation destinations have clear, distinct behavior.
-- Check accessibility, empty/error states, third-party asset loading, and admin content recovery.
-
-The audit maps repository evidence and automated test results to the rubric. Responsive browser appearance and presentation evidence still require a local demonstration.
-
-The rubric diagrams, ERD, and tri-fold demonstration guide are in [docs/PROJECT_DIAGRAMS.md](docs/PROJECT_DIAGRAMS.md) and [docs/DEMO_MANUAL.md](docs/DEMO_MANUAL.md).
+Pixmoree is a Laravel 12 digital art marketplace with accounts, artwork editions, profiles, engagement, simulated purchases, receipts, notifications, and creator earnings. NFT purchases and creator withdrawals are simulations only. The site does not charge or transfer real money, connect to GCash or a payment gateway, or use blockchain tokens. Pixel Coin and its top-up feature have been removed.
 
 ## Requirements
 
-- PHP 8.2 or newer with `pdo_mysql` enabled (included with the XAMPP PHP installation); `pdo_sqlite` is used for isolated automated tests
+- PHP 8.2 or newer with `pdo_mysql` enabled; `pdo_sqlite` is used by the isolated feature suite
 - Composer
 
-On Windows, install Composer using the official Composer installer and select `C:\xampp\php\php.exe` as the PHP executable.
+On Windows, install Composer with `C:\xampp\php\php.exe` as its PHP executable.
 
 ## Run locally
 
-Before migrating, start MySQL from the XAMPP Control Panel and create the local database. In phpMyAdmin, run `CREATE DATABASE pixmoreedb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;` or use the XAMPP MySQL command line. The example configuration uses the standard local XAMPP root account with a blank password; update `.env` if your MySQL account differs.
+Start MySQL from the XAMPP Control Panel and create a local database. In phpMyAdmin, run:
+
+```sql
+CREATE DATABASE pixmoreedb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
 From the project directory in PowerShell:
 
 ```powershell
 $env:PATH = 'C:\xampp\php;' + $env:PATH
-Copy-Item .env.example .env
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 composer install
-& 'C:\xampp\php\php.exe' artisan key:generate
+if (-not (Select-String -Path .env -Pattern '^APP_KEY=.+')) { & 'C:\xampp\php\php.exe' artisan key:generate }
 & 'C:\xampp\php\php.exe' artisan migrate --seed
+& 'C:\xampp\php\php.exe' artisan storage:link
 php artisan serve
 ```
 
-Adding XAMPP's PHP directory to the front of `PATH` ensures `php artisan serve` launches the same PHP runtime as the Artisan commands. Open <http://127.0.0.1:8000/> for the guest homepage. Registration is at `/register`; the signed-in Store is at `/store` (`/week12` redirects there). Admin routes at `/admin`, `/week12/admin`, and `/week12/admin/artworks` require an admin account. The app is configured for simulation mode by default.
+If `.env` already exists, keep its database and mail settings. The command above only creates it when missing and generates an application key only when `APP_KEY` is blank.
 
-### Access the development site from devices on the same Wi-Fi/LAN
+Open <http://127.0.0.1:8000/>. Register at `/register`; the signed-in Store is at `/store` (`/week12` redirects there). The Store requires an account. Admin routes at `/admin`, `/week12/admin`, and `/week12/admin/artworks` require an account promoted to admin.
 
-This shares the site only with devices that can reach this computer on the local network. It does not publish the site to the internet, and it does not make devices on a different Wi-Fi network able to connect. Keep this for trusted networks and development; `artisan serve` is not a production web server.
+### Payment and withdrawal simulations
 
-1. Connect the host computer and phone/tablet/other computer to the same Wi-Fi or LAN. On Windows, run `ipconfig` and find the active adapter's **IPv4 Address** (for example, `192.168.1.28`). Do not use `127.0.0.1` on the other device; that address refers to that device itself.
-2. In the project folder, start Laravel bound to all network interfaces:
+Checkout records a simulated PHP purchase, transfers one edition item to the buyer, creates a receipt, and adds the same demonstration amount to the creator's simulated earnings balance. Creators can simulate withdrawing up to their recorded balance from the Earnings page. A withdrawal updates the in-app ledger and creates a receipt. Neither flow contacts a payment provider, requests personal payment details, or moves money.
+
+Keep `PAYMENTS_ENABLED=true` and `PAYMENTS_SIMULATION=true` in `.env` for the local demo. `PAYMENTS_PHP_PER_ETH` is a demonstration conversion for artwork asking prices. These values do not represent money owed, charged, or paid. Top-ups and Pixel Coin purchases are no longer available.
+
+The migration `2026_11_22_000001_remove_pixel_coin_wallet` deletes old Pixel Coin balances, wallet ledger rows, coin-related order fields, and obsolete manual-payment settings and proof fields. If an existing database contains those legacy simulation or payment-setup records, back it up before running `php artisan migrate`; old coin balances are not converted into PHP earnings.
+
+### Share the development site on a local network
+
+This makes the development server reachable to devices on the same trusted Wi-Fi or LAN. It does not publish the site to the internet. `artisan serve` is not a production web server.
+
+1. Connect the host and other device to the same network. Run `ipconfig` on Windows and note the host's active IPv4 address.
+2. Start Laravel from the project directory:
 
    ```powershell
    & 'C:\xampp\php\php.exe' artisan serve --host=0.0.0.0 --port=8000
    ```
 
-   Leave this terminal open while using the site. Stop the server with `Ctrl+C`. If port 8000 is already in use, stop the old local server or choose another port and use that port in all URLs and firewall commands.
-3. On another device connected to the same network, open `http://<HOST-IP>:8000/`, replacing `<HOST-IP>` with the host's IPv4 address. Example: `http://192.168.1.28:8000/`.
-4. If the page times out, allow inbound TCP traffic to the chosen port in Windows Defender Firewall on **Private networks only**. Run PowerShell as Administrator and add a narrow rule for port 8000:
-
-   ```powershell
-   New-NetFirewallRule -DisplayName 'Pixmoree Laravel dev (private LAN)' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8000 -Profile Private
-   ```
-
-   Remove the rule when it is no longer needed:
-
-   ```powershell
-   Remove-NetFirewallRule -DisplayName 'Pixmoree Laravel dev (private LAN)'
-   ```
-
-5. If the router assigns a new IP address later, repeat `ipconfig` and use the new IPv4 address. Do not configure router port forwarding for this development server.
-
-The current development machine reported `192.168.1.28` during setup. This can change; verify it with `ipconfig` before connecting. If you change the host address, check `APP_URL` and restart the development server.
-
-## Production launch readiness
-
-This repository is prepared for local development; production hosting and third-party accounts must be configured separately. Before launch:
-
-- Set `APP_ENV=production`, `APP_DEBUG=false`, and `APP_URL` to the final HTTPS domain in the host's secret/configuration store. Generate `APP_KEY` once for that environment and retain it securely; never commit `.env` or rotate the key after users have encrypted data.
-- Use a managed production database with backups rather than the local SQLite file. Set its connection variables, run `php artisan migrate --force`, and verify migrations against a staging copy first.
-- Configure a real SMTP/mail provider and sender address if email password-reset links and optional welcome emails should be delivered. Registration and sign-in do not require email verification. Social sign-in is disabled.
-- Keep `PAYMENTS_SIMULATION=true` for the demo. NFT purchases, Pixel Coin top-ups, and withdrawals only update in-app records; they never charge or transfer money. Do not connect these routes to a live provider without a separately reviewed payment implementation.
-- Persist and back up both the database and uploaded files. Keep `storage/` and `bootstrap/cache/` writable by the app; create the public storage link and make sure private files are not exposed through the web root.
-- Point the web server document root at `public/`, enforce HTTPS, promote a real registered administrator with `php artisan pixmoree:make-admin <email>`, and smoke-test registration, login, uploads, checkout review, and the `/up` health endpoint.
-- Run `php artisan schedule:run` every minute through the host scheduler so daily price snapshots are recorded. Use `composer install --no-dev --optimize-autoloader` and Laravel's production cache commands as part of the host's deployment pipeline.
-
-Production hosting, domain, credentials, backups, and operational review still require separate setup. The included payment flows are simulations, not a production payment integration.
+3. Open `http://<HOST-IP>:8000/` on the other device, replacing `<HOST-IP>` with the host's address. Do not use `127.0.0.1` on the other device.
+4. If Windows Firewall blocks the connection, allow inbound TCP port 8000 on Private networks only. Remove the firewall rule when the demo is over. Do not configure router port forwarding for this development server.
 
 ## Accounts and password reset
 
-Registration creates an account and signs the new user in immediately. No verification code, SMTP setup, or email confirmation is needed to register, sign in, update an email address, use the Store, or make a purchase. Social login is disabled; use email or username with a password.
+Registration signs the new account in immediately; email verification is not required. Members sign in with email or username and password. Social sign-in is disabled. Password reset links expire after 60 minutes and require a configured SMTP provider to arrive in a real inbox. Optional welcome emails use the same mail configuration. Never commit SMTP credentials.
 
-Password reset is available from the login page. Reset links expire after 60 minutes, and delivering them to a real inbox requires a configured SMTP provider. Optional welcome emails use the same mail configuration, but delivery failures do not block account creation. Never commit SMTP credentials; keep them in the local `.env` or the host's secret store. New passwords, including reset and profile password changes, must be at least six characters and include an uppercase letter, a number, and a special character.
+New passwords, including reset and profile password changes, must be at least six characters and include an uppercase letter, a number, and a special character.
 
-## Simulated purchases and Pixel Coins
+To promote an existing account to admin, register it normally and run:
 
-Pixel Coins use two decimal places. The configured PHP amounts, minimums, conversion cap, and 1.5% top-up fee are demonstration values only. A simulated NFT purchase creates an approved receipt, transfers one selected edition item, notifies buyer and seller, and credits the creator's simulated Pixel Coin balance. Coin purchases debit the buyer and credit the creator in one database transaction. Simulated top-ups and withdrawals update the in-app wallet and ledger only. Each order and edition item has a UUID identifier, as does each coin ledger entry.
+```powershell
+& 'C:\xampp\php\php.exe' artisan pixmoree:make-admin admin@example.com
+```
 
-Set `PAYMENTS_ENABLED=true` and `PAYMENTS_SIMULATION=true` for local demo transactions. The admin Transactions screen displays completed simulation records. Admin review remains available for artwork moderation and resale evidence, not payment approval.
+The command does not set or expose a password. No shared demo credentials are seeded or committed.
 
-1. Run migrations after updating the app: `php artisan migrate`.
-2. Confirm `PAYMENTS_ENABLED=true` and `PAYMENTS_SIMULATION=true` in `.env`; run `php artisan config:clear` after changing configuration.
-3. Register a second member account to act as the simulated buyer.
-4. Confirm the buyer receipt and ownership, seller notification and simulated Pixel Coin credit, and the completed order in Admin Studio â†’ Transactions.
-5. Simulate a Pixel Coin top-up and withdrawal and confirm each receipt and ledger entry. No external payment is requested.
-6. Use the Admin Studio to moderate artwork, review resale evidence, inspect analytics, and update site content.
+## Database
 
-The local payment feature gate and simulation setting are enabled for the class demo. NFT purchases, Pixel Coin top-ups, and withdrawals complete in-app and do not use GCash, QR codes, receipt uploads, or external payments. Keep `PAYMENTS_SIMULATION=true`; simulated PHP amounts and wallet balances do not represent real funds.
-## MySQL database
-
-The rubric demonstration uses the local MySQL database named `pixmoreedb`. Laravel migrations are the source of truth for its schema; run them after pulling schema changes:
+Laravel migrations define the current schema. For the local MySQL database, run:
 
 ```dotenv
 DB_CONNECTION=mysql
@@ -117,62 +83,40 @@ DB_PASSWORD=
 DB_FOREIGN_KEYS=true
 ```
 
-Run `php artisan migrate --seed` to create or update the schema. The default seeder does not create demo users or artwork; the supplied images remain available in `public/assets/nfts` for creators to use when they choose. Do not run the legacy `database/setup.sql`; the Laravel migrations define the current schema.
+Then run `php artisan migrate --seed`. The default seeder does not create demo users or artwork. Supplied images are in `public/assets/nfts` and `public/assets/creators`.
 
-For the MySQL feature suite, create a separate test database with `mysql.exe -u root -e "CREATE DATABASE IF NOT EXISTS pixmoree_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"`. Run `& 'C:\xampp\php\php.exe' vendor\bin\phpunit --configuration=phpunit.mysql.xml --testsuite=Feature`. This test configuration targets only pixmoree_test, which the test suite refreshes. Never point it at a database containing user data.
+The standard feature suite uses an in-memory SQLite database. For a dedicated MySQL feature run, create a separate `pixmoree_test` database and use `phpunit.mysql.xml`; that suite refreshes its configured test database. Never point tests at a database with user data.
 
-### SQLite for isolated local tests
+Users can update their name, email, phone, bio, and profile image in `/user/profile-settings`. Each new account receives an in-app welcome notification. Users can view and mark their notifications as read from `/user/notifications`. Uploaded images are stored on Laravel's public disk; run `php artisan storage:link` after setup.
 
-The test environment can use SQLite in memory. To run the site locally on SQLite instead of MySQL, set `DB_CONNECTION=sqlite` and `DB_DATABASE=database/database.sqlite` in `.env`, then run the migrations. The ignored SQLite file is for local development only; the rubric's database demonstration should use MySQL.
+Admins can manage users, moderate artwork, update listing prices, review resale ownership evidence, inspect transaction records and analytics, and edit website content from `/week12/admin`. Simulated transactions complete automatically; there is no payment approval screen. Resale approval publishes a listing and is not a copyright determination.
 
-The `users` table stores account and editable profile fields, including a unique username. Registration creates the user row and signs the new user in immediately. Users can sign in with either their email or username, and can update their display name, email, phone, bio, and profile photo in `/user/profile-settings`; email changes do not require verification or sign the user out. Each new account receives an in-app welcome notification; users can view and mark their own notifications as read from `/user/notifications`. These records are stored in the `notifications` table. A migration removes the obsolete email-verification code table and timestamp column. The `images` table stores each signed-in user's uploaded image path, MIME type, size, and description; deleting a user cascades to their image records. User uploads and NFT artwork uploads are stored on Laravel's public disk. Run `php artisan storage:link` after setup so URLs under `/storage` can reach those files; if uploaded artwork appears blank, check that `public/storage` links to `storage/app/public` and rerun the command if it is missing.
+Marketplace cards show creator asking prices in ETH. Checkout displays the simulated PHP amount using `PAYMENTS_PHP_PER_ETH`. The member dashboard shows estimated artwork values and daily gainers/decliners; these are not completed sale prices. Run Laravel's scheduler so `artworks:prices:snapshot` can record a daily estimate.
 
-Admins can monitor and edit account profile details, moderate creator-submitted artwork, update listing prices, review payment and resale submissions, edit website pages, and view market analytics from `/week12/admin`. Admin accounts are redirected away from member-only pages such as `/user` and `/store`; the Store remains available to regular signed-in users. Admins cannot create artwork listings on behalf of their own accounts; creators submit their own artwork. The administrator-only analytics API at `/admin/api/analytics` reports asking prices, likes, views, creator followers, and daily estimated-market-value snapshots. Estimates are not completed sales; run the Laravel scheduler so `artworks:prices:snapshot` can record a daily history.
+## Production readiness
 
-### Share a safe local database setup with collaborators
+This repository is configured for local development. Production hosting, HTTPS, a managed database, backups, SMTP, and operational review need separate setup. Before hosting, set `APP_ENV=production`, `APP_DEBUG=false`, a production `APP_URL`, and a secret `APP_KEY`; point the web server document root to `public/`; and keep storage and `bootstrap/cache` writable. Keep payments in simulation mode. Do not connect simulated purchase or withdrawal routes to a live provider without a separately reviewed implementation.
 
-The Git repository shares schema and project files, not a live database. Each collaborator creates a local MySQL database by running `php artisan migrate --seed`. Never commit the local SQLite database, `.env`, or production credentials.
+## Documentation
 
-Admins can update the homepage, About page, marketplace, log-in, and registration pages from the Content Studio at `/admin/content`. Text and supported page images can be edited in the matching page editor; marketplace and gallery artwork is managed from the admin artwork screen. The About page's Ã¢â‚¬Å“people behind PixmoreeÃ¢â‚¬Â section is a separate, editable developer team, not the marketplace creator list. Developer cards support a section, quote, and validated social URLs. Admin screens share the Pixmoree visual theme. Signed-in creators can upload original artwork from `/user/create`; artwork metadata and the stored image path are saved in MySQL, while the actual image is stored on Laravel's public disk. Users can edit or delete their own artwork, and duplicate image files are rejected by SHA-256. Admins can manage all listings. Creator profile images are stored in `users.avatar_path` and can be changed in profile settings. The supplied artwork and developer photos are kept in `public/assets/nfts` and `public/assets/creators`, separate from the site background and logo.
-
-To replace all local accounts and account-owned artwork with one verified administrator, configure `PIXMOREE_ADMIN_NAME`, `PIXMOREE_ADMIN_EMAIL`, `PIXMOREE_ADMIN_USERNAME`, and `PIXMOREE_ADMIN_PASSWORD` in the local `.env`, then run `php artisan pixmoree:reset-accounts`. The command is restricted to the local SQLite database or local `pixmoreedb` MySQL database and asks for confirmation before deleting accounts and their linked data. Keep the password in `.env` or another secret store; never commit it. The admin can sign in with the configured email or username.
-
-Marketplace cards show creator asking prices. The member dashboard also displays simulated estimated values and daily gainers/decliners. Estimates respond to likes, views, approved simulated purchases, edition supply, and inactivity; they are not completed sale prices.
-
-The signed-in home page shows a For You feed ranked from the user's latest liked, purchased, and viewed artwork categories. Marketplace search, category filtering, and sorting operate on current database-backed listings. Recommendations are recomputed on each page load.
-
-## Simulated transactions
-
-The local app uses `PAYMENTS_ENABLED=true` with `PAYMENTS_SIMULATION=true`. NFT purchases transfer one selected edition immediately and create a receipt; simulated top-ups and withdrawals update the member's wallet and ledger. The admin Transactions page lists completed simulated records. No GCash QR setup, receipt upload, real charge, or cash payout is involved. Admins continue to moderate artwork and resale submissions.
-
-Estimated market values use asking price, engagement, approved simulated sales, edition supply, and inactivity. Daily snapshots support the gainers/decliners display. These estimates are for demonstration only and do not represent real prices or investment advice.
-
-Amounts displayed in simulated receipts and Pixel Coin records are demonstration values and do not represent real money owed or paid.
-
-Run `php artisan migrate` after updating, and keep `PAYMENTS_SIMULATION=true` for local demonstrations.
-The legacy MySQL schema remains available as `database/setup.sql`; Apache rules deny direct web requests to the database directory and SQL files. Configure Apache to use the project's `public` directory as its document root.
-
-The local beta accounts use local-only `@pixmoree.test` addresses; configure real email addresses before using accounts outside local development.
-
-## Beta user and admin accounts
-
-Create a regular beta user through `/register`; all registrations receive the `user` role and cannot grant themselves admin access. To create a beta admin, register that account normally and promote it from the project directory:
-
-```powershell
-& 'C:\xampp\php\php.exe' artisan pixmoree:make-admin admin@example.com
-```
-
-The command only promotes an existing registered account and does not set or expose a password. Both roles sign in at `/login`; users are sent to their account area and admins to the admin dashboard. No shared demo credentials are seeded or committed.
+- [Website audit and verification notes](WEBSITE_AUDIT.md)
+- [Project diagrams and ERD](docs/PROJECT_DIAGRAMS.md)
+- [Client and admin demo manual](docs/DEMO_MANUAL.md)
 
 ## Tests
 
-The standard feature suite uses an in-memory SQLite database regardless of the local database configuration. Run `php artisan test --testsuite=Feature`. For MySQL, use the separate pixmoree_test database and phpunit.mysql.xml instructions above.
+Run the SQLite feature suite with:
+
+```powershell
+php artisan test --testsuite=Feature
+```
 
 ## Project structure
 
-- `routes/web.php` contains the Laravel web routes.
-- `resources/views` contains the guest, account, profile, and Week 12 views.
-- `public/assets`, `public/css`, and `public/js` contain static site assets.
-- `database/migrations` and `database/seeders` define the account, image, artwork, payment, and ownership schema. Legacy wallet tables are retained for existing records; default seeding leaves user and artwork tables empty.
+- `routes/web.php` contains Laravel web routes.
+- `app/Http/Controllers` contains account, marketplace, admin, purchase, and withdrawal flows.
+- `resources/views` contains guest, account, checkout, receipt, and Admin Studio views.
+- `public/assets`, `public/css`, and `public/js` contain site assets and browser scripts.
+- `database/migrations` and `database/seeders` define the active schema and default seed data. Older migration files remain as history for existing installations.
 
-For local development, run `php artisan serve` from the project root. For Apache deployment, configure the document root to the project's `public` directory.
+For Apache deployment, configure the document root to the project's `public` directory.

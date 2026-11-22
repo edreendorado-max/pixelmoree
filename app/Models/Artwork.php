@@ -72,11 +72,6 @@ class Artwork extends Model
         return $this->hasMany(ArtworkItem::class, 'artwork_id', 'id');
     }
 
-    public function pixelCoinTransactions(): HasMany
-    {
-        return $this->hasMany(PixelCoinTransaction::class, 'artwork_id');
-    }
-
     public function paymentOrders(): HasMany
     {
         return $this->hasMany(PaymentOrder::class, 'artwork_id', 'id');
@@ -98,7 +93,7 @@ class Artwork extends Model
         $lastSaleAt = $this->getAttribute('last_market_sale_at');
         if (! array_key_exists('recent_market_sales_count', $this->attributes)
             || ! array_key_exists('last_market_sale_at', $this->attributes)) {
-            $sales = $this->paymentOrders()->whereIn('type', ['nft_purchase', 'nft_coin_purchase'])->where('status', 'approved');
+            $sales = $this->paymentOrders()->where('type', 'nft_purchase')->where('payment_method', 'simulation')->where('status', 'approved');
             $recentSales = (clone $sales)->where('created_at', '>=', now()->subDays(30))->count();
             $lastSaleAt = (clone $sales)->max('created_at');
         }
@@ -110,7 +105,8 @@ class Artwork extends Model
         $creatorViews = $creator?->getAttribute('profile_views_count') ?? $creator?->profileViews()->count() ?? 0;
         $creatorSales = $this->attributes['creator_sold_count'] ?? ($creator === null ? 0 : (int) DB::table('payment_orders as purchases')
             ->join('artworks as sold_artworks', 'sold_artworks.id', '=', 'purchases.artwork_id')
-            ->whereIn('purchases.type', ['nft_purchase', 'nft_coin_purchase'])
+            ->where('purchases.type', 'nft_purchase')
+            ->where('purchases.payment_method', 'simulation')
             ->where('purchases.status', 'approved')->where('sold_artworks.user_id', $creator->id)->count());
 
         return ArtworkMarketValue::estimate(

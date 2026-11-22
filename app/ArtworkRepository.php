@@ -111,9 +111,10 @@ final class ArtworkRepository
                 "SELECT users.id AS creator_id,
                         (SELECT COUNT(*) FROM creator_views WHERE creator_id = users.id) AS profile_views_count,
                         (SELECT COUNT(*) FROM creator_follows WHERE creator_id = users.id) AS followers_count,
-                        (SELECT COUNT(*) FROM pixel_coin_transactions AS purchases
+                        (SELECT COUNT(*) FROM payment_orders AS purchases
                          INNER JOIN artworks AS sold_artworks ON sold_artworks.id = purchases.artwork_id
-                         WHERE purchases.type = 'purchase' AND sold_artworks.user_id = users.id) AS sold_count
+                         WHERE purchases.type = 'nft_purchase' AND purchases.payment_method = 'simulation'
+                           AND purchases.status = 'approved' AND sold_artworks.user_id = users.id) AS sold_count
                  FROM users WHERE users.id IN ($creatorPlaceholders)"
             );
             $creatorStats->execute($creatorIds);
@@ -123,8 +124,9 @@ final class ArtworkRepository
             "SELECT artwork_id,
                     SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) AS recent_sales,
                     MAX(created_at) AS last_sale_at
-             FROM pixel_coin_transactions
-             WHERE type = 'purchase' AND artwork_id IN ($placeholders)
+             FROM payment_orders
+             WHERE type = 'nft_purchase' AND payment_method = 'simulation' AND status = 'approved'
+               AND artwork_id IN ($placeholders)
              GROUP BY artwork_id"
         );
         $now = CarbonImmutable::now();
