@@ -14,7 +14,7 @@ class NotificationController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 403);
 
-        return view('home', [
+        return view('user.notifications', [
             'notifications' => $user->notifications()->latest()->paginate(20),
             'unreadNotificationCount' => $user->unreadNotifications()->count(),
         ]);

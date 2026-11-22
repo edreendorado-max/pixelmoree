@@ -38,8 +38,17 @@ class UserNotificationsTest extends TestCase
         $this->actingAs($user)
             ->get(route('user.notifications'))
             ->assertOk()
+            ->assertSee('ACCOUNT ACTIVITY')
+            ->assertSee('Back to account')
             ->assertSee('Welcome to Pixmoree')
             ->assertSee('Your account is ready. Explore the marketplace and share your work.');
+
+        $this->actingAs($user)
+            ->get(route('user'))
+            ->assertOk()
+            ->assertSee('class="member-notification-button"', false)
+            ->assertSee('data-notification-badge', false)
+            ->assertSee('aria-label="Notifications, 1 unread"', false);
     }
 
     public function test_users_can_only_manage_their_own_notifications(): void
@@ -74,6 +83,10 @@ class UserNotificationsTest extends TestCase
         $this->post(route('user.notifications.read', $firstNotification->id))
             ->assertRedirect(route('user.notifications'));
         $this->assertNotNull($firstNotification->fresh()->read_at);
+        $this->actingAs($firstUser)
+            ->get(route('user'))
+            ->assertOk()
+            ->assertDontSee('data-notification-badge', false);
 
         $this->post(route('user.notifications.read', $secondNotification->id))
             ->assertNotFound();

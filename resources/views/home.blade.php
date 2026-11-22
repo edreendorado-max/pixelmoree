@@ -1,5 +1,4 @@
 @php($account = auth()->user())
-@php($notifications = $notifications ?? collect())
 @php($unreadNotificationCount = $unreadNotificationCount ?? 0)
 <!doctype html>
 <html lang="en">
@@ -12,7 +11,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/site.css') }}?v=20261127-creator-ui" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}?v=20261122-notifications" rel="stylesheet">
     <link href="{{ asset('css/typography.css') }}?v=20261127-creator-ui" rel="stylesheet">
 </head>
 <body class="{{ $account ? 'member-home' : 'guest-home' }}">
@@ -40,6 +39,14 @@
           <button class="search-icon" type="button" aria-label="Open artwork search" aria-expanded="false" aria-controls="gallerySearch"><i class="bi bi-search"></i></button>
           <input id="gallerySearch" class="search-input" type="search" placeholder="Search artwork..." aria-label="Search artwork" tabindex="-1">
         </div>
+        @if ($account)
+          <a class="member-notification-button" href="{{ route('user.notifications') }}" data-member-action="notifications" aria-label="Notifications{{ $unreadNotificationCount > 0 ? ', '.$unreadNotificationCount.' unread' : '' }}" title="Notifications{{ $unreadNotificationCount > 0 ? ' ('.$unreadNotificationCount.' unread)' : '' }}">
+            <i class="bi bi-bell" aria-hidden="true"></i>
+            @if ($unreadNotificationCount > 0)
+              <span data-notification-badge aria-hidden="true">{{ $unreadNotificationCount > 99 ? '99+' : $unreadNotificationCount }}</span>
+            @endif
+          </a>
+        @endif
         <div class="member-profile" id="memberProfile" hidden>
           <button class="member-profile-toggle" id="memberProfileToggle" type="button" aria-expanded="false" aria-controls="memberProfileMenu"><span class="member-avatar" id="memberNavAvatar"><span class="member-avatar-initial">{{ strtoupper(substr($account?->name ?? 'A', 0, 1)) }}</span></span><span id="memberNavName">{{ $account?->name ?? 'Account' }}</span><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
           <div class="member-profile-menu" id="memberProfileMenu" hidden>
@@ -289,40 +296,6 @@
           <section class="member-dashboard-panel" data-member-panel-content="profile" hidden>
             <div class="member-panel-heading"><div><h3>Profile settings</h3><p>Your account information is saved securely to Pixmoree.</p></div></div>
             <a class="member-profile-save" href="/user/profile-settings">Manage profile details</a>
-          </section>
-          <section class="member-dashboard-panel" data-member-panel-content="notifications" hidden>
-            <div class="member-panel-heading">
-              <div><h3>Notifications</h3><p>{{ $unreadNotificationCount }} unread notification{{ $unreadNotificationCount === 1 ? '' : 's' }}.</p></div>
-              @if ($unreadNotificationCount > 0)
-                <form method="post" action="{{ route('user.notifications.read-all') }}">
-                  @csrf
-                  <button class="member-profile-save" type="submit">Mark all as read</button>
-                </form>
-              @endif
-            </div>
-            @forelse ($notifications as $notification)
-              <article class="member-panel-card mb-3" @class(['opacity-75' => $notification->read_at !== null])>
-                <div class="member-panel-heading">
-                  <div>
-                    <h4>{{ $notification->data['title'] ?? 'Notification' }}</h4>
-                    <p>{{ $notification->created_at->diffForHumans() }} · {{ $notification->read_at ? 'Read' : 'Unread' }}</p>
-                  </div>
-                  @if ($notification->read_at === null)
-                    <form method="post" action="{{ route('user.notifications.read', $notification->id) }}">
-                      @csrf
-                      <button class="member-profile-save" type="submit">Mark as read</button>
-                    </form>
-                  @endif
-                </div>
-                <p>{{ $notification->data['message'] ?? '' }}</p>
-                @if (!empty($notification->data['url']))<a href="{{ $notification->data['url'] }}">Open details</a>@endif
-              </article>
-            @empty
-              <p class="member-empty-state">You have no notifications yet.</p>
-            @endforelse
-            @if ($notifications instanceof \Illuminate\Contracts\Pagination\Paginator)
-              {{ $notifications->links() }}
-            @endif
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="about" hidden>
             <div class="member-about-page">

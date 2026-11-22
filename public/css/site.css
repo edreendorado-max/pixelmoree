@@ -998,7 +998,8 @@ body{font-family:Inter,system-ui,sans-serif}
 .member-area .guest-nav .nav-actions>.guest-search.is-open .search-input{width:182px}
 .member-area .guest-nav .nav-actions>.member-notification-button{position:relative;display:grid;width:38px;height:38px;place-items:center;border:1px solid #ffffff20;border-radius:8px;background:#15151a;color:#eae6ef;font-size:16px;text-decoration:none}
 .member-area .guest-nav .nav-actions>.member-notification-button[hidden]{display:none}
-.member-area .member-notification-button>span{position:absolute;top:-5px;right:-5px;display:grid;min-width:17px;height:17px;place-items:center;padding:0 4px;border:2px solid #15151a;border-radius:99px;background:#ed4dbb;color:#fff;font-family:Inter,sans-serif;font-size:9px;font-weight:700}
+.member-area .member-notification-button:hover,.member-area .member-notification-button:focus-visible{border-color:#ef3340;color:#fff}
+.member-area .member-notification-button>span{position:absolute;top:-5px;right:-5px;display:grid;min-width:17px;height:17px;place-items:center;padding:0 4px;border:2px solid #15151a;border-radius:99px;background:#ef3340;color:#fff;font-family:Inter,sans-serif;font-size:9px;font-weight:700}
 .member-area .member-notification-button>span[hidden]{display:none}
 .member-area .member-profile{width:100%}
 .member-area .nav-actions>.member-profile{width:auto}
@@ -1098,6 +1099,9 @@ body{font-family:Inter,system-ui,sans-serif}
 .member-notification-copy{display:grid;min-width:0;flex:1;gap:4px}
 .member-notification-copy strong{overflow:hidden;color:#f2edf5;font-size:10px;text-overflow:ellipsis;white-space:nowrap}
 .member-notification-copy small{color:#a7a0af;font-size:9px}
+.member-notification-copy p{margin:0;color:#c6c0cc;font-size:10px;line-height:1.55}
+.member-notification-copy>a{width:max-content;color:#d9a5ff;font-size:9px;text-decoration:none}
+.member-notification-copy>a:hover{text-decoration:underline}
 .member-notification-mark{padding:6px 8px;border:1px solid #ffffff20;border-radius:6px;background:#ffffff08;color:#d9d2df;font-size:8px;white-space:nowrap}
 .member-notification-mark:disabled{color:#8f8998}
 .member-about-card{max-width:820px;padding:clamp(18px,3vw,34px);border:1px solid #ffffff14;border-radius:13px;background:radial-gradient(ellipse at 100% 0%,#a02a8522,transparent 50%),#17161e}

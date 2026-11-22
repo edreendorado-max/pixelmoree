@@ -35,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
         View::composer(['home', 'about'], static function (ViewContract $view): void {
             $account = Auth::user();
             $account?->loadCount(['profileViews', 'profileLikes']);
+            $unreadNotificationCount = $account?->unreadNotifications()->count() ?? 0;
             $homeArtworks = Artwork::query()
                 ->where('status', 'Listed')
                 ->with(['user' => static fn ($query) => $query->withCount(['profileViews'])])
@@ -64,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
             $dailyPriceMovers = $priceDashboard->dailyMovers($homeArtworks);
 
             $view->with('homeContent', SitePageContent::get('home'));
+            $view->with('unreadNotificationCount', $unreadNotificationCount);
             $view->with('aboutContent', SitePageContent::get('about'));
             $view->with('homeArtworks', $homeArtworks);
             $view->with('resaleListings', ResaleListing::query()
