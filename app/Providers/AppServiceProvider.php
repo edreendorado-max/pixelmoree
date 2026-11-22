@@ -34,10 +34,10 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer(['home', 'about'], static function (ViewContract $view): void {
             $account = Auth::user();
-            $account?->loadCount(['profileViews', 'profileLikes', 'followers']);
+            $account?->loadCount(['profileViews', 'profileLikes']);
             $homeArtworks = Artwork::query()
                 ->where('status', 'Listed')
-                ->with(['user' => static fn ($query) => $query->withCount(['followers', 'profileViews'])])
+                ->with(['user' => static fn ($query) => $query->withCount(['profileViews'])])
                 ->withCount(['likes', 'views'])
                 ->withCount(['paymentOrders as recent_market_sales_count' => static fn ($query) => $query
                     ->where('type', 'nft_purchase')->where('payment_method', 'simulation')->where('status', 'approved')
@@ -81,7 +81,6 @@ class AppServiceProvider extends ServiceProvider
                 ->whereHas('artworks', static fn ($query) => $query->where('status', 'Listed'))
                 ->withCount([
                     'artworks' => static fn ($query) => $query->where('status', 'Listed'),
-                    'followers',
                     'profileLikes',
                     'profileViews',
                 ])

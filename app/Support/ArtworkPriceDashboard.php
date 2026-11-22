@@ -48,7 +48,7 @@ class ArtworkPriceDashboard
     {
         $artworks = Artwork::query()
             ->where('status', 'Listed')
-            ->with(['user' => static fn ($query) => $query->withCount(['followers', 'profileViews'])])
+            ->with(['user' => static fn ($query) => $query->withCount(['profileViews'])])
             ->withCount(['likes', 'views'])
             ->withCount(['paymentOrders as recent_market_sales_count' => static fn ($query) => $query
                 ->where('type', 'nft_purchase')->where('payment_method', 'simulation')->where('status', 'approved')

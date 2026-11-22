@@ -7,8 +7,8 @@
     <title>{{ $creator->name }} — Pixmoree creators</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/site.css') }}" rel="stylesheet">
-    <link href="{{ asset('css/typography.css') }}?v=20261117" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}?v=20261127-creator-ui" rel="stylesheet">
+    <link href="{{ asset('css/typography.css') }}?v=20261127-creator-ui" rel="stylesheet">
 </head>
 <body class="creator-page">
 <header class="profile-settings-topbar">
@@ -32,7 +32,7 @@
 </header>
 
 <main class="creator-main">
-    <section class="creator-profile-hero" aria-labelledby="creator-name" data-engagement-metrics="creator" data-entity-id="{{ $creator->id }}" data-views="{{ $engagement['views'] }}" data-likes="{{ $engagement['likes'] }}" data-followers="{{ $engagement['followers'] }}">
+    <section class="creator-profile-hero" aria-labelledby="creator-name" data-engagement-metrics="creator" data-entity-id="{{ $creator->id }}" data-views="{{ $engagement['views'] }}" data-likes="{{ $engagement['likes'] }}">
         @if ($creator->banner_path)
             <img class="creator-profile-banner" src="{{ asset($creator->banner_path) }}" alt="">
         @endif
@@ -59,19 +59,15 @@
                     <button class="creator-action-button" type="button" data-engagement-like="creator" data-entity-id="{{ $creator->id }}" data-liked="{{ $engagement['liked'] ? 'true' : 'false' }}" aria-pressed="{{ $engagement['liked'] ? 'true' : 'false' }}">
                         <i class="bi {{ $engagement['liked'] ? 'bi-heart-fill' : 'bi-heart' }}" aria-hidden="true"></i><span>Like</span>
                     </button>
-                    <button class="creator-action-button creator-follow-button" type="button" data-engagement-follow="creator" data-entity-id="{{ $creator->id }}" data-following="{{ $engagement['following'] ? 'true' : 'false' }}" aria-pressed="{{ $engagement['following'] ? 'true' : 'false' }}">
-                        <i class="bi {{ $engagement['following'] ? 'bi-person-check' : 'bi-person-plus' }}" aria-hidden="true"></i><span>{{ $engagement['following'] ? 'Following' : 'Follow' }}</span>
-                    </button>
                 @endif
             @else
-                <a class="creator-action-button" href="{{ route('login') }}"><i class="bi bi-heart" aria-hidden="true"></i> Log in to like or follow</a>
+                <a class="creator-action-button" href="{{ route('login') }}"><i class="bi bi-heart" aria-hidden="true"></i> Log in to like</a>
             @endauth
             <p class="engagement-feedback" data-engagement-feedback role="status" aria-live="polite" hidden></p>
         </div>
         <div class="creator-profile-metrics">
             <div><small>Profile views</small><strong data-engagement-views>{{ number_format($engagement['views']) }}</strong></div>
             <div><small>Likes</small><strong data-engagement-likes>{{ number_format($engagement['likes']) }}</strong></div>
-            <div><small>Followers</small><strong data-engagement-followers>{{ number_format($engagement['followers']) }}</strong></div>
             <div><small>Listed artwork</small><strong>{{ number_format($artworks->count()) }}</strong></div>
         </div>
     </section>
@@ -94,7 +90,11 @@
                         <div class="creator-artwork-metrics">
                             <span><i class="bi bi-eye" aria-label="Views"></i> <span data-engagement-views>{{ number_format($artwork->views_count) }}</span></span>
                             @auth
+                                @if ((int) auth()->id() !== (int) $artwork->user_id)
                                 <button type="button" data-engagement-like="artwork" data-entity-id="{{ $artwork->id }}" data-liked="{{ $artworkLiked ? 'true' : 'false' }}" aria-pressed="{{ $artworkLiked ? 'true' : 'false' }}"><i class="bi {{ $artworkLiked ? 'bi-heart-fill' : 'bi-heart' }}" aria-hidden="true"></i> <span data-engagement-likes>{{ number_format($artwork->likes_count) }}</span></button>
+                                @else
+                                <span class="creator-artwork-like-count"><i class="bi bi-heart" aria-label="Likes"></i> <span data-engagement-likes>{{ number_format($artwork->likes_count) }}</span></span>
+                                @endif
                             @else
                                 <span><i class="bi bi-heart" aria-label="Likes"></i> <span data-engagement-likes>{{ number_format($artwork->likes_count) }}</span></span>
                             @endauth
@@ -107,6 +107,6 @@
         </div>
     </section>
 </main>
-<script src="{{ asset('js/engagement.js') }}?v=20261104-engagement"></script>
+<script src="{{ asset('js/engagement.js') }}?v=20261127-own-artwork-like"></script>
 </body>
 </html>

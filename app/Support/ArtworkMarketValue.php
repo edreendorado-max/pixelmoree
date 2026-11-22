@@ -22,10 +22,10 @@ final class ArtworkMarketValue
     private const MAX_INACTIVITY_DECAY = 0.20;
 
     /**
-     * Estimate a demo market value without changing the creator's asking price.
+     * Estimate a market value without changing the creator's asking price.
      *
-     * Popularity and creator signals saturate logarithmically so large accounts
-     * cannot overwhelm the asking price. Supply scarcity is relative to ten items.
+     * Popularity and creator signals saturate logarithmically so engagement cannot
+     * overwhelm the asking price. Supply scarcity is relative to ten items.
      *
      * @return array{value: float, change_percent: float, recent_sales: int, artwork_popularity_percent: float, creator_reputation_percent: float, scarcity_percent: float, inactivity_decay_percent: float, item_count: int}
      */
@@ -37,7 +37,6 @@ final class ArtworkMarketValue
         ?CarbonInterface $now = null,
         int $artworkLikes = 0,
         int $artworkViews = 0,
-        int $creatorFollowers = 0,
         int $creatorViews = 0,
         int $creatorSales = 0,
         int $itemCount = 1,
@@ -59,8 +58,7 @@ final class ArtworkMarketValue
             + 0.06 * self::normalizedSignal($artworkViews, 1000)
             + 0.10 * min(1, max(0, $recentSales) / 10);
         $creatorReputation =
-            0.06 * self::normalizedSignal($creatorFollowers, 100)
-            + 0.04 * self::normalizedSignal($creatorViews, 1000)
+            0.10 * self::normalizedSignal($creatorViews, 1000)
             + 0.10 * self::normalizedSignal($creatorSales, 50);
         $itemCount = max(1, $itemCount);
         $scarcity = max(

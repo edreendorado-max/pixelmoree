@@ -33,6 +33,11 @@ class EngagementController extends Controller
     public function likeArtwork(Request $request, Artwork $artwork): JsonResponse
     {
         $this->ensureListedArtwork($artwork);
+        abort_if(
+            $artwork->user_id !== null && (int) $artwork->user_id === (int) $request->user()->id,
+            422,
+            'You cannot like your own artwork.',
+        );
 
         DB::table('artwork_likes')->insertOrIgnore([
             'user_id' => $request->user()->id,
@@ -89,29 +94,6 @@ class EngagementController extends Controller
         return response()->json($this->creatorMetrics($request, $creator));
     }
 
-    public function followCreator(Request $request, User $creator): JsonResponse
-    {
-        $this->ensureCreator($creator);
-        abort_if($request->user()->is($creator), 422, 'You cannot follow your own creator profile.');
-
-        DB::table('creator_follows')->insertOrIgnore([
-            'user_id' => $request->user()->id,
-            'creator_id' => $creator->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        return response()->json($this->creatorMetrics($request, $creator));
-    }
-
-    public function unfollowCreator(Request $request, User $creator): JsonResponse
-    {
-        $this->ensureCreator($creator);
-        DB::table('creator_follows')->where('user_id', $request->user()->id)->where('creator_id', $creator->id)->delete();
-
-        return response()->json($this->creatorMetrics($request, $creator));
-    }
-
     public function recordCreatorView(Request $request, User $creator): void
     {
         $this->ensureCreator($creator);
@@ -132,19 +114,24 @@ class EngagementController extends Controller
             'creator_id' => $creator->id,
             'views' => DB::table('creator_views')->where('creator_id', $creator->id)->count(),
             'likes' => DB::table('creator_likes')->where('creator_id', $creator->id)->count(),
-            'followers' => DB::table('creator_follows')->where('creator_id', $creator->id)->count(),
             'liked' => $request->user() !== null && DB::table('creator_likes')->where('user_id', $request->user()->id)->where('creator_id', $creator->id)->exists(),
-            'following' => $request->user() !== null && DB::table('creator_follows')->where('user_id', $request->user()->id)->where('creator_id', $creator->id)->exists(),
         ];
     }
 
     private function artworkMetrics(Request $request, Artwork $artwork): array
     {
+        $likes = DB::table('artwork_likes')->where('artwork_id', $artwork->id);
+        if ($artwork->user_id !== null) {
+            $likes->where('user_id', '<>', $artwork->user_id);
+        }
+
         return [
             'artwork_id' => $artwork->id,
             'views' => DB::table('artwork_views')->where('artwork_id', $artwork->id)->count(),
-            'likes' => DB::table('artwork_likes')->where('artwork_id', $artwork->id)->count(),
-            'liked' => $request->user() !== null && DB::table('artwork_likes')->where('user_id', $request->user()->id)->where('artwork_id', $artwork->id)->exists(),
+            'likes' => $likes->count(),
+            'liked' => $request->user() !== null
+                && (int) $request->user()->id !== (int) $artwork->user_id
+                && DB::table('artwork_likes')->where('user_id', $request->user()->id)->where('artwork_id', $artwork->id)->exists(),
         ];
     }
 

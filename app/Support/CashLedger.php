@@ -40,7 +40,7 @@ class CashLedger
         $locked = User::query()->lockForUpdate()->findOrFail($user->id);
         $balance = (int) $locked->cash_balance_minor;
         if ($balance < $amountMinor) {
-            throw ValidationException::withMessages(['amount_php' => 'The amount is greater than your available simulated earnings.']);
+            throw ValidationException::withMessages(['amount_php' => 'The amount is greater than your available creator balance.']);
         }
 
         $balance -= $amountMinor;

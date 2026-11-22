@@ -8,26 +8,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderMetrics(type, id, result) {
     matchingMetrics(type, id).forEach(metrics => {
-      for (const key of ['views', 'likes', 'followers']) {
-        const target = metrics.querySelector(`[data-engagement-${key}]`);
-        if (target && Number.isSafeInteger(result[key])) target.textContent = result[key].toLocaleString();
+      for (const key of ['views', 'likes']) {
+        if (!Number.isSafeInteger(result[key])) continue;
+        metrics.querySelectorAll(`[data-engagement-${key}]`).forEach(target => {
+          target.textContent = result[key].toLocaleString();
+        });
       }
 
-      metrics.querySelectorAll('[data-engagement-like], [data-engagement-follow]').forEach(button => {
-        if (button.dataset.engagementLike) {
-          button.dataset.liked = String(Boolean(result.liked));
-          button.setAttribute('aria-pressed', button.dataset.liked);
-          const icon = button.querySelector('i');
-          if (icon) icon.className = `bi ${result.liked ? 'bi-heart-fill' : 'bi-heart'}`;
-        }
-        if (button.dataset.engagementFollow) {
-          button.dataset.following = String(Boolean(result.following));
-          button.setAttribute('aria-pressed', button.dataset.following);
-          const icon = button.querySelector('i');
-          const label = button.querySelector('[data-engagement-label]');
-          if (icon) icon.className = `bi ${result.following ? 'bi-person-check' : 'bi-person-plus'}`;
-          if (label) label.textContent = result.following ? 'Following' : 'Follow';
-        }
+      metrics.querySelectorAll('[data-engagement-like]').forEach(button => {
+        button.dataset.liked = String(Boolean(result.liked));
+        button.setAttribute('aria-pressed', button.dataset.liked);
+        const icon = button.querySelector('i');
+        if (icon) icon.className = `bi ${result.liked ? 'bi-heart-fill' : 'bi-heart'}`;
       });
     });
 
@@ -77,13 +69,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  document.querySelectorAll('[data-engagement-like], [data-engagement-follow]').forEach(button => {
+  document.querySelectorAll('[data-engagement-like]').forEach(button => {
     button.addEventListener('click', async () => {
-      const type = button.dataset.engagementLike || button.dataset.engagementFollow;
-      const action = button.dataset.engagementLike ? 'like' : 'follow';
-      const active = action === 'like' ? button.dataset.liked === 'true' : button.dataset.following === 'true';
+      const type = button.dataset.engagementLike;
+      const active = button.dataset.liked === 'true';
       const collection = type === 'artwork' ? 'artworks' : 'creators';
-      const path = `/api/${collection}/${encodeURIComponent(button.dataset.entityId)}/${action}`;
+      const path = `/api/${collection}/${encodeURIComponent(button.dataset.entityId)}/like`;
       button.disabled = true;
       const feedback = button.closest('[data-engagement-metrics]')?.querySelector('[data-engagement-feedback]') ||
         document.querySelector('[data-engagement-feedback]');

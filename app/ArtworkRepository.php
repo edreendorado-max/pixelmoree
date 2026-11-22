@@ -99,7 +99,12 @@ final class ArtworkRepository
         $views->execute($ids);
         $viewsByArtwork = array_column($views->fetchAll(PDO::FETCH_ASSOC), 'views_count', 'artwork_id');
         $likes = $this->pdo->prepare(
-            "SELECT artwork_id, COUNT(*) AS likes_count FROM artwork_likes WHERE artwork_id IN ($placeholders) GROUP BY artwork_id"
+            "SELECT artwork_likes.artwork_id, COUNT(*) AS likes_count
+             FROM artwork_likes
+             INNER JOIN artworks ON artworks.id = artwork_likes.artwork_id
+             WHERE artwork_likes.artwork_id IN ($placeholders)
+               AND (artworks.user_id IS NULL OR artwork_likes.user_id <> artworks.user_id)
+             GROUP BY artwork_likes.artwork_id"
         );
         $likes->execute($ids);
         $likesByArtwork = array_column($likes->fetchAll(PDO::FETCH_ASSOC), 'likes_count', 'artwork_id');
@@ -110,7 +115,6 @@ final class ArtworkRepository
             $creatorStats = $this->pdo->prepare(
                 "SELECT users.id AS creator_id,
                         (SELECT COUNT(*) FROM creator_views WHERE creator_id = users.id) AS profile_views_count,
-                        (SELECT COUNT(*) FROM creator_follows WHERE creator_id = users.id) AS followers_count,
                         (SELECT COUNT(*) FROM payment_orders AS purchases
                          INNER JOIN artworks AS sold_artworks ON sold_artworks.id = purchases.artwork_id
                          WHERE purchases.type = 'nft_purchase' AND purchases.payment_method = 'simulation'
@@ -150,7 +154,6 @@ final class ArtworkRepository
                 $now,
                 (int) $artwork['likes_count'],
                 (int) $artwork['views_count'],
-                (int) ($creator['followers_count'] ?? 0),
                 (int) ($creator['profile_views_count'] ?? 0),
                 (int) ($creator['sold_count'] ?? 0),
                 (int) $artwork['item_count'],

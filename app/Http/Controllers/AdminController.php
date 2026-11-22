@@ -107,7 +107,7 @@ class AdminController extends Controller
     {
         $artworks = \App\Models\Artwork::query()
             ->where('status', 'Listed')
-            ->with(['user' => static fn ($query) => $query->withCount(['followers', 'profileViews', 'profileLikes'])])
+            ->with(['user' => static fn ($query) => $query->withCount(['profileViews', 'profileLikes'])])
             ->withCount(['likes', 'views'])
             ->withCount(['paymentOrders as recent_market_sales_count' => static fn ($query) => $query
                 ->where('type', 'nft_purchase')
@@ -148,10 +148,11 @@ class AdminController extends Controller
 
         $creators = User::query()
             ->where('role', '<>', 'admin')
-            ->withCount(['followers', 'profileLikes', 'profileViews'])
+            ->withCount(['profileLikes', 'profileViews'])
             ->withCount(['artworks as listed_artworks_count' => static fn ($query) => $query
                 ->where('status', 'Listed')])
-            ->orderByDesc('followers_count')
+            ->orderByDesc('profile_likes_count')
+            ->orderByDesc('listed_artworks_count')
             ->limit(8)
             ->get();
 
@@ -170,7 +171,6 @@ class AdminController extends Controller
                     'estimated_market_value' => (float) $artwork->marketEstimate()['value'],
                     'likes' => (int) $artwork->likes_count,
                     'views' => (int) $artwork->views_count,
-                    'creator_followers' => (int) ($creator?->followers_count ?? 0),
                     'price_history' => ($snapshots[$artwork->id] ?? collect())->map(static fn ($snapshot): array => [
                         'date' => $snapshot->snapshot_date,
                         'value' => (float) $snapshot->price,
@@ -179,7 +179,6 @@ class AdminController extends Controller
             })->values(),
             'creators' => $creators->map(static fn (User $creator): array => [
                 'name' => $creator->name,
-                'followers' => (int) $creator->followers_count,
                 'likes' => (int) $creator->profile_likes_count,
                 'views' => (int) $creator->profile_views_count,
                 'listed_artworks' => (int) $creator->listed_artworks_count,

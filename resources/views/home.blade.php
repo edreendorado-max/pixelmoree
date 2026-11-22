@@ -12,8 +12,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/site.css') }}?v=20261117-home" rel="stylesheet">
-    <link href="{{ asset('css/typography.css') }}?v=20261117" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}?v=20261127-creator-ui" rel="stylesheet">
+    <link href="{{ asset('css/typography.css') }}?v=20261127-creator-ui" rel="stylesheet">
 </head>
 <body class="{{ $account ? 'member-home' : 'guest-home' }}">
 <nav class="navbar navbar-expand-lg navbar-dark site-nav guest-nav">
@@ -90,7 +90,7 @@
         <div class="member-dashboard-content">
           <section class="member-dashboard-panel" data-member-panel-content="home">
             <section class="member-panel-card member-for-you-panel">
-              <div class="member-panel-heading"><div><h3>For You</h3><p>Recommendations based on your likes, purchases, and artwork views. Updated with your latest activity.</p></div><a href="/user#explore">Explore <i class="bi bi-arrow-up-right"></i></a></div>
+              <div class="member-panel-heading"><div><h3>For You</h3><p>Recommendations based on your saved categories and activity.</p></div></div>
               <div class="member-recent-grid member-for-you-grid" id="memberForYouItems">
                 @forelse ($forYouArtworks as $artwork)
                   @php($marketEstimate = $artwork->simulated_market_estimate)
@@ -99,9 +99,7 @@
                     <span class="member-art-tile-details">
                       <strong>{{ $artwork->title }}</strong>
                       <small>By {{ $artwork->creator }}</small>
-                      <span class="member-for-you-prices"><small>Ask {{ number_format((float) $artwork->price, 2) }} ETH</small><strong>Market {{ number_format($marketEstimate['value'], 2) }} ETH</strong></span>
-                      <small class="member-for-you-change {{ $marketEstimate['simulation_change_percent'] >= 0 ? 'up' : 'down' }}">{{ $marketEstimate['simulation_change_percent'] >= 0 ? '+' : '' }}{{ number_format($marketEstimate['simulation_change_percent'], 1) }}% simulated today</small>
-                      <small class="member-for-you-engagement"><i class="bi bi-eye" aria-label="Views"></i> {{ number_format($artwork->views_count) }} <i class="bi bi-heart" aria-label="Likes"></i> {{ number_format($artwork->likes_count) }}</small>
+                      <span class="member-for-you-prices"><small>Listed price {{ number_format((float) $artwork->price, 2) }} ETH</small><strong>Estimated {{ number_format($marketEstimate['value'], 2) }} ETH</strong></span>
                     </span>
                   </a>
                 @empty
@@ -109,43 +107,37 @@
                 @endforelse
               </div>
             </section>
-            <section class="member-panel-card member-price-dashboard">
-              <div class="member-panel-heading"><div><h3>Simulated NFT market values</h3><p>Daily demo prices combine marketplace activity with a repeatable simulated market movement.</p></div><span class="member-demo-label">SIMULATED MARKET</span></div>
-              <p class="member-market-disclaimer">Values are estimates based on creator asking prices, likes, views, simulated sales, edition supply, and inactivity. Daily movement is generated for this demo; it is not a real market price or payment.</p>
+            <section class="member-panel-card member-price-dashboard" id="market-trends">
+              <div class="member-panel-heading"><div><h3>Market trends</h3><p>Daily estimated price movements across listed artwork.</p></div></div>
+              <p class="member-market-disclaimer">Values are estimates based on listing prices, engagement, edition supply, and modeled daily movement—not completed sales or transferable blockchain assets.</p>
               <div class="member-price-movers">
-                <section class="member-price-mover-panel" aria-label="Top 10 price increases"><h4><i class="bi bi-graph-up-arrow" aria-hidden="true"></i> Daily gainers</h4>
+                <section class="member-price-mover-panel" aria-label="Top estimated price increases"><h4><i class="bi bi-graph-up-arrow" aria-hidden="true"></i> Top estimated gainers</h4>
                   @forelse ($dailyPriceGainers as $mover)
                     <a class="member-price-mover-row" href="{{ route('week12.client.artwork', ['id' => $mover->id]) }}">
                       <span class="member-price-mover-rank">{{ $loop->iteration }}</span>
                       <img src="{{ asset(str_starts_with($mover->image, 'storage/') ? $mover->image : 'assets/' . $mover->image) }}" alt="" loading="lazy">
                       <span class="member-price-mover-name"><strong>{{ $mover->title }}</strong><small>By {{ $mover->creator }}</small></span>
-                      <span class="member-price-mover-value"><strong>{{ number_format($mover->daily_current_price, 2) }} ETH</strong><small>was {{ number_format($mover->daily_previous_price, 2) }} ETH</small></span>
+                      <span class="member-price-mover-value"><strong>{{ number_format($mover->daily_current_price, 2) }} ETH</strong><small>from {{ number_format($mover->daily_previous_price, 2) }} ETH</small></span>
                       <span class="member-price-mover-change up">+{{ number_format($mover->daily_price_change_percent, 1) }}%</span>
                     </a>
                   @empty<p class="member-empty-state">Listed artwork will appear here when available.</p>@endforelse
                 </section>
-                <section class="member-price-mover-panel" aria-label="Top 10 price decreases"><h4><i class="bi bi-graph-down-arrow" aria-hidden="true"></i> Daily decliners</h4>
+                <section class="member-price-mover-panel" aria-label="Top estimated price decreases"><h4><i class="bi bi-graph-down-arrow" aria-hidden="true"></i> Top estimated decliners</h4>
                   @forelse ($dailyPriceDecliners as $mover)
                     <a class="member-price-mover-row" href="{{ route('week12.client.artwork', ['id' => $mover->id]) }}">
                       <span class="member-price-mover-rank">{{ $loop->iteration }}</span>
                       <img src="{{ asset(str_starts_with($mover->image, 'storage/') ? $mover->image : 'assets/' . $mover->image) }}" alt="" loading="lazy">
                       <span class="member-price-mover-name"><strong>{{ $mover->title }}</strong><small>By {{ $mover->creator }}</small></span>
-                      <span class="member-price-mover-value"><strong>{{ number_format($mover->daily_current_price, 2) }} ETH</strong><small>was {{ number_format($mover->daily_previous_price, 2) }} ETH</small></span>
+                      <span class="member-price-mover-value"><strong>{{ number_format($mover->daily_current_price, 2) }} ETH</strong><small>from {{ number_format($mover->daily_previous_price, 2) }} ETH</small></span>
                       <span class="member-price-mover-change down">{{ number_format($mover->daily_price_change_percent, 1) }}%</span>
                     </a>
                   @empty<p class="member-empty-state">Listed artwork will appear here when available.</p>@endforelse
                 </section>
               </div>
-              <div class="member-owned-grid">
-                @foreach ($homeArtworks->take(6) as $marketArtwork)
-                  @php($marketEstimate = $marketArtwork->simulated_market_estimate)
-                  <article class="member-art-tile"><span class="member-art-tile-image"><img src="{{ asset(str_starts_with($marketArtwork->image, 'storage/') ? $marketArtwork->image : 'assets/' . $marketArtwork->image) }}" alt="{{ $marketArtwork->title }}" loading="lazy"></span><span class="member-art-tile-details"><strong>{{ $marketArtwork->title }}</strong><small>Asking {{ number_format((float) $marketArtwork->price, 2) }} ETH</small><span>Estimated {{ number_format($marketEstimate['value'], 2) }} ETH</span><small class="{{ $marketEstimate['simulation_change_percent'] >= 0 ? 'member-market-up' : 'member-market-down' }}">{{ $marketEstimate['simulation_change_percent'] >= 0 ? '+' : '' }}{{ number_format($marketEstimate['simulation_change_percent'], 1) }}% simulated today</small></span></article>
-                @endforeach
-              </div>
             </section>
           </section>
           <section class="member-dashboard-panel active" data-member-panel-content="me">
-            <div class="member-panel-heading"><div><h3>Me</h3><p>Your profile, uploads, and collected artwork.</p></div><span class="member-demo-label">YOUR ACCOUNT</span></div>
+            <div class="member-panel-heading"><div><h3>My account</h3><p>Your profile, uploads, and collection.</p></div></div>
             <article class="member-dashboard-profile-card">
               @if ($account?->banner_path)
                 <img class="member-dashboard-banner" id="memberDashboardBanner" src="{{ asset($account->banner_path) }}" alt="">
@@ -157,7 +149,6 @@
               <div class="member-dashboard-profile-stats">
                 <div><small>Profile views</small><strong>{{ number_format($account?->profile_views_count ?? 0) }}</strong></div>
                 <div><small>Profile likes</small><strong>{{ number_format($account?->profile_likes_count ?? 0) }}</strong></div>
-                <div><small>Followers</small><strong>{{ number_format($account?->followers_count ?? 0) }}</strong></div>
               </div>
             </article>
             <div class="member-stat-grid">
@@ -211,12 +202,12 @@
             </section>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="history" hidden>
-            <div class="member-panel-heading"><div><h3>Purchases</h3><p>Simulated purchases issue a receipt and transfer the selected edition immediately.</p></div></div>
+            <div class="member-panel-heading"><div><h3>Purchases</h3><p>Order history and edition ownership.</p></div></div>
             <section class="member-panel-card member-transactions-card">
               <h4>Purchase orders</h4>
-              <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Purchase ID</th><th>Artwork</th><th>Item ID</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead><tbody>
+              <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Order ID</th><th>Artwork</th><th>Edition item</th><th>Recorded amount</th><th>Order type</th><th>Status</th></tr></thead><tbody>
                 @forelse ($purchaseOrders as $purchaseOrder)
-                  <tr><td><a href="{{ route('user.purchase-orders.receipt', $purchaseOrder) }}">{{ $purchaseOrder->purchase_id }}</a></td><td>{{ $purchaseOrder->artwork?->title ?? 'Artwork unavailable' }}</td><td>{{ $purchaseOrder->item_id ?? '—' }}</td><td>PHP {{ number_format($purchaseOrder->amount_minor / 100, 2) }}</td><td>{{ $purchaseOrder->payment_method }}</td><td>{{ str_replace('_', ' ', $purchaseOrder->status) }} · <a href="{{ route('user.purchase-orders.receipt', $purchaseOrder) }}">Receipt</a></td></tr>
+                  <tr><td><a href="{{ route('user.purchase-orders.receipt', $purchaseOrder) }}">{{ $purchaseOrder->purchase_id }}</a></td><td>{{ $purchaseOrder->artwork?->title ?? 'Artwork unavailable' }}</td><td>{{ $purchaseOrder->item_id ?? '—' }}</td><td>PHP {{ number_format($purchaseOrder->amount_minor / 100, 2) }}</td><td>In-app order</td><td>{{ str_replace('_', ' ', $purchaseOrder->status) }} · <a href="{{ route('user.purchase-orders.receipt', $purchaseOrder) }}">Receipt</a></td></tr>
                 @empty
                   <tr><td colspan="6" class="member-empty-state">No purchase orders yet.</td></tr>
                 @endforelse
@@ -224,30 +215,30 @@
             </section>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="earnings" hidden>
-            <div class="member-panel-heading"><div><h3>Creator earnings</h3><p>Completed simulated sales add their PHP value to your earnings balance.</p></div><span class="member-demo-label">SIMULATION</span></div>
+            <div class="member-panel-heading"><div><h3>Creator earnings</h3><p>Recorded order values and withdrawal history.</p></div></div>
             <article class="member-panel-card member-earnings-hero" data-earnings-total="{{ $creatorEarnings['totalMinor'] ?? 0 }}">
               <span class="member-earnings-icon"><i class="bi bi-stars"></i></span>
               <div>
-                <small>AVAILABLE SIMULATED EARNINGS</small>
+                <small>AVAILABLE CREATOR BALANCE</small>
                 <strong>PHP {{ number_format(($creatorEarnings['availableMinor'] ?? 0) / 100, 2) }}</strong>
-                <p>Recorded from completed simulated artwork sales, after simulated withdrawals.</p>
+                <p>Recorded from artwork orders, less account withdrawal records.</p>
               </div>
             </article>
             <div class="member-stat-grid member-earnings-stats">
               <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-bag-check"></i></span><div><small>Credited sales</small><strong>{{ number_format($creatorEarnings['salesCount'] ?? 0) }}</strong></div></article>
               <article class="member-stat-card"><span class="member-stat-icon"><i class="bi bi-calendar-check"></i></span><div><small>Sales, last 30 days</small><strong>PHP {{ number_format(($creatorEarnings['last30DaysMinor'] ?? 0) / 100, 2) }}</strong></div></article>
             </div>
-            <div class="member-earnings-notice"><i class="bi bi-shield-check" aria-hidden="true"></i><p><strong>Simulation only</strong> Purchases and withdrawals update in-app records. No real payment is charged and no cash is transferred.</p></div>
+            <div class="member-earnings-notice"><i class="bi bi-shield-check" aria-hidden="true"></i><p><strong>Account records only</strong> Purchases and withdrawals do not charge, transfer, or pay out money.</p></div>
             <section class="member-panel-card member-transactions-card">
-              <h4>Simulate a withdrawal</h4>
-              <p>Withdraw from your recorded simulated earnings balance. This does not send money to a bank, GCash, or another account.</p>
+              <h4>Record a withdrawal</h4>
+              <p>Withdrawal entries update your account balance only; they do not send money.</p>
               @if (session('status'))<p class="payment-checkout-notice" role="status">{{ session('status') }}</p>@endif
               @if ($errors->any())<p class="payment-checkout-notice payment-checkout-error" role="alert">{{ $errors->first() }}</p>@endif
               <form method="post" action="{{ route('user.earnings.withdrawals') }}" class="member-earnings-withdraw-form">
                 @csrf
                 <label for="earningsWithdrawalAmount">Amount in PHP</label>
                 <input id="earningsWithdrawalAmount" name="amount_php" type="number" min="0.01" max="{{ number_format(($creatorEarnings['availableMinor'] ?? 0) / 100, 2, '.', '') }}" step="0.01" value="{{ old('amount_php') }}" required>
-                <button type="submit" {{ ($creatorEarnings['availableMinor'] ?? 0) < 1 ? 'disabled' : '' }}>Simulate withdrawal</button>
+                <button type="submit" {{ ($creatorEarnings['availableMinor'] ?? 0) < 1 ? 'disabled' : '' }}>Record withdrawal</button>
               </form>
             </section>
             <section class="member-panel-card member-transactions-card">
@@ -261,35 +252,35 @@
               </tbody></table></div>
             </section>
             <section class="member-panel-card member-transactions-card">
-              <div class="member-panel-heading"><div><h4>Recent simulated withdrawals</h4><p>Receipts for in-app withdrawal records.</p></div></div>
+              <div class="member-panel-heading"><div><h4>Recent withdrawals</h4><p>Withdrawal records and receipts.</p></div></div>
               <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Receipt</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody>
                 @forelse (($creatorEarnings['recentWithdrawals'] ?? []) as $withdrawal)
                   <tr><td><a href="{{ route('user.purchase-orders.receipt', ['order' => $withdrawal->purchase_id]) }}">{{ $withdrawal->purchase_id }}</a></td><td>PHP {{ number_format($withdrawal->amount_minor / 100, 2) }}</td><td>{{ ucfirst($withdrawal->status) }}</td><td>{{ \Illuminate\Support\Carbon::parse($withdrawal->created_at)->format('M j, Y') }}</td></tr>
                 @empty
-                  <tr><td colspan="4" class="member-empty-state">No simulated withdrawals yet.</td></tr>
+                  <tr><td colspan="4" class="member-empty-state">No withdrawals recorded yet.</td></tr>
                 @endforelse
               </tbody></table></div>
             </section>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="payment" hidden>
-            <div class="member-panel-heading"><div><h3>Purchases and payments</h3><p>Use the Store to simulate a purchase from a creator.</p></div><span class="member-demo-label">SIMULATION</span></div>
-            <div class="member-payment-safety" role="status"><i class="bi bi-info-circle"></i><span>Purchases are simulations only. Completing one creates an in-app receipt and transfers the edition to your collection; no real payment is made.</span></div>
+            <div class="member-panel-heading"><div><h3>Order information</h3><p>Purchase and edition records for your account.</p></div></div>
+            <div class="member-payment-safety" role="status"><i class="bi bi-info-circle"></i><span>Orders create an in-app receipt and update edition ownership. No payment or blockchain asset is transferred.</span></div>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="terms" hidden>
-            <div class="member-panel-heading"><div><h3>Terms &amp; Originality Policy</h3><p>Marketplace rules for creators and collectors.</p></div><span class="member-demo-label">BETA</span></div>
+            <div class="member-panel-heading"><div><h3>Terms &amp; Originality Policy</h3><p>Marketplace rules for creators and collectors.</p></div></div>
             <article class="member-policy-content">
               <p class="member-policy-notice"><i class="bi bi-info-circle"></i> This student-project policy is an illustrative draft, not legal advice or a substitute for reviewed terms for a live marketplace.</p>
               <h4>1. Be truthful and respectful</h4><p>Use Pixmoree lawfully and provide accurate listing, creator, price, and transaction information. Do not impersonate another person or mislead collectors about ownership, authenticity, scarcity, or what a purchase includes.</p>
               <h4>2. Originality and anti-plagiarism</h4><p>Only upload work you created or have clear permission and appropriate licenses to use. Do not copy, trace, repackage, or mint another creator’s artwork, photographs, characters, logos, writing, or other protected material as your own. Credit alone does not replace permission.</p>
               <p>Do not use unauthorized AI training outputs, reference material, or third-party assets in a way that infringes another person’s rights. Keep source files and permission records where appropriate. If a work includes licensed or collaborative material, disclose that clearly and follow the license terms.</p>
               <h4>3. Reports, review, and consequences</h4><p>Rights holders should provide the listing link, identify the material at issue, and explain their rights when reporting suspected copying. Pixmoree should review reports, give creators a reasonable opportunity to respond where appropriate, and may hide or remove disputed listings, restrict accounts, or refer serious matters for further review. False or abusive reports are not permitted.</p>
-              <h4>4. Simulated transactions</h4><p>NFT purchases and creator withdrawals are in-app simulations. A purchase creates a receipt, transfers one unique edition item, and records simulated PHP earnings for the creator. A withdrawal updates that in-app balance and creates a receipt, but no real payment or payout occurs.</p>
+              <h4>4. Orders and account records</h4><p>Purchases and creator withdrawals update in-app records. A purchase creates a receipt, transfers one unique edition item in your collection, and records a PHP amount for the creator. A withdrawal updates that account balance and creates a receipt; no real payment or payout occurs.</p>
               <h4>5. Respect intellectual property</h4><p>Creators retain rights they hold in their work. A listing does not transfer copyright unless a separate, valid agreement says so. Collectors should not reproduce, sell, or commercially exploit artwork without the creator’s permission or a license that allows it.</p>
               <h4>6. Policy updates and contact</h4><p>These draft rules may change as the project evolves. For a real service, publish the effective date, operator identity, contact and appeal process, governing law, and privacy terms after professional review.</p>
             </article>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="profile" hidden>
-            <div class="member-panel-heading"><div><h3>Profile Settings</h3><p>Your account information is saved securely to Pixmoree.</p></div><span class="member-demo-label">YOUR PROFILE</span></div>
+            <div class="member-panel-heading"><div><h3>Profile settings</h3><p>Your account information is saved securely to Pixmoree.</p></div></div>
             <a class="member-profile-save" href="/user/profile-settings">Manage profile details</a>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="notifications" hidden>
@@ -335,7 +326,7 @@
             </div>
           </section>
           <section class="member-dashboard-panel" data-member-panel-content="create" hidden>
-            <div class="member-panel-heading"><div><h3>Create a listing</h3><p>Upload an original image and publish its listing to the Pixmoree database.</p></div><span class="member-demo-label">CREATOR STUDIO</span></div>
+            <div class="member-panel-heading"><div><h3>Create a listing</h3><p>Upload original artwork and publish a listing.</p></div></div>
             <p><a class="profile-settings-secondary-button" href="{{ route('user.nft-management') }}"><i class="bi bi-list-ul" aria-hidden="true"></i> Manage your artwork listings</a></p>
             <form class="member-create-form" id="memberCreateForm" method="post" action="{{ route('user.artworks.store') }}" enctype="multipart/form-data">
               @csrf
@@ -394,7 +385,7 @@
         <article class="trending-feature" aria-label="Featured trending NFTs">
           <div class="trending-feature-slides" aria-live="polite">
             @foreach ($homeArtworks->take(5) as $artwork)
-              <div class="trending-feature-slide {{ $loop->first ? 'active' : '' }}" data-artwork-id="{{ $artwork->id }}" data-title="{{ $artwork->title }}" data-creator="{{ $artwork->creator }}" data-floor="Ξ {{ number_format((float) $artwork->price, 2) }}" data-items="{{ $artwork->item_count }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
+              <div class="trending-feature-slide {{ $loop->first ? 'active' : '' }}" data-artwork-id="{{ $artwork->id }}" data-owner-id="{{ $artwork->user_id }}" data-liked="{{ in_array($artwork->id, $likedArtworkIds, true) ? 'true' : 'false' }}" data-title="{{ $artwork->title }}" data-creator="{{ $artwork->creator }}" data-floor="Ξ {{ number_format((float) $artwork->price, 2) }}" data-items="{{ $artwork->item_count }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
                 <img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}">
               </div>
             @endforeach
@@ -421,7 +412,7 @@
         @if ($homeArtworks->count() > 1)
           <div class="trending-nft-list" aria-label="Other listed artworks">
             @foreach ($homeArtworks->skip(1) as $artwork)
-              <a class="trending-nft-item" data-artwork-id="{{ $artwork->id }}" href="{{ route('week12.client.artwork', ['id' => $artwork->id]) }}"><em class="trending-nft-rank">#{{ sprintf('%02d', $loop->iteration + 1) }}</em><img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}"><span><strong>{{ $artwork->title }}</strong><small>By {{ $artwork->creator }}</small></span><b>Ξ {{ number_format((float) $artwork->price, 2) }}</b></a>
+              <a class="trending-nft-item" data-artwork-id="{{ $artwork->id }}" data-owner-id="{{ $artwork->user_id }}" data-liked="{{ in_array($artwork->id, $likedArtworkIds, true) ? 'true' : 'false' }}" href="{{ route('week12.client.artwork', ['id' => $artwork->id]) }}"><em class="trending-nft-rank">#{{ sprintf('%02d', $loop->iteration + 1) }}</em><img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}"><span><strong>{{ $artwork->title }}</strong><small>By {{ $artwork->creator }}</small></span><b>Ξ {{ number_format((float) $artwork->price, 2) }}</b></a>
             @endforeach
           </div>
         @endif
@@ -436,7 +427,6 @@
             <a class="creator-mini-card" href="{{ route('creators.show', ['creator' => $creator->id]) }}">
               <img class="creator-mini-avatar" src="{{ asset($creator->avatar_path ?? 'assets/Pixmoree Neon Pixel Logo.png') }}" alt="{{ $creator->name }}">
               <span class="creator-mini-copy"><strong>{{ $creator->name }}</strong><small>{{ $creator->artworks_count }} {{ \Illuminate\Support\Str::plural('artwork', $creator->artworks_count) }}</small></span>
-              <small class="creator-mini-sales"><i class="bi bi-person-plus"></i> {{ number_format($creator->followers_count) }} followers</small>
             </a>
           @empty
             <p class="text-secondary">{{ $homeContent['creators']['empty_message'] }}</p>
@@ -456,14 +446,17 @@
     <div class="filter-row"><div class="filter-pills"><button class="filter-pill active" data-filter="all">{{ $homeContent['explore']['filters'][0] }}</button><button class="filter-pill" data-filter="newest">{{ $homeContent['explore']['filters'][1] }}</button><button class="filter-pill" data-filter="price">{{ $homeContent['explore']['filters'][2] }}</button><button class="filter-pill" data-filter="favorites">{{ $homeContent['explore']['filters'][3] }}</button></div><label class="sort-button"><i class="bi bi-sort-down"></i><span>{{ $homeContent['explore']['sort_label'] }}</span><select id="sortSelect" aria-label="Sort artworks"><option value="default">Default</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></label></div>
     <div class="row g-3" id="artGrid">
       @forelse ($homeArtworks as $artwork)
-        <div class="col-6 col-sm-3 art-column" data-artwork-id="{{ $artwork->id }}" data-category="{{ \Illuminate\Support\Str::slug($artwork->category) }}" data-price="{{ $artwork->price }}" data-created="{{ $artwork->created_at?->timestamp ?? 0 }}">
+        @php($isArtworkOwner = $account && (int) $account->id === (int) $artwork->user_id)
+        <div class="col-6 col-sm-3 art-column" data-artwork-id="{{ $artwork->id }}" data-owner-id="{{ $artwork->user_id }}" data-liked="{{ in_array($artwork->id, $likedArtworkIds, true) ? 'true' : 'false' }}" data-category="{{ \Illuminate\Support\Str::slug($artwork->category) }}" data-price="{{ $artwork->price }}" data-created="{{ $artwork->created_at?->timestamp ?? 0 }}">
           <article class="art-card">
             <div class="art-image-wrap">
               <img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }} digital artwork">
               <span class="artwork-title">{{ $artwork->title }}</span>
               @auth
+                @unless ($isArtworkOwner)
                 @php($artworkLiked = in_array($artwork->id, $likedArtworkIds, true))
                 <button class="heart-button art-engagement-like" type="button" data-engagement-like="artwork" data-entity-id="{{ $artwork->id }}" data-liked="{{ $artworkLiked ? 'true' : 'false' }}" aria-pressed="{{ $artworkLiked ? 'true' : 'false' }}" aria-label="{{ $artworkLiked ? 'Remove' : 'Add' }} {{ $artwork->title }} {{ $artworkLiked ? 'from' : 'to' }} favorites"><i class="bi {{ $artworkLiked ? 'bi-heart-fill' : 'bi-heart' }}" aria-hidden="true"></i></button>
+                @endunless
               @else
                 <a class="heart-button guest-heart" href="{{ route('login') }}" aria-label="Log in to favorite {{ $artwork->title }}"><i class="bi bi-heart" aria-hidden="true"></i></a>
               @endauth
@@ -475,7 +468,11 @@
                 <span><i class="bi bi-eye" aria-hidden="true"></i> <span data-engagement-views>{{ number_format($artwork->views_count) }}</span></span>
                 @auth
                   @php($artworkLiked = in_array($artwork->id, $likedArtworkIds, true))
+                  @if ($isArtworkOwner)
+                    <span class="art-engagement-count"><i class="bi bi-heart" aria-hidden="true"></i> <span data-engagement-likes>{{ number_format($artwork->likes_count) }}</span></span>
+                  @else
                   <button class="art-engagement-like" type="button" data-engagement-like="artwork" data-entity-id="{{ $artwork->id }}" data-liked="{{ $artworkLiked ? 'true' : 'false' }}" aria-pressed="{{ $artworkLiked ? 'true' : 'false' }}"><i class="bi {{ $artworkLiked ? 'bi-heart-fill' : 'bi-heart' }}" aria-hidden="true"></i> <span data-engagement-likes>{{ number_format($artwork->likes_count) }}</span></button>
+                  @endif
                 @else
                   <a class="art-engagement-like" href="{{ route('login') }}"><i class="bi bi-heart" aria-hidden="true"></i> <span data-engagement-likes>{{ number_format($artwork->likes_count) }}</span></a>
                 @endauth
@@ -489,6 +486,7 @@
     </div>
     <div class="load-more-wrap"><button class="btn-load" id="loadMoreItems" type="button"><i class="bi bi-plus-circle" aria-hidden="true"></i> {{ $homeContent['explore']['load_more'] }}</button></div>
   </section>
+  @if ($resaleListings->isNotEmpty() || ($account && $ownedArtworks->isNotEmpty()) || session('status') || $errors->any())
   <section id="resale" class="resale-section">
     <div class="section-heading">
       <div><h2>Resale gallery <i class="bi bi-arrow-left-right"></i></h2><p class="muted">Previously purchased artwork listed by its current owner.</p></div>
@@ -516,9 +514,10 @@
             @endif
           </article>
         @empty
-          <p class="member-empty-state">Simulated purchases transfer edition ownership immediately and appear here with their receipts.</p>
+          <p class="member-empty-state">Completed orders and edition ownership appear here with their receipts.</p>
         @endforelse
       </section>
+      @endif
     @endauth
   </section>
   <section id="about" class="guest-about"><h2>{{ $homeContent['closing_heading'] }}</h2><p>{{ $homeContent['closing_body'] }}</p><a href="/login" class="btn hero-explore">{{ $homeContent['closing_cta'] }}</a></section>
@@ -536,6 +535,7 @@
         <span><i class="bi bi-eye" aria-hidden="true"></i> <span data-engagement-views>0</span> views</span>
         @auth
           <button type="button" data-engagement-like="artwork" data-entity-id="" data-liked="false" aria-pressed="false"><i class="bi bi-heart" aria-hidden="true"></i> <span data-engagement-label>Like</span> <span data-engagement-likes>0</span></button>
+          <span data-owner-like-count hidden><i class="bi bi-heart" aria-hidden="true"></i> <span data-engagement-likes>0</span> likes</span>
         @else
           <a href="{{ route('login') }}"><i class="bi bi-heart" aria-hidden="true"></i> Log in to like <span data-engagement-likes>0</span></a>
         @endauth
@@ -550,10 +550,10 @@
     </div>
   </div>
 </dialog>
-<script>window.pixmoreeAccount = <?= json_encode($account?->only(['name', 'username', 'email', 'phone', 'bio']) ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;</script>
+<script>window.pixmoreeAccount = <?= json_encode($account?->only(['id', 'name', 'username', 'email', 'phone', 'bio']) ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{{ asset('js/site.js') }}?v=20261030-me"></script>
+<script src="{{ asset('js/site.js') }}?v=20261127-own-artwork-like"></script>
 <script src="{{ asset('js/image-previews.js') }}?v=20261119"></script>
-<script src="{{ asset('js/engagement.js') }}?v=20261104-engagement"></script>
+<script src="{{ asset('js/engagement.js') }}?v=20261127-own-artwork-like"></script>
 </body>
 </html>

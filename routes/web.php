@@ -149,8 +149,6 @@ Route::middleware(['auth', 'member.account'])->group(function () use ($profileCo
         Route::delete('/artworks/{artwork}/like', [$engagementController, 'unlikeArtwork'])->name('api.artworks.unlike');
         Route::put('/creators/{creator}/like', [$engagementController, 'likeCreator'])->whereNumber('creator')->name('api.creators.like');
         Route::delete('/creators/{creator}/like', [$engagementController, 'unlikeCreator'])->whereNumber('creator')->name('api.creators.unlike');
-        Route::put('/creators/{creator}/follow', [$engagementController, 'followCreator'])->whereNumber('creator')->name('api.creators.follow');
-        Route::delete('/creators/{creator}/follow', [$engagementController, 'unfollowCreator'])->whereNumber('creator')->name('api.creators.unfollow');
     });
 });
 

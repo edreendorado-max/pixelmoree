@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Reset password | Pixmoree</title>
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/site.css') }}" rel="stylesheet">
-    <link href="{{ asset('css/typography.css') }}?v=20261117" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}?v=20261127-creator-ui" rel="stylesheet">
+    <link href="{{ asset('css/typography.css') }}?v=20261127-creator-ui" rel="stylesheet">
 </head>
 <body class="auth-page">
 <main class="auth-shell">
@@ -17,7 +17,7 @@
     <p class="auth-eyebrow">ACCOUNT RECOVERY</p>
     <h1 id="auth-title">Reset password</h1>
     @if (config('app.env') === 'local')
-      <p class="auth-intro">Local demo mode: no email is sent. If the account exists, a temporary reset link will appear here.</p>
+      <p class="auth-intro">Local development: no email is sent. If the account exists, a reset link appears here.</p>
     @else
       <p class="auth-intro">Enter your account email and we will send a reset link if it matches an account.</p>
     @endif
@@ -27,7 +27,7 @@
     @endif
     @if (config('app.env') === 'local' && session('simulated_reset_url'))
       <div class="auth-feedback" role="status">
-        <strong>Simulated email link</strong><br>
+        <strong>Password reset link</strong><br>
         <a href="{{ session('simulated_reset_url') }}">Open the password reset form</a>
       </div>
     @endif
@@ -39,7 +39,7 @@
       @csrf
       <label for="reset-email">Email</label>
       <input id="reset-email" name="email" type="email" autocomplete="email" value="{{ old('email') }}" required>
-      <button class="auth-submit" type="submit">{{ config('app.env') === 'local' ? 'Generate simulated reset link' : 'Send reset link' }}</button>
+      <button class="auth-submit" type="submit">{{ config('app.env') === 'local' ? 'Get reset link' : 'Send reset link' }}</button>
     </form>
     <a class="auth-back" href="{{ route('login') }}">Back to log in</a>
   </section>

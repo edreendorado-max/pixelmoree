@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Choose a new password | Pixmoree</title>
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/site.css') }}" rel="stylesheet">
-    <link href="{{ asset('css/typography.css') }}?v=20261117" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}?v=20261127-creator-ui" rel="stylesheet">
+    <link href="{{ asset('css/typography.css') }}?v=20261127-creator-ui" rel="stylesheet">
 </head>
 <body class="auth-page">
 <main class="auth-shell">
@@ -18,7 +18,7 @@
     <h1 id="auth-title">Choose a new password</h1>
     <p class="auth-intro">
       @if (config('app.env') === 'local')
-        Local demo mode: no email is sent. Use at least 6 characters, including an uppercase letter, a number, and a special character.
+        No email is sent in local development. Use at least 6 characters, including an uppercase letter, a number, and a special character.
       @else
         Use at least 6 characters, including an uppercase letter, a number, and a special character.
       @endif

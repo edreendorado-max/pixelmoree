@@ -15,10 +15,10 @@ abort_unless($adminUser?->isAdmin(), 403);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;600;700&display=swap" rel="stylesheet">
-    <link href="<?= week12_escape(week12_asset('css/site.css')) ?>?v=20261111-admin-ui" rel="stylesheet">
-    <link href="<?= week12_escape(week12_asset('css/week12.css')) ?>?v=20261111-admin-ui" rel="stylesheet">
+    <link href="<?= week12_escape(week12_asset('css/site.css')) ?>?v=20261127-creator-ui" rel="stylesheet">
+    <link href="<?= week12_escape(week12_asset('css/week12.css')) ?>?v=20261127-creator-ui" rel="stylesheet">
     <link href="<?= week12_escape(week12_asset('css/admin-content.css')) ?>?v=20261111-admin-ui" rel="stylesheet">
-    <link href="<?= week12_escape(week12_asset('css/typography.css')) ?>?v=20261117" rel="stylesheet">
+    <link href="<?= week12_escape(week12_asset('css/typography.css')) ?>?v=20261127-creator-ui" rel="stylesheet">
 </head>
 <body class="cms-admin-page">
 <header class="cms-topbar">

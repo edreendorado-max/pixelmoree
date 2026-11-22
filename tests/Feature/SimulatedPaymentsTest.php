@@ -43,7 +43,7 @@ class SimulatedPaymentsTest extends TestCase
         ]);
         $this->assertDatabaseHas('notifications', ['notifiable_id' => $creator->id]);
         $this->get(route('user.purchase-orders.receipt', $order))
-            ->assertOk()->assertSee('Withdrawal receipt')->assertSee('No real payment or payout was processed');
+            ->assertOk()->assertSee('Withdrawal receipt')->assertSee('No payment or payout was processed');
     }
 
     public function test_withdrawal_cannot_exceed_simulated_earnings_or_use_an_invalid_amount(): void

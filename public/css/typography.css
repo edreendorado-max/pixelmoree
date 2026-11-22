@@ -7,7 +7,7 @@ body {
     font-family: var(--font-formal) !important;
 }
 
-body :is(h1, h2, h3, h4, h5, h6, a, label, button, th, dt, small, summary, legend, .eyebrow, .muted, .store-card-category, .store-card-details strong, .store-buy-button, .store-owned-note, .auth-eyebrow, .member-demo-label, .member-notification-button > span, .profile-settings-eyebrow, .w12-beta-pill, .cms-topnav a, .guest-links a, .store-header nav a, .profile-settings-nav a, .about-tool-logo) {
+body :is(h1, h2, h3, h4, h5, h6, a, label, button, th, dt, small, summary, legend, .eyebrow, .muted, .store-card-category, .store-card-details strong, .store-buy-button, .store-owned-note, .auth-eyebrow, .member-notification-button > span, .profile-settings-eyebrow, .cms-topnav a, .guest-links a, .store-header nav a, .profile-settings-nav a, .about-tool-logo) {
     font-family: var(--font-pixel) !important;
 }
 

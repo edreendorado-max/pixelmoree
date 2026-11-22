@@ -102,19 +102,14 @@ class User extends Authenticatable
         return $this->belongsToMany(self::class, 'creator_likes', 'creator_id', 'user_id')->withTimestamps();
     }
 
-    public function followers(): BelongsToMany
-    {
-        return $this->belongsToMany(self::class, 'creator_follows', 'creator_id', 'user_id')->withTimestamps();
-    }
-
-    public function following(): BelongsToMany
-    {
-        return $this->belongsToMany(self::class, 'creator_follows', 'user_id', 'creator_id')->withTimestamps();
-    }
-
     public function likedArtworks(): BelongsToMany
     {
-        return $this->belongsToMany(Artwork::class, 'artwork_likes')->withTimestamps();
+        $userId = $this->getKey();
+
+        return $this->belongsToMany(Artwork::class, 'artwork_likes')
+            ->withTimestamps()
+            ->where(static fn ($query) => $query->whereNull('artworks.user_id')
+                ->orWhere('artworks.user_id', '<>', $userId));
     }
 
     public function isAdmin(): bool

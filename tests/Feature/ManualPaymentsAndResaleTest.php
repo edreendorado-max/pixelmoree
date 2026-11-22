@@ -29,7 +29,7 @@ class ManualPaymentsAndResaleTest extends TestCase
         $itemId = DB::table('artwork_items')->where('artwork_id', $artwork->id)->value('item_id');
 
         $this->actingAs($buyer)->get(route('user.checkout', $artwork->id))
-            ->assertOk()->assertSee('SIMULATED CHECKOUT')->assertSee('no money is charged');
+            ->assertOk()->assertSee('ORDER CHECKOUT')->assertSee('No payment is processed');
         $this->post(route('user.purchase-orders.store'), [
             'artwork_id' => $artwork->id,
             'item_id' => $itemId,
@@ -53,10 +53,10 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->assertDatabaseHas('notifications', ['notifiable_id' => $seller->id]);
 
         $this->get(route('user.purchase-orders.receipt', $order))
-            ->assertOk()->assertSee($order->purchase_id)->assertSee('SIMULATED TRANSACTION');
+            ->assertOk()->assertSee($order->purchase_id)->assertSee('TRANSACTION RECORD');
         $this->actingAs($seller)->get(route('admin.payment-orders'))->assertForbidden();
         $this->actingAs($this->admin())->get(route('admin.payment-orders'))
-            ->assertOk()->assertSee('Simulated transactions')->assertSee($order->purchase_id)
+            ->assertOk()->assertSee('Transaction records')->assertSee($order->purchase_id)
             ->assertDontSee('Verify and transfer item')->assertDontSee('Admin GCash account')->assertDontSee('Pixel Coin');
     }
 

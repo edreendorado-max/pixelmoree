@@ -19,14 +19,16 @@
             </div>
             <div class="w12-engagement-panel" data-engagement-metrics="artwork" data-entity-id="<?= week12_escape($artwork['id']) ?>" data-views="<?= (int) $artwork['views_count'] ?>" data-likes="<?= (int) $artwork['likes_count'] ?>">
                 <span><i class="bi bi-eye" aria-label="Views"></i> <span data-engagement-views><?= number_format((int) $artwork['views_count']) ?></span> views</span>
-                <?php if (auth()->check()): ?>
+                <?php if (auth()->check() && (int) auth()->id() !== (int) ($artwork['user_id'] ?? 0)): ?>
                     <button type="button" data-engagement-like="artwork" data-entity-id="<?= week12_escape($artwork['id']) ?>" data-liked="<?= $artwork['liked'] ? 'true' : 'false' ?>" aria-pressed="<?= $artwork['liked'] ? 'true' : 'false' ?>"><i class="bi <?= $artwork['liked'] ? 'bi-heart-fill' : 'bi-heart' ?>" aria-hidden="true"></i> <span data-engagement-likes><?= number_format((int) $artwork['likes_count']) ?></span> like</button>
+                <?php elseif (auth()->check()): ?>
+                    <span><i class="bi bi-heart" aria-label="Likes"></i> <span data-engagement-likes><?= number_format((int) $artwork['likes_count']) ?></span> likes</span>
                 <?php else: ?>
                     <a href="/login"><i class="bi bi-heart" aria-hidden="true"></i> <span data-engagement-likes><?= number_format((int) $artwork['likes_count']) ?></span> likes · log in to like</a>
                 <?php endif; ?>
                 <p class="w12-engagement-feedback" data-engagement-feedback role="status" aria-live="polite" hidden></p>
             </div>
-            <p class="w12-beta-note mt-3" role="status"><i class="bi bi-info-circle"></i> Purchases in the signed-in Store are simulations. Completing one creates a receipt and records ownership of a unique edition item. No money or blockchain token is transferred.</p>
+            <p class="w12-info-note mt-3" role="status"><i class="bi bi-info-circle"></i> Purchases require a signed-in account. Orders record ownership of a unique edition item here; no payment or blockchain asset is transferred.</p>
             <div class="w12-info-panel mt-4">
                 <h2 class="h6 mb-3">Listing information</h2>
                 <dl class="row mb-0">

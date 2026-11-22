@@ -170,7 +170,7 @@ class AccountAndImageCrudTest extends TestCase
 
         $this->get('/forgot-password')
             ->assertOk()
-            ->assertSee('Local demo mode: no email is sent.');
+            ->assertSee('Local development: no email is sent.');
 
         $response = $this->from('/forgot-password')->post('/forgot-password', ['email' => $user->email]);
         $response->assertRedirect('/forgot-password')
@@ -179,7 +179,7 @@ class AccountAndImageCrudTest extends TestCase
         $resetUrl = $response->getSession()->get('simulated_reset_url');
         $this->assertIsString($resetUrl);
         $this->assertStringContainsString('/reset-password/', $resetUrl);
-        $this->get($resetUrl)->assertOk()->assertSee('no email is sent');
+        $this->get($resetUrl)->assertOk()->assertSee('No email is sent');
 
         $token = basename((string) parse_url($resetUrl, PHP_URL_PATH));
         $this->post('/reset-password', [

@@ -8,8 +8,8 @@
     <meta name="description" content="Browse all listed digital artworks on Pixmoree.">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/site.css') }}?v=20261111-store" rel="stylesheet">
-    <link href="{{ asset('css/typography.css') }}?v=20261117" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}?v=20261127-creator-ui" rel="stylesheet">
+    <link href="{{ asset('css/typography.css') }}?v=20261127-creator-ui" rel="stylesheet">
 </head>
 <body class="store-page">
 <header class="store-header">
@@ -51,8 +51,7 @@
                     @elseif (config('payments.enabled'))
                         <a class="store-buy-button" href="{{ route('user.checkout', ['artworkId' => $artwork->id]) }}">Buy NFT</a>
                     @else
-                        <button class="store-buy-button" type="button" disabled aria-describedby="store-buy-beta-{{ $loop->index }}">Buy NFT</button>
-                        <small class="store-buy-note" id="store-buy-beta-{{ $loop->index }}">Checkout is currently unavailable.</small>
+                        <span class="store-buy-note">Checkout unavailable</span>
                     @endif
                 </div>
             </article>

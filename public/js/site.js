@@ -359,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getFavoriteFromButton(button) {
-    const card = button.closest('.art-column');
+    const card = button?.closest('.art-column');
     const image = card?.querySelector('.art-image-wrap img');
     if (!card || !image) return null;
     const title = card.querySelector('.artwork-title')?.textContent.trim() || image.alt || 'Untitled artwork';
@@ -370,7 +370,9 @@ document.addEventListener('DOMContentLoaded', () => {
       creator: card.querySelector('.art-creator span')?.textContent.trim() || 'Pixmoree creator',
       image: imagePath,
       alt: image.alt || title,
-      price: card.querySelector('.art-price strong')?.textContent.trim() || 'Digital art'
+      price: card.querySelector('.art-price strong')?.textContent.trim() || 'Digital art',
+      ownerId: card.dataset.ownerId || null,
+      liked: button?.dataset.liked === 'true'
     };
   }
 
@@ -403,7 +405,9 @@ document.addEventListener('DOMContentLoaded', () => {
       price: price || 'Digital artwork',
       items,
       rank,
-      category: source.dataset.category || 'Digital art'
+      category: source.dataset.category || 'Digital art',
+      ownerId: artwork?.ownerId ?? source.dataset.ownerId ?? null,
+      liked: artwork?.liked ?? source.dataset.liked === 'true'
     };
   }
 
@@ -440,7 +444,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (engagementPanel && typeof artwork.id === 'string') {
       engagementPanel.dataset.entityId = artwork.id;
       const likeButton = engagementPanel.querySelector('[data-engagement-like]');
-      if (likeButton) likeButton.dataset.entityId = artwork.id;
+      const ownerLikeCount = engagementPanel.querySelector('[data-owner-like-count]');
+      const isOwner = window.pixmoreeAccount?.id != null
+        && artwork.ownerId != null
+        && String(window.pixmoreeAccount.id) === String(artwork.ownerId);
+      if (likeButton) {
+        likeButton.dataset.entityId = artwork.id;
+        likeButton.dataset.liked = String(Boolean(artwork.liked));
+        likeButton.setAttribute('aria-pressed', likeButton.dataset.liked);
+        likeButton.hidden = isOwner;
+        const icon = likeButton.querySelector('i');
+        if (icon) icon.className = `bi ${artwork.liked ? 'bi-heart-fill' : 'bi-heart'}`;
+      }
+      if (ownerLikeCount) ownerLikeCount.hidden = !isOwner;
       window.dispatchEvent(new CustomEvent('pixmoree:artwork-view', { detail: { id: artwork.id } }));
     }
 
@@ -448,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.addEventListener('click', event => {
-    if (!(event.target instanceof Element) || event.target.closest('.heart-button, .art-engagement-like, .trending-feature-arrow, .trending-nft-pagination, [data-engagement-like], [data-engagement-follow]')) return;
+    if (!(event.target instanceof Element) || event.target.closest('.heart-button, .art-engagement-like, .trending-feature-arrow, .trending-nft-pagination, [data-engagement-like]')) return;
     const feature = event.target.closest('.trending-feature');
     const source = event.target.closest('.art-column, .trending-nft-item, .trending-feature-slide.active') ||
       feature?.querySelector('.trending-feature-slide.active');

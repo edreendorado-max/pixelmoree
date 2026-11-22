@@ -24,8 +24,8 @@
                 <h2 class="h5 mb-3">Popular listed artwork</h2>
                 <div class="table-responsive">
                     <table class="table w12-table align-middle mb-0">
-                        <thead><tr><th>Artwork / creator</th><th>Ask</th><th>Est. value</th><th>Likes</th><th>Views</th><th>Followers</th></tr></thead>
-                        <tbody data-artwork-analytics><tr><td colspan="6" class="text-secondary">Loading artwork metrics…</td></tr></tbody>
+                        <thead><tr><th>Artwork / creator</th><th>Ask</th><th>Est. value</th><th>Likes</th><th>Views</th></tr></thead>
+                        <tbody data-artwork-analytics><tr><td colspan="5" class="text-secondary">Loading artwork metrics…</td></tr></tbody>
                     </table>
                 </div>
             </section>
@@ -35,8 +35,8 @@
                 <h2 class="h5 mb-3">Creator engagement</h2>
                 <div class="table-responsive">
                     <table class="table w12-table align-middle mb-0">
-                        <thead><tr><th>Creator</th><th>Followers</th><th>Likes</th><th>Views</th><th>Listed</th></tr></thead>
-                        <tbody data-creator-analytics><tr><td colspan="5" class="text-secondary">Loading creator metrics…</td></tr></tbody>
+                        <thead><tr><th>Creator</th><th>Likes</th><th>Views</th><th>Listed</th></tr></thead>
+                        <tbody data-creator-analytics><tr><td colspan="4" class="text-secondary">Loading creator metrics…</td></tr></tbody>
                     </table>
                 </div>
             </section>
@@ -160,30 +160,30 @@
                 const row = document.createElement('tr');
                 const name = cell('td', `${artwork.title} / ${artwork.creator}`);
                 row.append(name, cell('td', money(artwork.asking_price)), cell('td', money(artwork.estimated_market_value)),
-                    cell('td', number(artwork.likes)), cell('td', number(artwork.views)), cell('td', number(artwork.creator_followers)));
+                    cell('td', number(artwork.likes)), cell('td', number(artwork.views)));
                 artworkRows.append(row);
             });
             data.creators.forEach(creator => {
                 const row = document.createElement('tr');
-                row.append(cell('td', creator.name), cell('td', number(creator.followers)), cell('td', number(creator.likes)),
+                row.append(cell('td', creator.name), cell('td', number(creator.likes)),
                     cell('td', number(creator.views)), cell('td', number(creator.listed_artworks)));
                 creatorRows.append(row);
             });
 
             artworkSelect.disabled = artworks.length === 0;
             if (artworks.length === 0) {
-                artworkRows.append(emptyRow(6, 'No listed artwork yet.'));
+                artworkRows.append(emptyRow(5, 'No listed artwork yet.'));
                 emptyMessage.hidden = false;
             } else {
                 selectArtwork();
             }
             if (data.creators.length === 0) {
-                creatorRows.append(emptyRow(5, 'No creator activity yet.'));
+                creatorRows.append(emptyRow(4, 'No creator activity yet.'));
             }
         } catch (error) {
             priceNote.textContent = error.message;
-            artworkRows.replaceChildren(emptyRow(6, 'Could not load artwork metrics.', 'text-danger'));
-            creatorRows.replaceChildren(emptyRow(5, 'Could not load creator metrics.', 'text-danger'));
+            artworkRows.replaceChildren(emptyRow(5, 'Could not load artwork metrics.', 'text-danger'));
+            creatorRows.replaceChildren(emptyRow(4, 'Could not load creator metrics.', 'text-danger'));
         }
     }
 

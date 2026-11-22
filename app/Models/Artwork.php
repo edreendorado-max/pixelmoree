@@ -79,7 +79,11 @@ class Artwork extends Model
 
     public function likes(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'artwork_likes')->withTimestamps();
+        $likes = $this->belongsToMany(User::class, 'artwork_likes')->withTimestamps();
+
+        return $this->user_id === null
+            ? $likes
+            : $likes->wherePivot('user_id', '<>', $this->user_id);
     }
 
     public function views(): HasMany
@@ -101,7 +105,6 @@ class Artwork extends Model
         $likes = $this->attributes['likes_count'] ?? $this->likes()->count();
         $views = $this->attributes['views_count'] ?? $this->views()->count();
         $creator = $this->user;
-        $followers = $creator?->getAttribute('followers_count') ?? $creator?->followers()->count() ?? 0;
         $creatorViews = $creator?->getAttribute('profile_views_count') ?? $creator?->profileViews()->count() ?? 0;
         $creatorSales = $this->attributes['creator_sold_count'] ?? ($creator === null ? 0 : (int) DB::table('payment_orders as purchases')
             ->join('artworks as sold_artworks', 'sold_artworks.id', '=', 'purchases.artwork_id')
@@ -117,7 +120,6 @@ class Artwork extends Model
             null,
             (int) $likes,
             (int) $views,
-            (int) $followers,
             (int) $creatorViews,
             (int) $creatorSales,
             (int) ($this->item_count ?? 1),

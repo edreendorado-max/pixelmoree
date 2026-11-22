@@ -1,6 +1,6 @@
 <section class="container py-4 py-lg-5">
     <?php
-    $simulatedPayments = array_sum(array_map('intval', $paymentCounts->all()));
+    $recordedPayments = array_sum(array_map('intval', $paymentCounts->all()));
     $completedPayments = (int) ($paymentCounts['approved'] ?? 0) + (int) ($paymentCounts['paid'] ?? 0);
     ?>
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
@@ -13,12 +13,12 @@
     </div>
     <div class="alert w12-alert" role="note">
         <i class="bi bi-info-circle-fill"></i>
-        <span><strong>Simulation mode:</strong> NFT purchases and creator withdrawals update in-app records only. No real money is charged or sent.</span>
+        <span>Purchases and creator withdrawals update account records only. No payment or payout is processed.</span>
     </div>
     <div class="row g-3 mb-4">
         <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Accounts</span><strong><?= number_format($userCount) ?></strong><small><i class="bi bi-people"></i> Registered members</small></article></div>
         <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Artwork listings</span><strong><?= number_format($counts['total']) ?></strong><small><i class="bi bi-image"></i> <?= number_format($counts['listed']) ?> listed · <?= number_format($counts['review']) ?> in review</small></article></div>
-        <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Simulated transactions</span><strong><?= number_format($simulatedPayments) ?></strong><small><i class="bi bi-receipt"></i> <?= number_format($completedPayments) ?> completed records</small></article></div>
+        <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Transaction records</span><strong><?= number_format($recordedPayments) ?></strong><small><i class="bi bi-receipt"></i> <?= number_format($completedPayments) ?> completed orders</small></article></div>
         <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Resales to review</span><strong><?= number_format($pendingResaleCount) ?></strong><small><i class="bi bi-shield-check"></i> Ownership evidence pending</small></article></div>
     </div>
     <div class="row g-4">

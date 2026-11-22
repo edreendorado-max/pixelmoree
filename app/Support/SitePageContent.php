@@ -317,7 +317,7 @@ class SitePageContent
                     'heading_after' => 'world.',
                     'description' => 'Browse imaginative digital art from independent creators.',
                     'cta' => 'Explore the gallery',
-                    'note' => 'Purchases require an account and run in simulation mode. Each edition item receives one recorded owner in Pixmoree; no real payment or blockchain transfer is provided.',
+                    'note' => 'Purchases require an account. Orders record edition ownership in Pixmoree; no payment or blockchain asset is transferred.',
                     'image' => 'assets/guest-hero-background.png',
                     'image_alt' => 'Colorful Pixmoree digital art collage',
                 ],
@@ -325,13 +325,13 @@ class SitePageContent
                     'eyebrow' => 'DISCOVER',
                     'heading' => 'Featured artwork',
                     'count_label' => 'listings loaded from the database.',
-                    'filters_label' => 'Filters (demo)',
+                    'filters_label' => 'Filters',
                     'empty_heading' => 'No artwork has been added yet',
                     'empty_body' => 'Add a supplied artwork listing from the admin artwork screen.',
                 ],
                 'footer' => [
                     'tagline' => 'Pixmoree Marketplace',
-                    'disclaimer' => 'Purchases and creator withdrawals are simulations. Receipts and edition ownership are recorded in Pixmoree; no real payment or payout occurs.',
+                    'disclaimer' => 'Purchases and creator withdrawals update Pixmoree records only. No payment or payout occurs.',
                 ],
             ],
             'about' => [
@@ -387,10 +387,10 @@ class SitePageContent
                     'heading' => 'Purpose, scope, and learning goals.',
                     'items' => [
                         ['heading' => 'Project purpose', 'body' => 'Explore how a digital-art marketplace can help people discover artwork and creators through a clear, accessible interface.'],
-                        ['heading' => 'Core features', 'body' => 'Artwork discovery, search and filters, favorites, creator listings, user collections, NFT detail views, and simulated checkout.'],
+                        ['heading' => 'Core features', 'body' => 'Artwork discovery, search and filters, favorites, creator listings, user collections, NFT detail views, and in-app order records.'],
                         ['heading' => 'Learning goals', 'body' => 'Practice responsive UI design, reusable page patterns, browser storage, form validation, accessibility, and responsible handling of creative work.'],
                         ['heading' => 'Tools and stack', 'body' => 'PHP/Laravel-compatible views, HTML, CSS, JavaScript, and Bootstrap, with Photoshop and After Effects for visual assets.'],
-                        ['heading' => 'Scope and limitations', 'body' => 'This is a student prototype. Accounts and artwork listings are stored in the application database; payments and blockchain transactions are simulated and are not enabled.'],
+                        ['heading' => 'Scope and limitations', 'body' => 'This student-built project stores accounts and artwork listings in the application database. Payment processing and blockchain transactions are not enabled.'],
                     ],
                 ],
                 'team' => [

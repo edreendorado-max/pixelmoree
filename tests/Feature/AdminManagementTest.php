@@ -32,7 +32,7 @@ class AdminManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Accounts')
             ->assertSee('Artwork listings')
-            ->assertSee('Simulated transactions')
+            ->assertSee('Transaction records')
             ->assertSee('Resales to review')
             ->assertSee('Dashboard Artwork')
             ->assertSee(route('admin.users'), false);
@@ -46,6 +46,7 @@ class AdminManagementTest extends TestCase
         $this->get(route('admin.analytics'))
             ->assertOk()
             ->assertSee('Estimated value history')
+            ->assertDontSee('Followers')
             ->assertSee(route('admin.api.analytics'), false);
         $this->get(route('admin.content.edit', 'marketplace'))
             ->assertOk()
@@ -65,7 +66,9 @@ class AdminManagementTest extends TestCase
             ->assertJsonPath('artworks.0.id', 'dashboard-artwork')
             ->assertJsonPath('artworks.0.asking_price', 12.5)
             ->assertJsonPath('artworks.0.price_history.0.value', 14.25)
-            ->assertJsonPath('creators.0.name', 'Dashboard Creator');
+            ->assertJsonPath('creators.0.name', 'Dashboard Creator')
+            ->assertJsonMissingPath('artworks.0.creator_followers')
+            ->assertJsonMissingPath('creators.0.followers');
     }
 
     public function test_admin_can_monitor_accounts_and_update_creator_asking_prices(): void

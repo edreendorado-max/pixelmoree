@@ -6,7 +6,7 @@
                 <h1><?= week12_escape($marketplaceContent['hero']['heading_before']) ?> <span><?= week12_escape($marketplaceContent['hero']['heading_emphasis']) ?></span> <?= week12_escape($marketplaceContent['hero']['heading_after']) ?></h1>
                 <p class="w12-hero-copy"><?= week12_escape($marketplaceContent['hero']['description']) ?></p>
                 <a class="btn w12-btn-primary mt-2" href="#artwork"><?= week12_escape($marketplaceContent['hero']['cta']) ?> <i class="bi bi-arrow-down-right"></i></a>
-                <p class="w12-beta-note mt-3 mb-0" role="status"><i class="bi bi-info-circle"></i> Purchases require a signed-in account and run in simulation mode. Each edition item has a unique ID and recorded owner; no money or blockchain token is transferred.</p>
+                <p class="w12-info-note mt-3 mb-0" role="status"><i class="bi bi-info-circle"></i> Purchases require a signed-in account. Orders record edition ownership here; no payment or blockchain asset is transferred.</p>
             </div>
             <div class="col-lg-5">
                 <div class="w12-hero-art">

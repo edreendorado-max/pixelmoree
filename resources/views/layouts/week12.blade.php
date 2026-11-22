@@ -19,8 +19,8 @@ if ($week12Area === 'admin') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;600;700&display=swap" rel="stylesheet">
-    <link href="<?= week12_escape(week12_asset('css/week12.css')) ?>" rel="stylesheet">
-    <link href="<?= week12_escape(week12_asset('css/typography.css')) ?>?v=20261117" rel="stylesheet">
+    <link href="<?= week12_escape(week12_asset('css/week12.css')) ?>?v=20261127-creator-ui" rel="stylesheet">
+    <link href="<?= week12_escape(week12_asset('css/typography.css')) ?>?v=20261127-creator-ui" rel="stylesheet">
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark w12-navbar">
@@ -38,7 +38,6 @@ if ($week12Area === 'admin') {
                     <a class="nav-link <?= $week12Area === 'admin' ? 'active' : '' ?>" href="<?= week12_escape(week12_url('/week12/admin')) ?>">Admin</a>
                     <a class="nav-link" href="<?= week12_escape(week12_url('/admin/content/about')) ?>">Website content</a>
                 <?php endif; ?>
-                <span class="w12-beta-pill"><i class="bi bi-info-circle"></i> Beta · database-backed listings</span>
             </div>
         </div>
     </div>
@@ -49,12 +48,12 @@ if ($week12Area === 'admin') {
 <footer class="w12-footer">
     <div class="container d-flex flex-column flex-sm-row justify-content-between gap-2">
         <span><?= week12_escape($marketplaceContent['footer']['tagline'] ?? 'Pixmoree Marketplace') ?></span>
-        <span>Marketplace purchases and creator withdrawals are simulations; no real money is transferred.</span>
+        <span>Orders update account records only. No payment or blockchain asset is transferred.</span>
     </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="<?= week12_escape(week12_asset('js/marketplace.js')) ?>"></script>
-<script src="<?= week12_escape(week12_asset('js/engagement.js')) ?>?v=20261104-engagement"></script>
+<script src="<?= week12_escape(week12_asset('js/engagement.js')) ?>?v=20261127-own-artwork-like"></script>
 <script src="<?= week12_escape(week12_asset('js/image-previews.js')) ?>?v=20261119"></script>
 </body>
 </html>
