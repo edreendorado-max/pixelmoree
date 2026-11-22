@@ -1,21 +1,67 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Transaction receipt - Pixmoree</title><link href="{{ asset('css/site.css') }}?v=20261127-creator-ui" rel="stylesheet"></head>
-<body class="profile-settings-page"><main class="profile-settings-main">
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ $order->type === 'creator_payout' ? 'Withdrawal receipt' : 'Purchase receipt' }} | Pixmoree</title>
+    <link href="{{ asset('css/site.css') }}?v=20261127-creator-ui" rel="stylesheet">
+    <link href="{{ asset('css/receipt.css') }}?v=20261122" rel="stylesheet">
+</head>
+<body class="receipt-page">
     @php($isWithdrawal = $order->type === 'creator_payout')
-    <section class="profile-settings-panel">
-        <p class="profile-settings-eyebrow">PIXMOREE · TRANSACTION RECORD</p><h1>{{ $isWithdrawal ? 'Withdrawal receipt' : 'Purchase receipt' }}</h1>
-        <p>Receipt ID: <strong>{{ $order->purchase_id }}</strong></p>
-        @if ($order->artwork_id)
-            <p>Artwork: <strong>{{ $order->artwork?->title ?? 'Artwork unavailable' }}</strong></p>
-            <p>Edition item: <strong>{{ $order->item_id ?? '—' }}</strong></p>
-        @else
-            <p>Transaction: <strong>Creator withdrawal record</strong></p>
-        @endif
-        <p>Account: {{ $order->buyer?->name }}@if ($order->seller) · Seller: {{ $order->seller->name }}@endif</p>
-        <p>{{ $isWithdrawal ? 'Withdrawal amount' : 'Purchase amount' }}: PHP {{ number_format($order->amount_minor / 100, 2) }}</p>
-        <p>Status: {{ str_replace('_', ' ', $order->status) }} · {{ $order->created_at?->format('M j, Y g:i A') }}</p>
-        <p>No payment or payout was processed. This record confirms the in-app {{ $isWithdrawal ? 'withdrawal entry.' : 'order and edition ownership transfer.' }}</p>
-        <button type="button" onclick="window.print()">Print / Save receipt</button>
-        <a href="{{ $isWithdrawal ? route('user.earnings') : route('user.purchases') }}">{{ $isWithdrawal ? 'Back to earnings' : 'Back to purchases' }}</a>
-    </section>
-</main></body></html>
+    <nav class="receipt-actions" aria-label="Receipt actions">
+        <a href="{{ $isWithdrawal ? route('user.earnings') : route('user.purchases') }}">&larr; {{ $isWithdrawal ? 'Back to earnings' : 'Back to purchases' }}</a>
+        <button type="button" onclick="window.print()">Print or save as PDF</button>
+    </nav>
+
+    <main class="receipt-main">
+        <article class="receipt-card">
+            <header class="receipt-heading">
+                <p class="receipt-brand">PIXMOREE <span>TRANSACTION RECORD</span></p>
+                <p class="receipt-simulation">SIMULATION RECORD</p>
+                <h1>{{ $isWithdrawal ? 'Withdrawal receipt' : 'Purchase receipt' }}</h1>
+                <p>This receipt records an in-app account update.</p>
+            </header>
+
+            <dl class="receipt-details">
+                <div><dt>Receipt ID</dt><dd class="receipt-id">{{ $order->purchase_id }}</dd></div>
+                <div><dt>Status</dt><dd>{{ ucfirst(str_replace('_', ' ', $order->status)) }}</dd></div>
+                <div><dt>Date and time</dt><dd>{{ $order->created_at?->format('M j, Y g:i A') ?? 'Not available' }}</dd></div>
+                <div><dt>{{ $isWithdrawal ? 'Account' : 'Buyer' }}</dt><dd>{{ $order->buyer?->name ?? 'Account unavailable' }}</dd></div>
+                @if ($isWithdrawal)
+                    <div><dt>Transaction</dt><dd>Creator withdrawal record</dd></div>
+                @else
+                    <div><dt>Artwork</dt><dd>{{ $order->artwork?->title ?? 'Artwork unavailable' }}</dd></div>
+                    <div><dt>Edition</dt><dd>{{ $editionNumber ? number_format((int) $editionNumber) : 'Not available' }}</dd></div>
+                    <div><dt>Unique item ID</dt><dd class="receipt-id">{{ $order->item_id ?? 'Not available' }}</dd></div>
+                @endif
+                <div><dt>{{ $isWithdrawal ? 'Recorded withdrawal' : 'Recorded amount' }}</dt><dd class="receipt-amount">PHP {{ number_format($order->amount_minor / 100, 2) }}</dd></div>
+            </dl>
+
+            @if (! $isWithdrawal)
+                <section class="receipt-transfer" aria-labelledby="receipt-transfer-heading">
+                    <h2 id="receipt-transfer-heading">Edition ownership transfer</h2>
+                    <p class="receipt-transfer-edition">Edition {{ $editionNumber ? number_format((int) $editionNumber) : '—' }} · Item ID {{ $order->item_id ?? 'Not available' }}</p>
+                    <div class="receipt-transfer-flow">
+                        <div><small>FROM</small><strong>{{ $transferFrom?->name ?? 'Previous owner unavailable' }}</strong></div>
+                        <span aria-hidden="true">&rarr;</span>
+                        <div><small>TO</small><strong>{{ $transferTo?->name ?? 'New owner unavailable' }}</strong></div>
+                    </div>
+                    @if ($ownershipTransfer)
+                        <p class="receipt-transfer-confirmation">Transfer recorded for this purchase.</p>
+                    @else
+                        <p class="receipt-transfer-confirmation">The order lists this buyer and seller. A separate transfer record is unavailable.</p>
+                    @endif
+                </section>
+            @endif
+
+            <footer class="receipt-footer">
+                <p>No payment or payout was processed. The amount is a demonstration value stored in Pixmoree.</p>
+                @unless ($isWithdrawal)
+                    <p>The edition item ownership was updated in the Pixmoree collection. No blockchain asset or copyright was transferred.</p>
+                @endunless
+            </footer>
+        </article>
+    </main>
+</body>
+</html>

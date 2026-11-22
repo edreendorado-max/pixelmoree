@@ -55,7 +55,6 @@ $previewPath = $previewPaths[$slug] ?? null;
         <?php endif; ?>
         <?php if ($errors->any()): ?>
             <div class="cms-alert cms-alert-error" role="alert">
-                <i class="bi bi-exclamation-circle"></i>
                 <div><strong>Please review the highlighted content.</strong><ul class="mb-0 mt-1"><?php foreach ($errors->all() as $error): ?><li><?= week12_escape($error) ?></li><?php endforeach; ?></ul></div>
             </div>
         <?php endif; ?>

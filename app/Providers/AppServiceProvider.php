@@ -115,7 +115,7 @@ class AppServiceProvider extends ServiceProvider
                     ->where('artwork_items.owner_id', $account->id)
                     ->select([
                         'artworks.id', 'artworks.product_id', 'artworks.title', 'artworks.image', 'artworks.item_count',
-                        'artwork_items.item_id', 'artwork_items.edition_number',
+                        'artwork_items.item_id', 'artwork_items.edition_number', 'artwork_items.acquired_purchase_id',
                         'listing.status as resale_status',
                     ])
                     ->orderBy('artworks.title')->orderBy('artwork_items.edition_number')

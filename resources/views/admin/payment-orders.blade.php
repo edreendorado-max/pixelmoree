@@ -10,7 +10,7 @@
 <header class="cms-topbar"><div class="cms-topbar-inner"><a class="cms-brand" href="{{ route('week12.admin') }}"><img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree"><span>ADMIN STUDIO</span></a><nav class="cms-topnav" aria-label="Admin navigation"><a href="{{ route('week12.admin') }}">Overview</a><a href="{{ route('week12.admin.artworks') }}">Artwork</a><a href="{{ route('admin.users') }}">Users</a><a href="{{ route('admin.analytics') }}">Analytics</a><a href="{{ route('admin.payment-orders') }}" class="active" aria-current="page">Transactions</a><a href="{{ route('admin.content.edit', 'home') }}">Website content</a></nav><span class="cms-account cms-admin-label">Administrator</span></div></header>
 <main class="cms-admin-main payment-review-main">
     <header class="payment-review-heading"><p class="cms-overline"><i class="bi bi-shield-lock" aria-hidden="true"></i> ADMIN STUDIO</p><h1>Transaction records</h1><p>Orders and withdrawal entries are stored in the app. No external payment or payout is processed.</p></header>
-    @if (session('status'))<div class="alert w12-alert" role="status">{{ session('status') }}</div>@endif
+    @if (session('status'))<div class="cms-alert cms-alert-success" role="status"><i class="bi bi-check-circle" aria-hidden="true"></i>{{ session('status') }}</div>@endif
     <section class="payment-review-section"><h2>NFT purchases</h2>
         @forelse ($orders as $order)
             <article class="payment-review-card"><strong>{{ $order->artwork?->title ?? 'Artwork unavailable' }} · PHP {{ number_format($order->amount_minor / 100, 2) }}</strong>

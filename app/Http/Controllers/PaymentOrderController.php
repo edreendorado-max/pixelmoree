@@ -20,7 +20,27 @@ class PaymentOrderController extends Controller
         abort_unless(in_array((int) $request->user()->id, [(int) $order->buyer_id, (int) $order->seller_id], true), 404);
         abort_unless(in_array($order->type, ['nft_purchase', 'creator_payout'], true), 404);
 
-        return view('user.receipt', ['order' => $order->load(['artwork', 'buyer', 'seller'])]);
+        $order->load(['artwork', 'buyer', 'seller']);
+        $editionNumber = $order->item_id === null
+            ? null
+            : DB::table('artwork_items')->where('item_id', $order->item_id)->value('edition_number');
+        $ownershipTransfer = $order->type === 'nft_purchase'
+            ? DB::table('ownership_transfers')->where('purchase_id', $order->purchase_id)->first()
+            : null;
+        $seller = $order->seller;
+        $buyer = $order->buyer;
+        if ($ownershipTransfer !== null) {
+            $seller = User::query()->find($ownershipTransfer->from_user_id);
+            $buyer = User::query()->find($ownershipTransfer->to_user_id);
+        }
+
+        return view('user.receipt', [
+            'order' => $order,
+            'editionNumber' => $editionNumber,
+            'ownershipTransfer' => $ownershipTransfer,
+            'transferFrom' => $seller,
+            'transferTo' => $buyer,
+        ]);
     }
 
     public function checkout(Request $request, string $artworkId): View

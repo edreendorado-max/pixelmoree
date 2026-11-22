@@ -24,9 +24,10 @@ Pixmoree is a Laravel digital art marketplace. Demonstrate account registration,
 
 1. Sign in as the buyer and open the Store.
 2. Select an available edition and choose **Simulate purchase**. No payment details or proof are requested.
-3. Open Purchases and view or print the receipt. Confirm the edition appears in the buyer's collection.
-4. Check the creator's Notifications and Earnings page for the sale notification and simulated PHP earnings credit.
-5. In Admin Studio > Transactions, confirm the completed purchase and receipt ID.
+3. Open Purchases and view or print the receipt. Confirm it shows the receipt ID, edition number, unique item ID, seller-to-buyer ownership transfer, and simulation-only amount.
+4. Open Me > Owned and follow the receipt link on the acquired edition. The receipt should identify the same item.
+5. Check the creator's Notifications and Earnings page for the sale notification and simulated PHP earnings credit. Open the sale receipt from Recent artwork sales.
+6. In Admin Studio > Transactions, confirm the completed purchase and receipt ID.
 
 ## Panel 5 - Simulate a creator withdrawal
 
@@ -47,6 +48,7 @@ Pixmoree is a Laravel digital art marketplace. Demonstrate account registration,
 ## Rubric evidence checklist
 
 - [ ] Account registration, login, and welcome notification
+- [ ] Local password reset redirects directly from email submission to new password creation
 - [ ] Artwork create, preview, edit, and moderation flow
 - [ ] Simulated purchase, printable receipt, notification, and ownership transfer
 - [ ] Simulated creator earnings and withdrawal with a receipt and ledger entry

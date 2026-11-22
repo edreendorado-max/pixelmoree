@@ -19,7 +19,7 @@
 .payment-checkout-field input,.payment-checkout-field select{display:block;width:100%;margin-top:7px;padding:10px;border:1px solid #ffffff2b;border-radius:6px;background:#100f14;color:#fff}
 .admin-payment-qr{display:block;width:min(100%,320px);max-height:380px;margin:12px auto;object-fit:contain;border:1px solid #ffffff24;border-radius:8px;background:#fff}
 .payment-checkout-field small{display:block;margin-top:6px;color:#a49dab;font-size:10px;font-weight:400}
-.payment-checkout-warning,.payment-checkout-notice{margin:16px 0;padding:12px;border:1px solid #e8ab5944;border-radius:7px;background:#9c611319;color:#f2d5a5;font-size:11px;line-height:1.55}
+.payment-checkout-notice{margin:16px 0;padding:12px;border:1px solid #69b4d344;border-radius:7px;background:#257ca115;color:#d2eaf5;font-size:11px;line-height:1.55}
 .payment-checkout-error{border-color:#e35d6744;background:#9c1d2919;color:#ffb6bb}
 .payment-checkout-card .store-buy-button{cursor:pointer}
 .profile-payment-qr-preview{display:block;width:min(100%,220px);max-height:220px;margin:8px 0;object-fit:contain;background:#fff;border-radius:6px}

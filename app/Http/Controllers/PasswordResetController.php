@@ -27,16 +27,16 @@ class PasswordResetController extends Controller
 
         if (config('app.env') === 'local') {
             $user = Password::broker()->getUser(['email' => $email]);
-            $simulatedResetUrl = $user === null
-                ? null
-                : route('password.reset', [
-                    'token' => Password::broker()->createToken($user),
-                    'email' => $user->email,
-                ]);
+            if ($user === null) {
+                return back()->with('status', 'If an account exists for that email, you can continue to reset it.');
+            }
 
-            return back()
-                ->with('status', 'If an account exists for that email, a reset link is ready.')
-                ->with('simulated_reset_url', $simulatedResetUrl);
+            $resetUrl = route('password.reset', [
+                'token' => Password::broker()->createToken($user),
+                'email' => $user->email,
+            ]);
+
+            return redirect($resetUrl)->with('status', 'Account found. Choose a new password below.');
         }
 
         Password::sendResetLink(['email' => $email]);

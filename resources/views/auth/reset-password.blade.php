@@ -24,6 +24,10 @@
       @endif
     </p>
 
+    @if (session('status'))
+      <div class="auth-feedback" role="status">{{ session('status') }}</div>
+    @endif
+
     @if ($errors->any())
       <div class="auth-feedback" role="alert">{{ $errors->first() }}</div>
     @endif

@@ -11,10 +11,6 @@
         </div>
         <a class="btn w12-btn-primary" href="<?= week12_escape(week12_url('/week12/admin/artworks')) ?>"><i class="bi bi-images"></i> Review artwork</a>
     </div>
-    <div class="alert w12-alert" role="note">
-        <i class="bi bi-info-circle-fill"></i>
-        <span>Purchases and creator withdrawals update account records only. No payment or payout is processed.</span>
-    </div>
     <div class="row g-3 mb-4">
         <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Accounts</span><strong><?= number_format($userCount) ?></strong><small><i class="bi bi-people"></i> Registered members</small></article></div>
         <div class="col-6 col-xl-3"><article class="w12-stat-card"><span>Artwork listings</span><strong><?= number_format($counts['total']) ?></strong><small><i class="bi bi-image"></i> <?= number_format($counts['listed']) ?> listed · <?= number_format($counts['review']) ?> in review</small></article></div>

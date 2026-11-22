@@ -81,6 +81,9 @@
   <img class="hero-background-art" src="{{ asset($homeContent['hero_background']) }}" alt="" aria-hidden="true">
 </section>
 <main class="container-fluid px-3 px-lg-5 py-4">
+    @if ($account && session('status'))
+      <p class="member-global-feedback" role="status">{{ session('status') }}</p>
+    @endif
     <section class="member-dashboard" id="memberWelcome" hidden aria-label="User account pages">
       <header class="member-dashboard-heading">
         <div><span class="member-welcome-kicker"><i class="bi bi-stars"></i> YOUR PIXMOREE ACCOUNT</span><h2>Welcome back, <span id="memberWelcomeName">{{ $account?->name ?? 'friend' }}</span>!</h2><p>Discover art, keep track of your collection, and manage your account.</p></div>
@@ -178,10 +181,15 @@
               <div class="member-collection-tab-panel" id="memberCollectionOwnedPanel" role="tabpanel" aria-labelledby="memberCollectionTabOwned" hidden>
                 <div class="member-owned-grid" id="memberCollectionItems">
                   @forelse ($ownedArtworks as $artwork)
-                    <a class="member-art-tile" href="{{ route('week12.client.artwork', ['id' => $artwork->id]) }}">
-                      <span class="member-art-tile-image"><img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}" loading="lazy"></span>
-                      <span class="member-art-tile-details"><strong>{{ $artwork->title }}</strong><small>Edition {{ $artwork->edition_number }} · Item ID {{ $artwork->item_id }}</small></span>
-                    </a>
+                    <article class="member-art-tile member-owned-art-tile">
+                      <a href="{{ route('week12.client.artwork', ['id' => $artwork->id]) }}">
+                        <span class="member-art-tile-image"><img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}" loading="lazy"></span>
+                        <span class="member-art-tile-details"><strong>{{ $artwork->title }}</strong><small>Edition {{ $artwork->edition_number }} · Item ID {{ $artwork->item_id }}</small></span>
+                      </a>
+                      @if ($artwork->acquired_purchase_id)
+                        <a class="member-owned-receipt-link" href="{{ route('user.purchase-orders.receipt', ['order' => $artwork->acquired_purchase_id]) }}">View purchase receipt</a>
+                      @endif
+                    </article>
                   @empty
                     <p class="member-empty-state">Your collection is empty. Approved purchases will appear here.</p>
                   @endforelse
@@ -207,7 +215,7 @@
               <h4>Purchase orders</h4>
               <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Order ID</th><th>Artwork</th><th>Edition item</th><th>Recorded amount</th><th>Order type</th><th>Status</th></tr></thead><tbody>
                 @forelse ($purchaseOrders as $purchaseOrder)
-                  <tr><td><a href="{{ route('user.purchase-orders.receipt', $purchaseOrder) }}">{{ $purchaseOrder->purchase_id }}</a></td><td>{{ $purchaseOrder->artwork?->title ?? 'Artwork unavailable' }}</td><td>{{ $purchaseOrder->item_id ?? '—' }}</td><td>PHP {{ number_format($purchaseOrder->amount_minor / 100, 2) }}</td><td>In-app order</td><td>{{ str_replace('_', ' ', $purchaseOrder->status) }} · <a href="{{ route('user.purchase-orders.receipt', $purchaseOrder) }}">Receipt</a></td></tr>
+                  <tr><td>{{ $purchaseOrder->purchase_id }}</td><td>{{ $purchaseOrder->artwork?->title ?? 'Artwork unavailable' }}</td><td>{{ $purchaseOrder->item_id ?? '—' }}</td><td>PHP {{ number_format($purchaseOrder->amount_minor / 100, 2) }}</td><td>In-app order</td><td>{{ str_replace('_', ' ', $purchaseOrder->status) }} · <a href="{{ route('user.purchase-orders.receipt', $purchaseOrder) }}">View receipt</a></td></tr>
                 @empty
                   <tr><td colspan="6" class="member-empty-state">No purchase orders yet.</td></tr>
                 @endforelse
@@ -232,7 +240,6 @@
             <section class="member-panel-card member-transactions-card">
               <h4>Record a withdrawal</h4>
               <p>Withdrawal entries update your account balance only; they do not send money.</p>
-              @if (session('status'))<p class="payment-checkout-notice" role="status">{{ session('status') }}</p>@endif
               @if ($errors->any())<p class="payment-checkout-notice payment-checkout-error" role="alert">{{ $errors->first() }}</p>@endif
               <form method="post" action="{{ route('user.earnings.withdrawals') }}" class="member-earnings-withdraw-form">
                 @csrf
@@ -243,11 +250,11 @@
             </section>
             <section class="member-panel-card member-transactions-card">
               <div class="member-panel-heading"><div><h4>Recent artwork sales</h4><p>Latest approved purchase orders for your listings.</p></div></div>
-              <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Artwork</th><th>Sale value</th><th>Date</th></tr></thead><tbody>
+              <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Artwork</th><th>Sale value</th><th>Date</th><th>Receipt</th></tr></thead><tbody>
                 @forelse (($creatorEarnings['recentSales'] ?? []) as $sale)
-                  <tr><td>{{ $sale->title ?? 'Artwork unavailable' }}</td><td class="member-earnings-sale-amount">PHP {{ number_format($sale->amount_minor / 100, 2) }}</td><td>{{ \Illuminate\Support\Carbon::parse($sale->created_at)->format('M j, Y') }}</td></tr>
+                  <tr><td>{{ $sale->title ?? 'Artwork unavailable' }}</td><td class="member-earnings-sale-amount">PHP {{ number_format($sale->amount_minor / 100, 2) }}</td><td>{{ \Illuminate\Support\Carbon::parse($sale->created_at)->format('M j, Y') }}</td><td><a href="{{ route('user.purchase-orders.receipt', ['order' => $sale->purchase_id]) }}">View receipt</a></td></tr>
                 @empty
-                  <tr><td colspan="3" class="member-empty-state">No approved sales for your artwork yet.</td></tr>
+                  <tr><td colspan="4" class="member-empty-state">No approved sales for your artwork yet.</td></tr>
                 @endforelse
               </tbody></table></div>
             </section>
@@ -293,9 +300,6 @@
                 </form>
               @endif
             </div>
-            @if (session('status'))
-              <p class="member-profile-feedback" role="status">{{ session('status') }}</p>
-            @endif
             @forelse ($notifications as $notification)
               <article class="member-panel-card mb-3" @class(['opacity-75' => $notification->read_at !== null])>
                 <div class="member-panel-heading">
@@ -341,9 +345,6 @@
               <p class="member-profile-feedback" id="memberCreateFeedback" role="status" hidden></p>
               @if ($errors->any())
                 <p class="member-profile-feedback" role="alert">{{ $errors->first() }}</p>
-              @endif
-              @if (session('status'))
-                <p class="member-profile-feedback" role="status">{{ session('status') }}</p>
               @endif
               <small>Your artwork details and image path are saved in the database, and the image file is stored securely. Duplicate image files are rejected.</small>
             </form>
@@ -486,7 +487,7 @@
     </div>
     <div class="load-more-wrap"><button class="btn-load" id="loadMoreItems" type="button"><i class="bi bi-plus-circle" aria-hidden="true"></i> {{ $homeContent['explore']['load_more'] }}</button></div>
   </section>
-  @if ($resaleListings->isNotEmpty() || ($account && $ownedArtworks->isNotEmpty()) || session('status') || $errors->any())
+  @if ($resaleListings->isNotEmpty() || ($account && $ownedArtworks->isNotEmpty()))
   <section id="resale" class="resale-section">
     <div class="section-heading">
       <div><h2>Resale gallery <i class="bi bi-arrow-left-right"></i></h2><p class="muted">Previously purchased artwork listed by its current owner.</p></div>
@@ -495,7 +496,6 @@
     @auth
       <section class="resale-owner-listings" aria-labelledby="resale-owner-heading">
         <div class="section-heading"><div><h3 id="resale-owner-heading">Your owned artwork</h3><p class="muted">Submit an owned piece for resale review. Only approved listings appear in this gallery.</p></div></div>
-        @if (session('status'))<p class="resale-feedback" role="status">{{ session('status') }}</p>@endif
         @if ($errors->any())<p class="resale-feedback" role="alert">{{ $errors->first() }}</p>@endif
         @if (!config('payments.enabled'))
           <p class="resale-feedback" role="status">Resale listings and purchases are unavailable while payments are disabled.</p>

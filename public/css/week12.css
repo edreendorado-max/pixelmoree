@@ -78,8 +78,6 @@ body {
 .w12-price-panel span small { font-size: .72rem; }
 .w12-price-panel strong { color: var(--w12-cyan); font-size: 1.45rem; }
 .w12-info-panel dd { color: #f1eff8; font-size: .86rem; }
-.w12-alert { display: flex; align-items: flex-start; gap: .65rem; border: 1px solid rgba(255, 203, 102, .25); background: rgba(255, 203, 102, .07); color: #f3dfb7; }
-.w12-alert > i { color: #ffcb66; }
 .w12-stat-card { height: 100%; padding: 1.1rem; }
 .w12-stat-card span { display: block; color: #c3bfd4; font-size: .82rem; }
 .w12-stat-card strong { display: block; margin: .4rem 0; font-size: clamp(1.7rem, 3vw, 2.25rem); }

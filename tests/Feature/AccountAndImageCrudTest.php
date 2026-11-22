@@ -158,7 +158,7 @@ class AccountAndImageCrudTest extends TestCase
         ])->assertRedirect('/user');
     }
 
-    public function test_local_password_reset_shows_a_simulated_link_without_sending_email(): void
+    public function test_local_password_reset_redirects_directly_to_the_new_password_form(): void
     {
         Notification::fake();
         config(['app.env' => 'local']);
@@ -170,16 +170,16 @@ class AccountAndImageCrudTest extends TestCase
 
         $this->get('/forgot-password')
             ->assertOk()
-            ->assertSee('Local development: no email is sent.');
+            ->assertSee('continue directly to the new password form');
 
         $response = $this->from('/forgot-password')->post('/forgot-password', ['email' => $user->email]);
-        $response->assertRedirect('/forgot-password')
-            ->assertSessionHas('status', 'If an account exists for that email, a reset link is ready.');
+        $response->assertRedirect();
 
-        $resetUrl = $response->getSession()->get('simulated_reset_url');
-        $this->assertIsString($resetUrl);
+        $resetUrl = $response->getTargetUrl();
         $this->assertStringContainsString('/reset-password/', $resetUrl);
-        $this->get($resetUrl)->assertOk()->assertSee('No email is sent');
+        $this->get($resetUrl)->assertOk()
+            ->assertSee('Choose a new password')
+            ->assertSee('Account found. Choose a new password below.');
 
         $token = basename((string) parse_url($resetUrl, PHP_URL_PATH));
         $this->post('/reset-password', [

@@ -12,7 +12,7 @@
 
 ## Verification
 
-- SQLite feature suite: **66 tests passed, 704 assertions**.
+- SQLite feature suite: **66 tests passed, 706 assertions**.
 - The suite exercises simulated purchase and withdrawal flows, balance validation, receipt access, removed top-up routes, artwork ownership transfer, and admin transaction records.
 - Both pending cleanup migrations were applied successfully to the configured local XAMPP MySQL database after creating a backup. Back up any other database with old Pixel Coin or manual-payment records before applying them.
 - Responsive browser appearance, accessibility, SMTP delivery, and production hosting were not reviewed here.
@@ -23,6 +23,14 @@
 - Removed the unused explanatory banner from artwork management.
 - Removed the repeated market-analytics warning banner; the page still labels values as estimates, and transaction pages retain clear notices that no payment or blockchain asset is transferred.
 - Targeted admin feature tests: **6 passed, 70 assertions**, including regression checks for the rendered CSRF token and removed analytics banner.
+
+## Receipt and account-recovery follow-up
+
+- In local development, submitting a known account email on the password-reset page now redirects directly to the new-password form. Unknown email requests keep a generic response, and production reset requests still use the configured email flow.
+- Purchase receipts now identify the receipt, artwork, edition number, unique item ID, recorded amount, and ownership transfer from seller to buyer. The print layout hides navigation and prints on a light background.
+- Buyers can open receipts from purchase history and their collection. Creators can open a sale receipt from recent earnings. Member action confirmations share one visible message area so a completed purchase or listing action is not hidden in another page section.
+- Removed amber warning styling and exclamation icons from the reviewed page feedback. Validation errors remain visible as text.
+- The configured MySQL database reports all repository migrations as applied; no migration was pending for this update.
 
 ## Read-only schema cleanup review
 

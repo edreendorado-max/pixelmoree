@@ -53,7 +53,13 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->assertDatabaseHas('notifications', ['notifiable_id' => $seller->id]);
 
         $this->get(route('user.purchase-orders.receipt', $order))
-            ->assertOk()->assertSee($order->purchase_id)->assertSee('TRANSACTION RECORD');
+            ->assertOk()
+            ->assertSee($order->purchase_id)
+            ->assertSee('TRANSACTION RECORD')
+            ->assertSee('Edition ownership transfer')
+            ->assertSee($seller->name)
+            ->assertSee($buyer->name)
+            ->assertSee($itemId);
         $this->actingAs($seller)->get(route('admin.payment-orders'))->assertForbidden();
         $this->actingAs($this->admin())->get(route('admin.payment-orders'))
             ->assertOk()->assertSee('Transaction records')->assertSee($order->purchase_id)

@@ -17,19 +17,13 @@
     <p class="auth-eyebrow">ACCOUNT RECOVERY</p>
     <h1 id="auth-title">Reset password</h1>
     @if (config('app.env') === 'local')
-      <p class="auth-intro">Local development: no email is sent. If the account exists, a reset link appears here.</p>
+      <p class="auth-intro">Enter your account email to continue directly to the new password form. No email is sent in local development.</p>
     @else
       <p class="auth-intro">Enter your account email and we will send a reset link if it matches an account.</p>
     @endif
 
     @if (session('status'))
       <div class="auth-feedback" role="status">{{ session('status') }}</div>
-    @endif
-    @if (config('app.env') === 'local' && session('simulated_reset_url'))
-      <div class="auth-feedback" role="status">
-        <strong>Password reset link</strong><br>
-        <a href="{{ session('simulated_reset_url') }}">Open the password reset form</a>
-      </div>
     @endif
     @if ($errors->any())
       <div class="auth-feedback" role="alert">{{ $errors->first() }}</div>
@@ -39,7 +33,7 @@
       @csrf
       <label for="reset-email">Email</label>
       <input id="reset-email" name="email" type="email" autocomplete="email" value="{{ old('email') }}" required>
-      <button class="auth-submit" type="submit">{{ config('app.env') === 'local' ? 'Get reset link' : 'Send reset link' }}</button>
+      <button class="auth-submit" type="submit">{{ config('app.env') === 'local' ? 'Continue to new password' : 'Send reset link' }}</button>
     </form>
     <a class="auth-back" href="{{ route('login') }}">Back to log in</a>
   </section>

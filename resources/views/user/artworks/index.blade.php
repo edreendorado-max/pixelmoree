@@ -45,7 +45,6 @@
     @endif
     @if ($errors->any())
         <div class="profile-settings-notice profile-settings-notice-error" role="alert">
-            <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
             <ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
         </div>
     @endif
