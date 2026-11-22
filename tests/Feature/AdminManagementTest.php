@@ -46,6 +46,7 @@ class AdminManagementTest extends TestCase
         $this->get(route('admin.analytics'))
             ->assertOk()
             ->assertSee('Estimated value history')
+            ->assertDontSee('Estimated market values are engagement-based estimates, not completed sales or financial advice.')
             ->assertDontSee('Followers')
             ->assertSee(route('admin.api.analytics'), false);
         $this->get(route('admin.content.edit', 'marketplace'))
@@ -93,6 +94,12 @@ class AdminManagementTest extends TestCase
             ->assertSee($creator->email)
             ->assertDontSee('Make admin')
             ->assertDontSee('Remove admin');
+
+        $this->get(route('week12.admin.artworks'))
+            ->assertOk()
+            ->assertDontSee('name="_token" value=""', false)
+            ->assertSee('name="_token" value="'.csrf_token().'"', false)
+            ->assertDontSee('Creators submit artwork from their accounts.', false);
 
         $this->post(route('admin.artworks.price', $artwork->id), ['price' => '24.95'])
             ->assertRedirect()

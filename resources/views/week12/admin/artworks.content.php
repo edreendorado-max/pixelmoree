@@ -14,10 +14,6 @@
     <?php if (isset($errors) && $errors->any()): ?>
         <div class="alert alert-danger" role="alert"><ul class="mb-0"><?php foreach ($errors->all() as $error): ?><li><?= week12_escape($error) ?></li><?php endforeach; ?></ul></div>
     <?php endif; ?>
-    <div class="alert w12-alert" role="note">
-        <i class="bi bi-info-circle-fill"></i>
-        <span>Creators submit artwork from their accounts. Admins review and manage listings; this screen does not create admin-owned artwork.</span>
-    </div>
     <section class="w12-panel">
         <div class="table-responsive">
             <table class="table w12-table align-middle mb-0">

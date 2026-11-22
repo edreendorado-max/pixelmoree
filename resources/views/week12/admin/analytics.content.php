@@ -5,7 +5,6 @@
         <h1 class="w12-section-title">Artwork and creator analytics</h1>
         <p class="text-secondary mb-0">Compare listed asking prices, estimated market-value history, and engagement signals.</p>
     </header>
-    <div class="alert w12-alert" role="note"><i class="bi bi-info-circle-fill"></i><span>Estimated market values are engagement-based estimates, not completed sales or financial advice. Daily price history begins when snapshots are collected.</span></div>
     <div class="row g-4">
         <div class="col-12">
             <section class="w12-panel">

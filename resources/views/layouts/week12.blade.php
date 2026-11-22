@@ -1,7 +1,7 @@
 <?php
 $week12Title ??= 'Pixmoree';
 $week12Area ??= '';
-$week12CsrfToken ??= '';
+$week12CsrfToken ??= csrf_token();
 $week12Description ??= $marketplaceContent['meta_description'] ?? 'Pixmoree marketplace.';
 if ($week12Area === 'admin') {
     require week12_view_path('layouts/admin.blade.php');
