@@ -12,7 +12,7 @@
 
 ## Verification
 
-- SQLite feature suite: **66 tests passed, 706 assertions**.
+- SQLite feature suite: **68 tests passed, 718 assertions**.
 - The suite exercises simulated purchase and withdrawal flows, balance validation, receipt access, removed top-up routes, artwork ownership transfer, and admin transaction records.
 - Both pending cleanup migrations were applied successfully to the configured local XAMPP MySQL database after creating a backup. Back up any other database with old Pixel Coin or manual-payment records before applying them.
 - Responsive browser appearance, accessibility, SMTP delivery, and production hosting were not reviewed here.
@@ -31,6 +31,7 @@
 - Buyers can open receipts from purchase history and their collection. Creators can open a sale receipt from recent earnings. Member action confirmations share one visible message area so a completed purchase or listing action is not hidden in another page section.
 - Removed amber warning styling and exclamation icons from the reviewed page feedback. Validation errors remain visible as text.
 - The configured MySQL database reports all repository migrations as applied; no migration was pending for this update.
+- Regular users are now redirected to their member dashboard when a saved post-login destination requires admin access. Valid member destinations, such as Store, are still honored.
 
 ## Read-only schema cleanup review
 

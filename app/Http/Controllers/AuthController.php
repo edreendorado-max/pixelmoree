@@ -11,9 +11,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class AuthController extends Controller
@@ -100,7 +103,15 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->intended(route($user->isAdmin() ? 'week12.admin' : 'user'));
+        $fallbackRoute = $user->isAdmin() ? 'week12.admin' : 'user';
+        $intendedUrl = $request->session()->get('url.intended');
+        if (! $user->isAdmin() && $this->intendedRouteRequiresAdmin($request, $intendedUrl)) {
+            $request->session()->forget('url.intended');
+
+            return redirect()->route($fallbackRoute);
+        }
+
+        return redirect()->intended(route($fallbackRoute));
     }
 
     public function logout(Request $request): RedirectResponse
@@ -126,5 +137,30 @@ class AuthController extends Controller
         }
 
         return $username;
+    }
+
+    private function intendedRouteRequiresAdmin(Request $request, mixed $intendedUrl): bool
+    {
+        if (! is_string($intendedUrl) || $intendedUrl === '') {
+            return false;
+        }
+
+        $path = parse_url($intendedUrl, PHP_URL_PATH);
+        if (! is_string($path) || $path === '') {
+            return false;
+        }
+
+        $baseUrl = rtrim($request->getBaseUrl(), '/');
+        if ($baseUrl !== '' && ($path === $baseUrl || str_starts_with($path, $baseUrl.'/'))) {
+            $path = substr($path, strlen($baseUrl)) ?: '/';
+        }
+
+        try {
+            $intendedRoute = Route::getRoutes()->match(Request::create('/'.ltrim($path, '/'), 'GET'));
+        } catch (NotFoundHttpException|MethodNotAllowedHttpException) {
+            return false;
+        }
+
+        return in_array('can:manage-admin', $intendedRoute->middleware(), true);
     }
 }

@@ -74,6 +74,39 @@ class UsernameAndNavigationTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_regular_login_uses_the_member_dashboard_when_the_saved_destination_is_admin_only(): void
+    {
+        $user = User::create([
+            'name' => 'Member Account',
+            'email' => 'member-account@example.test',
+            'password' => 'MemberPass1!',
+        ]);
+
+        $this->get(route('admin.users'))->assertRedirect(route('login'));
+        $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'MemberPass1!',
+        ])->assertRedirect(route('user'));
+
+        $this->get(route('user'))->assertOk();
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_login_keeps_a_valid_member_destination(): void
+    {
+        $user = User::create([
+            'name' => 'Store Member',
+            'email' => 'store-member@example.test',
+            'password' => 'MemberPass1!',
+        ]);
+
+        $this->get(route('store'))->assertRedirect(route('login'));
+        $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'MemberPass1!',
+        ])->assertRedirect(route('store'));
+    }
+
     public function test_a_signed_in_user_is_redirected_from_the_guest_homepage_to_their_account(): void
     {
         $user = User::create([
