@@ -184,7 +184,7 @@ class ManualPaymentsAndResaleTest extends TestCase
         ]);
 
         $this->actingAs($seller)->post(route('user.artworks.resale', $artwork), [
-            'price_php' => 200, 'ownership_declaration' => '1', 'evidence' => $this->proofImage('ownership.png'),
+            'price_php' => 200, 'quantity' => 1, 'ownership_declaration' => '1', 'evidence' => $this->proofImage('ownership.png'),
         ])->assertRedirect();
         $listingId = DB::table('resale_listings')->value('id');
         $this->actingAs($admin)->post(route('admin.resales.review', $listingId), ['decision' => 'approve'])->assertRedirect();
@@ -197,6 +197,79 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->assertSame($buyer->id, (int) DB::table('artwork_items')->where('item_id', $itemId)->value('owner_id'));
         $this->assertSame('sold', DB::table('resale_listings')->where('id', $listingId)->value('status'));
         $this->assertSame('approved', PaymentOrder::query()->where('buyer_id', $buyer->id)->value('status'));
+    }
+
+    public function test_buyer_can_resell_only_the_selected_quantity_of_purchased_items(): void
+    {
+        $creator = $this->user('quantity-creator@example.test');
+        $seller = $this->user('quantity-seller@example.test');
+        $firstBuyer = $this->user('quantity-first-buyer@example.test');
+        $secondBuyer = $this->user('quantity-second-buyer@example.test');
+        $admin = $this->admin();
+        $artwork = $this->artwork($creator, 4);
+        $ownedItemIds = DB::table('artwork_items')
+            ->where('artwork_id', $artwork->id)
+            ->orderBy('edition_number')
+            ->limit(3)
+            ->pluck('item_id');
+
+        foreach ($ownedItemIds as $itemId) {
+            $purchaseId = (string) Str::uuid();
+            PaymentOrder::create([
+                'purchase_id' => $purchaseId, 'buyer_id' => $seller->id, 'seller_id' => $creator->id,
+                'artwork_id' => $artwork->id, 'item_id' => $itemId, 'type' => 'nft_purchase',
+                'amount_minor' => 10000, 'payment_method' => 'simulation', 'status' => 'approved',
+            ]);
+            DB::table('artwork_items')->where('item_id', $itemId)->update([
+                'owner_id' => $seller->id, 'status' => 'owned', 'acquired_purchase_id' => $purchaseId,
+            ]);
+        }
+
+        $this->actingAs($seller)
+            ->get('/user')
+            ->assertOk()
+            ->assertSee('You own 3 purchased item(s)')
+            ->assertSee('max="3"', false);
+
+        $this->post(route('user.artworks.resale', $artwork), [
+            'price_php' => 200, 'quantity' => 4, 'ownership_declaration' => '1',
+            'evidence' => $this->proofImage('too-many-items.png'),
+        ])->assertSessionHasErrors('quantity');
+        $this->assertDatabaseCount('resale_listings', 0);
+
+        $this->post(route('user.artworks.resale', $artwork), [
+            'price_php' => 200, 'quantity' => 2, 'ownership_declaration' => '1',
+            'evidence' => $this->proofImage('two-items.png'),
+        ])->assertRedirect();
+        $listingId = DB::table('resale_listings')->value('id');
+        $this->assertSame(2, (int) DB::table('resale_listings')->where('id', $listingId)->value('quantity'));
+
+        $this->actingAs($admin)
+            ->post(route('admin.resales.review', $listingId), ['decision' => 'approve'])
+            ->assertRedirect();
+
+        $itemIds = $ownedItemIds->all();
+        foreach ([$firstBuyer, $secondBuyer] as $index => $buyer) {
+            $this->actingAs($buyer)->get(route('user.checkout', $artwork->id))
+                ->assertOk()
+                ->assertSee('Choose the edition item')
+                ->assertSee('Edition '.($index + 1));
+            $sellerItemId = DB::table('artwork_items')
+                ->whereIn('item_id', $itemIds)
+                ->where('owner_id', $seller->id)
+                ->where('status', 'owned')
+                ->orderBy('edition_number')
+                ->value('item_id');
+            $this->post(route('user.purchase-orders.store'), [
+                'artwork_id' => $artwork->id, 'item_id' => $sellerItemId,
+                'payment_method' => 'simulation', 'checkout_option' => 'card',
+                'simulation_reference' => 'DEMO-QUANTITY-'.$index,
+            ])->assertRedirect(route('user.purchases'));
+        }
+
+        $this->assertSame(0, (int) DB::table('resale_listings')->where('id', $listingId)->value('quantity'));
+        $this->assertSame('sold', DB::table('resale_listings')->where('id', $listingId)->value('status'));
+        $this->assertSame(1, (int) DB::table('artwork_items')->where('artwork_id', $artwork->id)->where('owner_id', $seller->id)->count());
     }
 
     private function user(string $email): User

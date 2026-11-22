@@ -47,13 +47,19 @@ class PaymentOrderController extends Controller
     {
         $this->ensurePaymentsEnabled();
         $artwork = Artwork::query()->whereKey($artworkId)->where('status', 'Listed')->firstOrFail();
-        $items = DB::table('artwork_items')->where('artwork_id', $artwork->id)->where('status', 'available')->orderBy('edition_number')->get();
-        if ($items->isEmpty()) {
-            $resale = DB::table('resale_listings')->where('artwork_id', $artwork->id)->where('status', 'listed')->first();
-            if ($resale !== null && (int) $artwork->item_count === 1) {
-                $items = DB::table('artwork_items')->where('artwork_id', $artwork->id)->where('owner_id', $resale->seller_id)->where('status', 'owned')->get();
-            }
-        }
+        $resale = DB::table('resale_listings')->where('artwork_id', $artwork->id)->where('status', 'listed')->first();
+        $items = DB::table('artwork_items')
+            ->where('artwork_id', $artwork->id)
+            ->when(
+                $resale !== null,
+                static fn ($query) => $query->where('owner_id', $resale->seller_id)
+                    ->where('status', 'owned')
+                    ->whereNotNull('acquired_purchase_id')
+                    ->limit((int) $resale->quantity),
+                static fn ($query) => $query->where('status', 'available'),
+            )
+            ->orderBy('edition_number')
+            ->get();
         abort_if($items->isEmpty(), 409, 'This edition is sold out.');
         $sellerId = $this->sellerIdFor($artwork);
         abort_if((int) $sellerId === (int) $request->user()->id, 422, 'You cannot buy your own artwork.');
@@ -87,9 +93,17 @@ class PaymentOrderController extends Controller
         abort_unless($checkout['amount_minor'] === $amountMinor, 409, 'The price changed. Review checkout again.');
         $orderId = (string) Str::uuid();
         DB::transaction(function () use ($request, $validated, $artwork, $sellerId, $amountMinor, $orderId, $ledger): void {
+            $resale = DB::table('resale_listings')
+                ->where('artwork_id', $artwork->id)
+                ->where('seller_id', $sellerId)
+                ->where('status', 'listed')
+                ->lockForUpdate()
+                ->first();
             $item = DB::table('artwork_items')->where('item_id', $validated['item_id'])->where('artwork_id', $artwork->id)->lockForUpdate()->first();
-            $isResale = DB::table('resale_listings')->where('artwork_id', $artwork->id)->where('seller_id', $sellerId)->where('status', 'listed')->exists();
-            abort_unless($item && ($item->status === 'available' || ($isResale && $item->status === 'owned' && (int) $item->owner_id === (int) $sellerId)), 409, 'That edition item was just purchased. Choose another available item.');
+            $canPurchaseItem = $resale !== null
+                ? $resale->quantity > 0 && $item?->status === 'owned' && (int) $item->owner_id === (int) $sellerId
+                : $item?->status === 'available' && (int) $artwork->user_id === (int) $sellerId;
+            abort_unless($canPurchaseItem, 409, 'That edition item was just purchased. Choose another available item.');
             $buyer = User::query()->findOrFail($request->user()->id);
             $seller = User::query()->findOrFail($sellerId);
             $order = PaymentOrder::create([
@@ -101,6 +115,14 @@ class PaymentOrderController extends Controller
                 'status' => 'approved', 'reviewed_at' => now(),
             ]);
             $this->acquireItem($order, $item);
+            if ($resale !== null) {
+                $remainingQuantity = max(0, (int) $resale->quantity - 1);
+                DB::table('resale_listings')->where('id', $resale->id)->update([
+                    'quantity' => $remainingQuantity,
+                    'status' => $remainingQuantity === 0 ? 'sold' : 'listed',
+                    'updated_at' => now(),
+                ]);
+            }
             $ledger->credit($seller, $amountMinor, 'sale', $orderId);
             $buyer->notify(new MarketplaceNotification('Simulated purchase complete', 'You purchased '.$artwork->title.'. Receipt '.$orderId.'. The edition is now in your collection. No real payment was made.', route('user.purchases')));
             $seller->notify(new MarketplaceNotification('Artwork sold', $buyer->name.' purchased '.$artwork->title.' for PHP '.number_format($amountMinor / 100, 2).'. This simulated amount was added to your earnings balance. No cash was transferred.', route('user.earnings')));
@@ -122,8 +144,6 @@ class PaymentOrderController extends Controller
             'purchase_id' => $order->purchase_id, 'amount_minor' => $order->amount_minor,
             'currency' => $order->currency, 'created_at' => now(), 'updated_at' => now(),
         ]);
-        DB::table('resale_listings')->where('artwork_id', $order->artwork_id)->where('seller_id', $order->seller_id)->where('status', 'listed')
-            ->update(['status' => 'sold', 'updated_at' => now()]);
         $artwork = Artwork::query()->whereKey($order->artwork_id)->firstOrFail();
         if ((int) $artwork->item_count === 1) {
             DB::table('artwork_ownerships')->updateOrInsert(

@@ -104,6 +104,7 @@ class AppServiceProvider extends ServiceProvider
                 ->limit(50)
                 ->get() ?? collect());
             $ownedArtworks = collect();
+            $ownedResaleArtworks = collect();
             if ($account !== null) {
                 $latestListings = DB::table('resale_listings')
                     ->selectRaw('MAX(id) AS id, artwork_id')
@@ -111,19 +112,33 @@ class AppServiceProvider extends ServiceProvider
                     ->groupBy('artwork_id');
                 $ownedArtworks = DB::table('artwork_items')
                     ->join('artworks', 'artworks.id', '=', 'artwork_items.artwork_id')
+                    ->where('artwork_items.owner_id', $account->id)
+                    ->where('artwork_items.status', 'owned')
+                    ->select([
+                        'artworks.id', 'artworks.product_id', 'artworks.title', 'artworks.image', 'artworks.item_count',
+                        'artwork_items.item_id', 'artwork_items.edition_number', 'artwork_items.acquired_purchase_id',
+                    ])
+                    ->orderBy('artworks.title')->orderBy('artwork_items.edition_number')
+                    ->get();
+                $ownedResaleArtworks = DB::table('artwork_items')
+                    ->join('artworks', 'artworks.id', '=', 'artwork_items.artwork_id')
                     ->leftJoinSub($latestListings, 'latest_listing', static fn ($join) => $join
                         ->on('latest_listing.artwork_id', '=', 'artworks.id'))
                     ->leftJoin('resale_listings as listing', 'listing.id', '=', 'latest_listing.id')
                     ->where('artwork_items.owner_id', $account->id)
+                    ->where('artwork_items.status', 'owned')
+                    ->whereNotNull('artwork_items.acquired_purchase_id')
                     ->select([
                         'artworks.id', 'artworks.product_id', 'artworks.title', 'artworks.image', 'artworks.item_count',
-                        'artwork_items.item_id', 'artwork_items.edition_number', 'artwork_items.acquired_purchase_id',
-                        'listing.status as resale_status',
+                        'listing.status as resale_status', 'listing.quantity as resale_quantity',
                     ])
-                    ->orderBy('artworks.title')->orderBy('artwork_items.edition_number')
+                    ->selectRaw('COUNT(artwork_items.item_id) AS owned_quantity')
+                    ->groupBy('artworks.id', 'artworks.product_id', 'artworks.title', 'artworks.image', 'artworks.item_count', 'listing.status', 'listing.quantity')
+                    ->orderBy('artworks.title')
                     ->get();
             }
             $view->with('ownedArtworks', $ownedArtworks);
+            $view->with('ownedResaleArtworks', $ownedResaleArtworks);
         });
 
         View::composer('login', static function (ViewContract $view): void {

@@ -9,8 +9,8 @@
                 <h2><a href="{{ route('week12.client.artwork', ['id' => $listing->artwork->id]) }}">{{ $listing->artwork->title }}</a></h2>
                 <p class="store-card-creator">Listed by {{ $listing->seller?->name ?? 'Current owner' }}</p>
                 <div class="store-card-details">
-                    <span><small>Resale price</small><strong>PHP {{ number_format($listing->price_minor / 100, 2) }}</strong></span>
-                    <span><small>Edition</small><strong>1</strong></span>
+                    <span><small>Price per item</small><strong>PHP {{ number_format($listing->price_minor / 100, 2) }}</strong></span>
+                    <span><small>Items available</small><strong>{{ number_format((int) $listing->quantity) }}</strong></span>
                 </div>
                 @if ((int) $listing->seller_id === (int) auth()->id())
                     <span class="store-owned-note">Your resale listing</span>

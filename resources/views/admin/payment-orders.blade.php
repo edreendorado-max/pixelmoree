@@ -27,7 +27,7 @@
     </section>
     <section class="payment-review-section"><h2>Resale copyright review</h2><p>Resale moderation is a separate review task. Approval publishes a listing; it does not verify copyright ownership.</p>
         @forelse ($resales as $resale)
-            <article class="payment-review-card"><strong>{{ $resale->title }}</strong><p>Seller: {{ $resale->seller_name }} · PHP {{ number_format($resale->price_minor / 100, 2) }} · {{ ucfirst(str_replace('_', ' ', $resale->status)) }}</p><p><a href="{{ route('admin.resales.evidence', $resale->id) }}">View private ownership evidence</a> · {{ $resale->ownership_declaration }}</p>
+            <article class="payment-review-card"><strong>{{ $resale->title }}</strong><p>Seller: {{ $resale->seller_name }} · {{ number_format((int) $resale->quantity) }} item(s) · PHP {{ number_format($resale->price_minor / 100, 2) }} each · {{ ucfirst(str_replace('_', ' ', $resale->status)) }}</p><p><a href="{{ route('admin.resales.evidence', $resale->id) }}">View private ownership evidence</a> · {{ $resale->ownership_declaration }}</p>
                 @if ($resale->status === 'pending_review')<form class="payment-review-actions" method="post" action="{{ route('admin.resales.review', $resale->id) }}">@csrf<button class="w12-btn-primary" name="decision" value="approve">Approve listing</button><button class="w12-btn-danger" name="decision" value="reject">Reject</button></form>@endif
             </article>
         @empty<p class="payment-review-empty">No resale submissions.</p>@endforelse

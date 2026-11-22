@@ -125,6 +125,27 @@ class PixmoreePagesTest extends TestCase
         }
     }
 
+    public function test_member_subpages_hide_repeated_home_marketplace_sections(): void
+    {
+        $user = User::create([
+            'name' => 'Member Page User',
+            'email' => 'member-page@example.test',
+            'password' => 'secret-password',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/user/purchases')
+            ->assertOk()
+            ->assertSee('member-subpage', false)
+            ->assertSee('Purchase orders')
+            ->assertSee('20261122-member-subpages', false);
+
+        $siteStyles = file_get_contents(public_path('css/site.css'));
+        $this->assertIsString($siteStyles);
+        $this->assertStringContainsString('.member-area.member-subpage main>#resale', $siteStyles);
+        $this->assertStringContainsString('display:none!important', $siteStyles);
+    }
+
     public function test_member_home_recommends_artwork_and_shows_simulated_price_estimates(): void
     {
         $user = User::create([

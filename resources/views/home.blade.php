@@ -1,4 +1,5 @@
 @php($account = auth()->user())
+@php($isMemberSubpage = $account && request()->is('user/*'))
 @php($unreadNotificationCount = $unreadNotificationCount ?? 0)
 <!doctype html>
 <html lang="en">
@@ -11,10 +12,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/site.css') }}?v=20261122-notifications" rel="stylesheet">
+    <link href="{{ asset('css/site.css') }}?v=20261122-member-subpages" rel="stylesheet">
     <link href="{{ asset('css/typography.css') }}?v=20261127-creator-ui" rel="stylesheet">
 </head>
-<body class="{{ $account ? 'member-home' : 'guest-home' }}">
+<body class="{{ $account ? 'member-home' : 'guest-home' }}{{ $isMemberSubpage ? ' member-subpage' : '' }}">
 <nav class="navbar navbar-expand-lg navbar-dark site-nav guest-nav">
   <div class="container-fluid px-3 px-lg-5">
     <a class="navbar-brand" href="{{ $account ? route('user') : '#home' }}" aria-label="Pixmoree home"><img src="{{ asset('assets/Pixmoree Neon Pixel Logo.png') }}" alt="Pixmoree" class="brand-logo"></a>
@@ -460,7 +461,7 @@
     </div>
     <div class="load-more-wrap"><button class="btn-load" id="loadMoreItems" type="button"><i class="bi bi-plus-circle" aria-hidden="true"></i> {{ $homeContent['explore']['load_more'] }}</button></div>
   </section>
-  @if ($resaleListings->isNotEmpty() || ($account && $ownedArtworks->isNotEmpty()))
+  @if ($resaleListings->isNotEmpty() || ($account && $ownedResaleArtworks->isNotEmpty()))
   <section id="resale" class="resale-section">
     <div class="section-heading">
       <div><h2>Resale gallery <i class="bi bi-arrow-left-right"></i></h2><p class="muted">Previously purchased artwork listed by its current owner.</p></div>
@@ -473,13 +474,17 @@
         @if (!config('payments.enabled'))
           <p class="resale-feedback" role="status">Resale listings and purchases are unavailable while payments are disabled.</p>
         @endif
-        @forelse ($ownedArtworks as $ownedArtwork)
+        @forelse ($ownedResaleArtworks as $ownedArtwork)
           <article class="resale-owner-card">
-            <div><strong>{{ $ownedArtwork->title }}</strong><p>Resale status: {{ $ownedArtwork->resale_status ?? 'Not listed' }}</p></div>
-            @if (config('payments.enabled') && (int) $ownedArtwork->item_count === 1 && !in_array($ownedArtwork->resale_status, ['pending_review', 'listed'], true))
+            <div>
+              <strong>{{ $ownedArtwork->title }}</strong>
+              <p>You own {{ number_format((int) $ownedArtwork->owned_quantity) }} purchased item(s) · Resale status: {{ $ownedArtwork->resale_status ?? 'Not listed' }}{{ $ownedArtwork->resale_status === 'listed' ? ' · '.number_format((int) $ownedArtwork->resale_quantity).' item(s) remaining' : '' }}</p>
+            </div>
+            @if (config('payments.enabled') && !in_array($ownedArtwork->resale_status, ['pending_review', 'listed'], true))
               <form method="post" action="{{ route('user.artworks.resale', $ownedArtwork->id) }}" enctype="multipart/form-data">
                 @csrf
-                <label>Resale price (PHP)<input name="price_php" type="number" min="1" max="10000000" required></label>
+                <label>Resale price per item (PHP)<input name="price_php" type="number" min="1" max="10000000" required></label>
+                <label>Number of items to resell<input name="quantity" type="number" min="1" max="{{ (int) $ownedArtwork->owned_quantity }}" value="{{ (int) $ownedArtwork->owned_quantity }}" required><small>You can list up to {{ number_format((int) $ownedArtwork->owned_quantity) }} item(s) that you purchased.</small></label>
                 <label>Ownership/authorization evidence<input name="evidence" type="file" accept="image/png,image/jpeg,application/pdf" required></label>
                 <label class="member-policy-accept"><input name="ownership_declaration" type="checkbox" value="1" required> I own or am authorized to resell this artwork and the submission is accurate.</label>
                 <button class="member-profile-save" type="submit">Submit for review</button>
