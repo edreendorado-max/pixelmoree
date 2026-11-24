@@ -461,43 +461,14 @@
     </div>
     <div class="load-more-wrap"><button class="btn-load" id="loadMoreItems" type="button"><i class="bi bi-plus-circle" aria-hidden="true"></i> {{ $homeContent['explore']['load_more'] }}</button></div>
   </section>
-  @if ($resaleListings->isNotEmpty() || ($account && $ownedResaleArtworks->isNotEmpty()))
+  @if ($resaleListings->isNotEmpty())
   <section id="resale" class="resale-section">
     <div class="section-heading">
       <div><h2>Resale gallery <i class="bi bi-arrow-left-right"></i></h2><p class="muted">Previously purchased artwork listed by its current owner.</p></div>
     </div>
     @include('partials.resale-listings', ['resaleListings' => $resaleListings])
-    @auth
-      <section class="resale-owner-listings" aria-labelledby="resale-owner-heading">
-        <div class="section-heading"><div><h3 id="resale-owner-heading">Your owned artwork</h3><p class="muted">Submit an owned piece for resale review. Only approved listings appear in this gallery.</p></div></div>
-        @if ($errors->any())<p class="resale-feedback" role="alert">{{ $errors->first() }}</p>@endif
-        @if (!config('payments.enabled'))
-          <p class="resale-feedback" role="status">Resale listings and purchases are unavailable while payments are disabled.</p>
-        @endif
-        @forelse ($ownedResaleArtworks as $ownedArtwork)
-          <article class="resale-owner-card">
-            <div>
-              <strong>{{ $ownedArtwork->title }}</strong>
-              <p>You own {{ number_format((int) $ownedArtwork->owned_quantity) }} purchased item(s) · Resale status: {{ $ownedArtwork->resale_status ?? 'Not listed' }}{{ $ownedArtwork->resale_status === 'listed' ? ' · '.number_format((int) $ownedArtwork->resale_quantity).' item(s) remaining' : '' }}</p>
-            </div>
-            @if (config('payments.enabled') && !in_array($ownedArtwork->resale_status, ['pending_review', 'listed'], true))
-              <form method="post" action="{{ route('user.artworks.resale', $ownedArtwork->id) }}" enctype="multipart/form-data">
-                @csrf
-                <label>Resale price per item (PHP)<input name="price_php" type="number" min="1" max="10000000" required></label>
-                <label>Number of items to resell<input name="quantity" type="number" min="1" max="{{ (int) $ownedArtwork->owned_quantity }}" value="{{ (int) $ownedArtwork->owned_quantity }}" required><small>You can list up to {{ number_format((int) $ownedArtwork->owned_quantity) }} item(s) that you purchased.</small></label>
-                <label>Ownership/authorization evidence<input name="evidence" type="file" accept="image/png,image/jpeg,application/pdf" required></label>
-                <label class="member-policy-accept"><input name="ownership_declaration" type="checkbox" value="1" required> I own or am authorized to resell this artwork and the submission is accurate.</label>
-                <button class="member-profile-save" type="submit">Submit for review</button>
-              </form>
-            @endif
-          </article>
-        @empty
-          <p class="member-empty-state">Completed orders and edition ownership appear here with their receipts.</p>
-        @endforelse
-      </section>
-      @endif
-    @endauth
   </section>
+  @endif
   <section id="about" class="guest-about">
     <h2>{{ $homeContent['closing_heading'] }}</h2>
     <p>{{ $homeContent['closing_body'] }}</p>

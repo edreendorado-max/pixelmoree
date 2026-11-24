@@ -78,6 +78,21 @@ body {
 .w12-price-panel span small { font-size: .72rem; }
 .w12-price-panel strong { color: var(--w12-cyan); font-size: 1.45rem; }
 .w12-detail-buy { display: inline-flex; align-items: center; gap: .5rem; min-height: 46px; padding: .7rem 1.25rem; }
+.w12-resale-disclosure { width: fit-content; max-width: 100%; }
+.w12-resale-disclosure > summary { list-style: none; }
+.w12-resale-disclosure > summary::-webkit-details-marker { display: none; }
+.w12-resale-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; width: min(100%, 520px); margin-top: .8rem; padding: 1rem; border: 1px solid var(--w12-border); border-radius: .8rem; background: var(--w12-surface); }
+.w12-resale-form > label { display: grid; align-content: start; gap: .35rem; min-width: 0; color: #e6e1ef; font-size: .78rem; }
+.w12-resale-form input:not([type=checkbox]) { width: 100%; min-width: 0; min-height: 38px; padding: .5rem .65rem; border: 1px solid var(--w12-border); border-radius: .4rem; background: #0d0c14; color: #f5f1f8; font: inherit; }
+.w12-resale-form input[type=file] { padding: .35rem; }
+.w12-resale-form input[type=file]::file-selector-button { margin-right: .5rem; padding: .35rem .5rem; border: 1px solid var(--w12-border); border-radius: .3rem; background: #ffffff0b; color: #ece6ef; }
+.w12-resale-form label small { color: var(--w12-muted); font-size: .7rem; }
+.w12-resale-form .w12-resale-evidence,.w12-resale-form .w12-resale-declaration,.w12-resale-form .w12-resale-submit { grid-column: 1/-1; }
+.w12-resale-form .w12-resale-declaration { display: flex; align-items: flex-start; gap: .5rem; }
+.w12-resale-form .w12-resale-declaration input { flex: 0 0 auto; margin-top: .2rem; }
+.w12-resale-form .w12-resale-error { margin: 0; color: #ffb2c4; font-size: .72rem; }
+.w12-resale-form .w12-resale-submit { justify-self: start; min-height: 40px; }
+.w12-resale-status { color: #b7efcf; font-size: .82rem; }
 .w12-info-panel dd { color: #f1eff8; font-size: .86rem; }
 .w12-stat-card { height: 100%; padding: 1.1rem; }
 .w12-stat-card span { display: block; color: #c3bfd4; font-size: .82rem; }
@@ -98,6 +113,8 @@ body {
     .w12-card-image { height: 205px; }
     .w12-panel { padding: 1rem; }
     .w12-market-filters { grid-template-columns: 1fr 1fr; width: 100%; }
+    .w12-resale-form { grid-template-columns: minmax(0, 1fr); width: 100%; padding: .8rem; }
+    .w12-resale-form .w12-resale-evidence,.w12-resale-form .w12-resale-declaration,.w12-resale-form .w12-resale-error,.w12-resale-form .w12-resale-submit { grid-column: 1; }
     .w12-market-filter-search { grid-column: 1 / -1; }
 }
 

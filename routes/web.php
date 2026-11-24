@@ -231,7 +231,7 @@ Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12A
 
 Route::get('/week12/artworks/{id}', function (string $id) use ($week12ArtworkStore, $engagementController) {
     $artwork = $week12ArtworkStore()->find($id);
-    abort_if($artwork === null, 404);
+    abort_unless($artwork !== null && $artwork['status'] === 'Listed', 404);
 
     $model = Artwork::query()->findOrFail($id);
     if ($artwork['status'] === 'Listed') {

@@ -228,8 +228,8 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->actingAs($seller)
             ->get('/user')
             ->assertOk()
-            ->assertSee('You own 3 purchased item(s)')
-            ->assertSee('max="3"', false);
+            ->assertDontSee('Your owned artwork')
+            ->assertDontSee('Resale price per item (PHP)');
 
         $this->post(route('user.artworks.resale', $artwork), [
             'price_php' => 200, 'quantity' => 4, 'ownership_declaration' => '1',
@@ -292,7 +292,9 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->actingAs($owner)->get(route('week12.client.artwork', ['id' => $artwork->id]))
             ->assertOk()
             ->assertSee('Resell owned item')
-            ->assertSee(route('user').'#resale', false);
+            ->assertSee('name="price_php"', false)
+            ->assertSee('class="w12-resale-disclosure mt-3"', false)
+            ->assertDontSee('class="w12-resale-disclosure mt-3" open', false);
         $this->actingAs($visitor)->get(route('week12.client.artwork', ['id' => $artwork->id]))
             ->assertOk()
             ->assertDontSee('Resell owned item');
