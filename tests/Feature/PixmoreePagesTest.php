@@ -334,6 +334,23 @@ class PixmoreePagesTest extends TestCase
         $this->assertStringNotContainsString('member-owned-grid', substr($response->getContent(), $marketStart, $marketEnd - $marketStart));
     }
 
+    public function test_simulated_artwork_price_is_stable_within_a_minute_and_changes_on_the_next_minute(): void
+    {
+        $artworkId = 'minute-changing-price-artwork';
+        $firstMinute = CarbonImmutable::parse('2026-11-25 08:00:00');
+
+        $firstPrice = ArtworkPriceDashboard::simulatedMinutePrice(100, $artworkId, $firstMinute);
+
+        $this->assertSame(
+            $firstPrice,
+            ArtworkPriceDashboard::simulatedMinutePrice(100, $artworkId, $firstMinute->addSeconds(59)),
+        );
+        $this->assertNotSame(
+            $firstPrice,
+            ArtworkPriceDashboard::simulatedMinutePrice(100, $artworkId, $firstMinute->addMinute()),
+        );
+    }
+
     public function test_daily_market_simulation_is_repeatable_and_works_without_snapshots(): void
     {
         $today = today();

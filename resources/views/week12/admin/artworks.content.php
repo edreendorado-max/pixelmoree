@@ -15,6 +15,51 @@
         <div class="alert alert-danger" role="alert"><ul class="mb-0"><?php foreach ($errors->all() as $error): ?><li><?= week12_escape($error) ?></li><?php endforeach; ?></ul></div>
     <?php endif; ?>
     <section class="w12-panel">
+        <form method="get" action="<?= week12_escape(route('week12.admin.artworks')) ?>" class="row g-2 align-items-end mb-3">
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="artworkSearch">Search artwork</label>
+                <input class="form-control" id="artworkSearch" name="q" type="search" value="<?= week12_escape($filters['q'] ?? '') ?>" placeholder="Title, creator, or category">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label" for="minPrice">Min price (ETH)</label>
+                <input class="form-control" id="minPrice" name="min_price" type="number" min="0" max="99999999" step="0.01" value="<?= week12_escape($filters['min_price'] ?? '') ?>">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label" for="maxPrice">Max price (ETH)</label>
+                <input class="form-control" id="maxPrice" name="max_price" type="number" min="0" max="99999999" step="0.01" value="<?= week12_escape($filters['max_price'] ?? '') ?>">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label" for="releaseFrom">Released from</label>
+                <input class="form-control" id="releaseFrom" name="release_from" type="date" value="<?= week12_escape($filters['release_from'] ?? '') ?>">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label" for="releaseTo">Released to</label>
+                <input class="form-control" id="releaseTo" name="release_to" type="date" value="<?= week12_escape($filters['release_to'] ?? '') ?>">
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="creatorFilter">Creator</label>
+                <select class="form-select" id="creatorFilter" name="creator">
+                    <option value="">All creators</option>
+                    <?php foreach ($creators as $creator): ?>
+                        <option value="<?= week12_escape($creator) ?>" <?= ($filters['creator'] ?? '') === $creator ? 'selected' : '' ?>><?= week12_escape($creator) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="resaleFilter">Resale status</label>
+                <select class="form-select" id="resaleFilter" name="resale">
+                    <option value="">All resale statuses</option>
+                    <option value="active" <?= ($filters['resale'] ?? '') === 'active' ? 'selected' : '' ?>>Active resale</option>
+                    <option value="pending_review" <?= ($filters['resale'] ?? '') === 'pending_review' ? 'selected' : '' ?>>Pending review</option>
+                    <option value="sold" <?= ($filters['resale'] ?? '') === 'sold' ? 'selected' : '' ?>>Sold resale</option>
+                    <option value="none" <?= ($filters['resale'] ?? '') === 'none' ? 'selected' : '' ?>>No current resale</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-4 d-flex gap-2">
+                <button class="btn w12-btn-primary" type="submit">Apply filters</button>
+                <a class="btn w12-btn-outline" href="<?= week12_escape(route('week12.admin.artworks')) ?>">Clear</a>
+            </div>
+        </form>
         <div class="table-responsive">
             <table class="table w12-table align-middle mb-0">
                 <thead><tr><th>Artwork</th><th>Creator</th><th>Category</th><th>Asking price</th><th>Items</th><th>Status</th><th>Actions</th></tr></thead>
@@ -34,7 +79,12 @@
                                 </form>
                             </td>
                             <td><?= number_format((int) $artwork['item_count']) ?></td>
-                            <td><span class="w12-status <?= $artwork['status'] === 'Review' ? 'w12-status-review' : '' ?>"><?= week12_escape($artwork['status']) ?></span></td>
+                            <td>
+                                <span class="w12-status <?= $artwork['status'] === 'Review' ? 'w12-status-review' : '' ?>"><?= week12_escape($artwork['status']) ?></span>
+                                <?php if (!empty($artwork['resale_status'])): ?>
+                                    <small class="d-block text-secondary">Resale: <?= week12_escape(str_replace('_', ' ', $artwork['resale_status'])) ?></small>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <div class="d-flex flex-wrap gap-2">
                                     <a class="btn w12-btn-outline btn-sm" href="<?= week12_escape(week12_url('/week12/artworks/' . rawurlencode($artwork['id']))) ?>">Preview</a>

@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const gallery = document.getElementById('artGrid');
+  const marketPricesUrl = gallery?.dataset.marketPricesUrl;
+  const marketPriceNodes = [...document.querySelectorAll('[data-market-price-id]')];
   const cards = [...document.querySelectorAll('.art-column')];
   const filterButtons = [...document.querySelectorAll('.filter-pill')];
   const sortSelect = document.getElementById('sortSelect');
@@ -151,6 +153,43 @@ document.addEventListener('DOMContentLoaded', () => {
       scheduleTrendingAutoplay();
     }, 5000);
   }
+
+  async function refreshMarketPrices() {
+    if (!marketPricesUrl || (!marketPriceNodes.length && !trendingSlides.length)) return;
+
+    try {
+      const response = await fetch(marketPricesUrl, {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store'
+      });
+      if (!response.ok) throw new Error(`Market price refresh failed with HTTP ${response.status}`);
+      const result = await response.json();
+      if (!result.prices || typeof result.prices !== 'object') {
+        throw new Error('Market price refresh returned an invalid response');
+      }
+
+      marketPriceNodes.forEach(node => {
+        const price = Number(result.prices[node.dataset.marketPriceId]);
+        if (!Number.isFinite(price)) return;
+        node.textContent = `${node.dataset.marketPricePrefix || ''}${price.toFixed(2)}${node.dataset.marketPriceSuffix || ''}`;
+      });
+      trendingSlides.forEach(slide => {
+        const price = Number(result.prices[slide.dataset.artworkId]);
+        if (Number.isFinite(price)) slide.dataset.floor = `Ξ ${price.toFixed(2)}`;
+      });
+      const activeSlide = trendingSlides.find(slide => slide.classList.contains('active'));
+      const featuredPrice = trendingFeature?.querySelector('.trending-feature-floor');
+      if (activeSlide && featuredPrice) featuredPrice.textContent = activeSlide.dataset.floor;
+    } catch (error) {
+      console.error('Unable to refresh simulated market prices.', error);
+    }
+  }
+
+  refreshMarketPrices();
+  window.setInterval(refreshMarketPrices, 60000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshMarketPrices();
+  });
 
   trendingPagination.forEach((button, index) => {
     button.addEventListener('click', () => {
@@ -464,7 +503,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.addEventListener('click', event => {
-    if (!(event.target instanceof Element) || event.target.closest('.heart-button, .art-engagement-like, .trending-feature-arrow, .trending-nft-pagination, [data-engagement-like]')) return;
+    if (!(event.target instanceof Element) || event.target.closest('[data-artwork-buy], .heart-button, .art-engagement-like, .trending-feature-arrow, .trending-nft-pagination, [data-engagement-like]')) return;
     const feature = event.target.closest('.trending-feature');
     const source = event.target.closest('.art-column, .trending-nft-item, .trending-feature-slide.active') ||
       feature?.querySelector('.trending-feature-slide.active');

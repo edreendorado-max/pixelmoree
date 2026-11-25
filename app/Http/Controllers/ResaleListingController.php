@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Artwork;
+use App\Support\ArtworkPriceDashboard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,9 +16,9 @@ class ResaleListingController extends Controller
         abort_unless(config('payments.enabled'), 503, 'Resales are unavailable during beta.');
 
         $validated = $request->validate([
-            'price_php' => ['required', 'integer', 'min:1', 'max:10000000'],
+            'price_php' => ['prohibited'],
+            'evidence' => ['prohibited'],
             'quantity' => ['required', 'integer', 'min:1', 'max:100000'],
-            'evidence' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
             'ownership_declaration' => ['required', 'accepted'],
         ]);
         $ownedItemCount = DB::table('artwork_items')
@@ -34,11 +35,8 @@ class ResaleListingController extends Controller
         abort_if(DB::table('resale_listings')->where('artwork_id', $artwork->id)
             ->whereIn('status', ['pending_review', 'listed'])->exists(), 409, 'This artwork already has a pending review or active resale listing.');
 
-        $path = $validated['evidence']->store('resale-evidence', 'local');
-        if (! is_string($path)) throw new \RuntimeException('Ownership evidence could not be stored securely.');
-
-        DB::transaction(function () use ($request, $artwork, $validated, $path): void {
-            Artwork::query()->whereKey($artwork->id)->lockForUpdate()->firstOrFail();
+        DB::transaction(function () use ($request, $artwork, $validated): void {
+            $lockedArtwork = Artwork::query()->whereKey($artwork->id)->lockForUpdate()->firstOrFail();
             abort_if(DB::table('resale_listings')->where('artwork_id', $artwork->id)
                 ->whereIn('status', ['pending_review', 'listed'])->exists(), 409, 'This artwork already has a pending review or active resale listing.');
 
@@ -55,10 +53,14 @@ class ResaleListingController extends Controller
                 ]);
             }
 
+            $marketValueEth = (new ArtworkPriceDashboard())->simulatedEstimate($lockedArtwork)['value'];
+            $priceMinor = (int) round($marketValueEth * (int) config('payments.php_per_eth', 200000) * 100);
+            abort_if($priceMinor < 1, 422, 'The current market estimate cannot be converted to a positive resale price.');
+
             DB::table('resale_listings')->insert([
                 'artwork_id' => $artwork->id, 'seller_id' => $request->user()->id,
-                'price_minor' => $validated['price_php'] * 100, 'quantity' => $validated['quantity'],
-                'evidence_path' => $path,
+                'price_minor' => $priceMinor, 'quantity' => $validated['quantity'],
+                'evidence_path' => null,
                 'ownership_declaration' => 'Seller confirms they own or are authorized to resell the original work.',
                 'status' => 'pending_review', 'created_at' => now(), 'updated_at' => now(),
             ]);

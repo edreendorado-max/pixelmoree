@@ -26,16 +26,18 @@ composer install
 if (-not (Select-String -Path .env -Pattern '^APP_KEY=.+')) { & 'C:\xampp\php\php.exe' artisan key:generate }
 & 'C:\xampp\php\php.exe' artisan migrate --seed
 & 'C:\xampp\php\php.exe' artisan storage:link
-php artisan serve
+.\start-server.bat
 ```
 
 If `.env` already exists, keep its database and mail settings. The command above only creates it when missing and generates an application key only when `APP_KEY` is blank.
+
+After setup, you can start the app by double-clicking `start-server.bat` or running `.\start-server.bat` from the project directory. It checks for PHP with `pdo_mysql` and a reachable local MySQL server before starting Laravel, so a stopped database is reported immediately instead of making the first page request wait and fail. Keep the XAMPP Control Panel open with MySQL running.
 
 Open <http://127.0.0.1:8000/>. Register at `/register`; the signed-in Store is at `/store` (`/week12` redirects there). The Store requires an account. Admin routes at `/admin`, `/week12/admin`, and `/week12/admin/artworks` require an account promoted to admin.
 
 ### Payment and withdrawal simulations
 
-Checkout records a simulated PHP purchase, transfers one edition item to the buyer, creates a receipt, and adds the same demonstration amount to the creator's simulated earnings balance. Creators can simulate withdrawing up to their recorded balance from the Earnings page. A withdrawal updates the in-app ledger and creates a receipt. Neither flow contacts a payment provider, requests personal payment details, or moves money.
+Checkout records a simulated PHP purchase, transfers one edition item to the buyer, creates a receipt, and adds the same demonstration amount to the seller's simulated earnings balance. Resale prices are calculated from the current simulated market estimate when the seller submits the listing; sellers cannot enter a price. Ownership review uses the seller's purchase and transfer history instead of an uploaded evidence file. Resale purchases have their own receipt and are labeled in purchase history. Creators can simulate withdrawing up to their recorded balance from the Earnings page. A withdrawal updates the in-app ledger and creates a receipt. Neither flow contacts a payment provider, requests personal payment details, or moves money.
 
 Keep `PAYMENTS_ENABLED=true` and `PAYMENTS_SIMULATION=true` in `.env` for the local demo. `PAYMENTS_PHP_PER_ETH` is a demonstration conversion for artwork asking prices. These values do not represent money owed, charged, or paid. Top-ups and Pixel Coin purchases are no longer available.
 
@@ -89,9 +91,9 @@ The standard feature suite uses an in-memory SQLite database. For a dedicated My
 
 Users can update their name, email, phone, bio, and profile image in `/user/profile-settings`. Each new account receives an in-app welcome notification. Users can view and mark their notifications as read from `/user/notifications`. Uploaded images are stored on Laravel's public disk; run `php artisan storage:link` after setup.
 
-Admins can manage users, moderate artwork, update listing prices, review resale ownership evidence, inspect transaction records and analytics, and edit website content from `/week12/admin`. Simulated transactions complete automatically; there is no payment approval screen. Resale approval publishes a listing and is not a copyright determination.
+Admins can manage users, search and filter artwork by title, price, release date, creator, and resale status, update listing prices, review resale purchase receipts, inspect transaction records and analytics, and edit website content from `/week12/admin`. Simulated transactions complete automatically; there is no payment approval screen. Resale approval publishes a listing and is not a copyright determination.
 
-Marketplace cards show creator asking prices in ETH. Checkout displays the simulated PHP amount using `PAYMENTS_PHP_PER_ETH`. The member dashboard shows estimated artwork values and daily gainers/decliners. A repeatable, date-based simulation supplies daily market movement immediately; the estimates are not completed sale prices. Run Laravel's scheduler so `artworks:prices:snapshot` can preserve each day's simulated values as history.
+Marketplace cards show creator asking prices and a separate simulated market estimate. The estimate refreshes every minute without reloading the page; Buy buttons on Discover cards go directly to checkout, while clicking elsewhere on a card opens artwork details. Checkout displays the simulated PHP amount using `PAYMENTS_PHP_PER_ETH`. The member dashboard shows estimated artwork values and daily gainers/decliners. These estimates are not completed sale prices. Run Laravel's scheduler so `artworks:prices:snapshot` can preserve each day's simulated values as history.
 
 ## Production readiness
 

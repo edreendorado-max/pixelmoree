@@ -110,7 +110,7 @@
                     <span class="member-art-tile-details">
                       <strong>{{ $artwork->title }}</strong>
                       <small>By {{ $artwork->creator }}</small>
-                      <span class="member-for-you-prices"><small>Listed price {{ number_format((float) $artwork->price, 2) }} ETH</small><strong>Estimated {{ number_format($marketEstimate['value'], 2) }} ETH</strong></span>
+                    <span class="member-for-you-prices"><small>Listed price {{ number_format((float) $artwork->price, 2) }} ETH</small><strong data-market-price-id="{{ $artwork->id }}" data-market-price-prefix="Estimated " data-market-price-suffix=" ETH">Estimated {{ number_format($marketEstimate['value'], 2) }} ETH</strong></span>
                     </span>
                   </a>
                 @empty
@@ -223,7 +223,7 @@
               <h4>Purchase orders</h4>
               <div class="member-history-table-wrap"><table class="member-history-table"><thead><tr><th>Order ID</th><th>Artwork</th><th>Edition item</th><th>Recorded amount</th><th>Order type</th><th>Status</th></tr></thead><tbody>
                 @forelse ($purchaseOrders as $purchaseOrder)
-                  <tr><td>{{ $purchaseOrder->purchase_id }}</td><td>{{ $purchaseOrder->artwork?->title ?? 'Artwork unavailable' }}</td><td>{{ $purchaseOrder->item_id ?? '—' }}</td><td>PHP {{ number_format($purchaseOrder->amount_minor / 100, 2) }}</td><td>In-app order</td><td>{{ str_replace('_', ' ', $purchaseOrder->status) }} · <a href="{{ route('user.purchase-orders.receipt', $purchaseOrder) }}">View receipt</a></td></tr>
+                  <tr><td>{{ $purchaseOrder->purchase_id }}</td><td>{{ $purchaseOrder->artwork?->title ?? 'Artwork unavailable' }}</td><td>{{ $purchaseOrder->item_id ?? '—' }}</td><td>PHP {{ number_format($purchaseOrder->amount_minor / 100, 2) }}</td><td>{{ $purchaseOrder->artwork && (int) $purchaseOrder->seller_id !== (int) $purchaseOrder->artwork->user_id ? 'Resale purchase' : 'Creator purchase' }}</td><td>{{ str_replace('_', ' ', $purchaseOrder->status) }} · <a href="{{ route('user.purchase-orders.receipt', $purchaseOrder) }}">View receipt</a></td></tr>
                 @empty
                   <tr><td colspan="6" class="member-empty-state">No purchase orders yet.</td></tr>
                 @endforelse
@@ -360,16 +360,18 @@
         <article class="trending-feature" aria-label="Featured trending NFTs">
           <div class="trending-feature-slides" aria-live="polite">
             @foreach ($homeArtworks->take(5) as $artwork)
-              <div class="trending-feature-slide {{ $loop->first ? 'active' : '' }}" data-artwork-id="{{ $artwork->id }}" data-owner-id="{{ $artwork->user_id }}" data-liked="{{ in_array($artwork->id, $likedArtworkIds, true) ? 'true' : 'false' }}" data-title="{{ $artwork->title }}" data-creator="{{ $artwork->creator }}" data-floor="Ξ {{ number_format((float) $artwork->price, 2) }}" data-items="{{ $artwork->item_count }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
-                <img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}">
+              @php($marketEstimate = $artwork->simulated_market_estimate)
+              <div class="trending-feature-slide {{ $loop->first ? 'active' : '' }}" data-artwork-id="{{ $artwork->id }}" data-owner-id="{{ $artwork->user_id }}" data-liked="{{ in_array($artwork->id, $likedArtworkIds, true) ? 'true' : 'false' }}" data-title="{{ $artwork->title }}" data-creator="{{ $artwork->creator }}" data-floor="Ξ {{ number_format($marketEstimate['value'], 2) }}" data-items="{{ $artwork->item_count }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
+                  <img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}">
               </div>
             @endforeach
           </div>
           @if ($homeArtworks->isNotEmpty())
             @php($featuredArtwork = $homeArtworks->first())
+            @php($featuredMarketEstimate = $featuredArtwork->simulated_market_estimate)
             <div class="trending-feature-info">
               <div><h3 class="trending-feature-title">{{ $featuredArtwork->title }} <i class="bi bi-patch-check-fill" aria-label="Verified"></i></h3><p class="trending-feature-creator">By {{ $featuredArtwork->creator }}</p></div>
-              <div class="trending-feature-stats"><div><small>Price</small><strong class="trending-feature-floor">Ξ {{ number_format((float) $featuredArtwork->price, 2) }}</strong></div><div><small>Items</small><strong class="trending-feature-items">1</strong></div></div>
+              <div class="trending-feature-stats"><div><small>Market estimate</small><strong class="trending-feature-floor">Ξ {{ number_format($featuredMarketEstimate['value'], 2) }}</strong></div><div><small>Items</small><strong class="trending-feature-items">{{ number_format($featuredArtwork->item_count) }}</strong></div></div>
             </div>
             @if ($homeArtworks->count() > 1)
               <button class="trending-feature-arrow trending-feature-prev" type="button" aria-label="Previous featured artwork"><i class="bi bi-chevron-left"></i></button>
@@ -387,7 +389,7 @@
         @if ($homeArtworks->count() > 1)
           <div class="trending-nft-list" aria-label="Other listed artworks">
             @foreach ($homeArtworks->skip(1) as $artwork)
-              <a class="trending-nft-item" data-artwork-id="{{ $artwork->id }}" data-owner-id="{{ $artwork->user_id }}" data-liked="{{ in_array($artwork->id, $likedArtworkIds, true) ? 'true' : 'false' }}" href="{{ route('week12.client.artwork', ['id' => $artwork->id]) }}"><em class="trending-nft-rank">#{{ sprintf('%02d', $loop->iteration + 1) }}</em><img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}"><span><strong>{{ $artwork->title }}</strong><small>By {{ $artwork->creator }}</small></span><b>Ξ {{ number_format((float) $artwork->price, 2) }}</b></a>
+              <a class="trending-nft-item" data-artwork-id="{{ $artwork->id }}" data-owner-id="{{ $artwork->user_id }}" data-liked="{{ in_array($artwork->id, $likedArtworkIds, true) ? 'true' : 'false' }}" href="{{ route('week12.client.artwork', ['id' => $artwork->id]) }}"><em class="trending-nft-rank">#{{ sprintf('%02d', $loop->iteration + 1) }}</em><img src="{{ asset(str_starts_with($artwork->image, 'storage/') ? $artwork->image : 'assets/' . $artwork->image) }}" alt="{{ $artwork->title }}"><span><strong>{{ $artwork->title }}</strong><small>By {{ $artwork->creator }}</small></span><b data-market-price-id="{{ $artwork->id }}" data-market-price-prefix="Ξ ">{{ 'Ξ ' . number_format($artwork->simulated_market_estimate['value'], 2) }}</b></a>
             @endforeach
           </div>
         @endif
@@ -419,9 +421,11 @@
   <section id="explore" class="explore-section">
     <div class="section-heading explore-heading"><div><h2>{{ $homeContent['explore']['heading'] }} <i class="bi bi-compass"></i></h2><p class="muted">{{ $homeContent['explore']['description'] }}</p></div></div>
     <div class="filter-row"><div class="filter-pills"><button class="filter-pill active" data-filter="all">{{ $homeContent['explore']['filters'][0] }}</button><button class="filter-pill" data-filter="newest">{{ $homeContent['explore']['filters'][1] }}</button><button class="filter-pill" data-filter="price">{{ $homeContent['explore']['filters'][2] }}</button><button class="filter-pill" data-filter="favorites">{{ $homeContent['explore']['filters'][3] }}</button></div><label class="sort-button"><i class="bi bi-sort-down"></i><span>{{ $homeContent['explore']['sort_label'] }}</span><select id="sortSelect" aria-label="Sort artworks"><option value="default">Default</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></label></div>
-    <div class="row g-3" id="artGrid">
+    <div class="row g-3" id="artGrid" data-market-prices-url="{{ route('api.artworks.market-prices') }}">
       @forelse ($homeArtworks as $artwork)
-        @php($isArtworkOwner = $account && (int) $account->id === (int) $artwork->user_id)
+        @php($activeResaleListing = $resaleListings->firstWhere('artwork_id', $artwork->id))
+        @php($isArtworkOwner = $account && ((int) $account->id === (int) $artwork->user_id || (int) ($activeResaleListing?->seller_id ?? 0) === (int) $account->id))
+        @php($hasBuyableItem = (int) $artwork->available_items_count > 0 || ($activeResaleListing && (int) $activeResaleListing->quantity > 0))
         <div class="col-6 col-sm-3 art-column" data-artwork-id="{{ $artwork->id }}" data-owner-id="{{ $artwork->user_id }}" data-liked="{{ in_array($artwork->id, $likedArtworkIds, true) ? 'true' : 'false' }}" data-category="{{ \Illuminate\Support\Str::slug($artwork->category) }}" data-price="{{ $artwork->price }}" data-created="{{ $artwork->created_at?->timestamp ?? 0 }}">
           <article class="art-card">
             <div class="art-image-wrap">
@@ -438,7 +442,7 @@
             </div>
             <div class="art-card-body">
               <div class="art-creator">By <span>{{ $artwork->creator }}</span><i class="bi bi-patch-check-fill" aria-label="Verified"></i></div>
-              <div class="art-stats"><div class="art-price"><small>Asking price</small><strong>{{ number_format((float) $artwork->price, 2) }} ETH</strong></div><div class="art-items"><small>Items</small><strong>{{ number_format($artwork->item_count) }}</strong></div></div>
+              <div class="art-stats"><div class="art-price"><small>Asking price</small><strong>{{ number_format((float) $artwork->price, 2) }} ETH</strong><small class="art-market-estimate" data-market-price-id="{{ $artwork->id }}" data-market-price-prefix="Market est. Ξ " data-market-price-suffix=" ETH">Market est. Ξ {{ number_format($artwork->simulated_market_estimate['value'], 2) }} ETH</small></div><div class="art-items"><small>Items</small><strong>{{ number_format($artwork->item_count) }}</strong></div></div>
               <div class="art-engagement" data-engagement-metrics="artwork" data-entity-id="{{ $artwork->id }}">
                 <span><i class="bi bi-eye" aria-hidden="true"></i> <span data-engagement-views>{{ number_format($artwork->views_count) }}</span></span>
                 @auth
@@ -452,6 +456,9 @@
                   <a class="art-engagement-like" href="{{ route('login') }}"><i class="bi bi-heart" aria-hidden="true"></i> <span data-engagement-likes>{{ number_format($artwork->likes_count) }}</span></a>
                 @endauth
               </div>
+              @if (!$isArtworkOwner && $hasBuyableItem && config('payments.enabled'))
+                <a class="art-buy-button" data-artwork-buy href="{{ route('user.checkout', ['artworkId' => $artwork->id]) }}"><i class="bi bi-bag-check" aria-hidden="true"></i> Buy NFT</a>
+              @endif
             </div>
           </article>
         </div>

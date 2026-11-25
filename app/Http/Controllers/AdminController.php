@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use Illuminate\Http\RedirectResponse;
+use App\Support\ArtworkPriceDashboard;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -138,14 +140,6 @@ class AdminController extends Controller
             ->sortByDesc(static fn ($artwork): int => (int) $artwork->likes_count + (int) $artwork->views_count)
             ->take(8)
             ->values();
-        $artworkIds = $featuredArtworks->pluck('id');
-        $snapshots = DB::table('artwork_price_snapshots')
-            ->whereIn('artwork_id', $artworkIds)
-            ->where('snapshot_date', '>=', today()->subDays(30))
-            ->orderBy('snapshot_date')
-            ->get(['artwork_id', 'snapshot_date', 'price'])
-            ->groupBy('artwork_id');
-
         $creators = User::query()
             ->where('role', '<>', 'admin')
             ->withCount(['profileLikes', 'profileViews'])
@@ -156,25 +150,36 @@ class AdminController extends Controller
             ->limit(8)
             ->get();
 
+        $now = CarbonImmutable::now();
+        $historyStart = $now->startOfMinute()->subMinutes(59);
+
         return response()->json([
-            'generated_at' => now()->toIso8601String(),
+            'generated_at' => $now->toIso8601String(),
             'price_metric' => 'estimated_market_value',
-            'price_note' => 'Daily estimated market-value snapshots; these are not completed sale prices.',
-            'artworks' => $featuredArtworks->map(static function ($artwork) use ($snapshots): array {
+            'price_note' => 'Simulated estimated values update every minute; these are not completed sale prices.',
+            'artworks' => $featuredArtworks->map(static function ($artwork) use ($historyStart): array {
                 $creator = $artwork->user;
+                $baseValue = (float) $artwork->marketEstimate()['value'];
+                $priceHistory = collect(range(0, 59))
+                    ->map(static function (int $minuteOffset) use ($artwork, $baseValue, $historyStart): array {
+                        $time = $historyStart->addMinutes($minuteOffset);
+
+                        return [
+                            'time' => $time->format('H:i'),
+                            'value' => ArtworkPriceDashboard::simulatedMinutePrice($baseValue, (string) $artwork->getKey(), $time),
+                        ];
+                    })
+                    ->values();
 
                 return [
                     'id' => $artwork->id,
                     'title' => $artwork->title,
                     'creator' => $creator?->name ?? $artwork->creator,
                     'asking_price' => (float) $artwork->price,
-                    'estimated_market_value' => (float) $artwork->marketEstimate()['value'],
+                    'estimated_market_value' => (float) $priceHistory->last()['value'],
                     'likes' => (int) $artwork->likes_count,
                     'views' => (int) $artwork->views_count,
-                    'price_history' => ($snapshots[$artwork->id] ?? collect())->map(static fn ($snapshot): array => [
-                        'date' => $snapshot->snapshot_date,
-                        'value' => (float) $snapshot->price,
-                    ])->values(),
+                    'price_history' => $priceHistory,
                 ];
             })->values(),
             'creators' => $creators->map(static fn (User $creator): array => [

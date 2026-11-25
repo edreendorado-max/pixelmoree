@@ -9,6 +9,7 @@
 </head>
 <body class="receipt-page">
     @php($isWithdrawal = $order->type === 'creator_payout')
+    @php($isResale = ! $isWithdrawal && $order->artwork && (int) $order->seller_id !== (int) $order->artwork->user_id)
     <nav class="receipt-actions" aria-label="Receipt actions">
         <a href="{{ $isWithdrawal ? route('user.earnings') : route('user.purchases') }}">&larr; {{ $isWithdrawal ? 'Back to earnings' : 'Back to purchases' }}</a>
         <button type="button" onclick="window.print()">Print or save as PDF</button>
@@ -19,7 +20,7 @@
             <header class="receipt-heading">
                 <p class="receipt-brand">PIXMOREE <span>TRANSACTION RECORD</span></p>
                 <p class="receipt-simulation">SIMULATION RECORD</p>
-                <h1>{{ $isWithdrawal ? 'Withdrawal receipt' : 'Purchase receipt' }}</h1>
+                <h1>{{ $isWithdrawal ? 'Withdrawal receipt' : ($isResale ? 'Resale purchase receipt' : 'Purchase receipt') }}</h1>
                 <p>This receipt records an in-app account update.</p>
             </header>
 
@@ -31,6 +32,7 @@
                 @if ($isWithdrawal)
                     <div><dt>Transaction</dt><dd>Creator withdrawal record</dd></div>
                 @else
+                    <div><dt>Transaction type</dt><dd>{{ $isResale ? 'Resale purchase' : 'Creator purchase' }}</dd></div>
                     <div><dt>Artwork</dt><dd>{{ $order->artwork?->title ?? 'Artwork unavailable' }}</dd></div>
                     <div><dt>Edition</dt><dd>{{ $editionNumber ? number_format((int) $editionNumber) : 'Not available' }}</dd></div>
                     <div><dt>Unique item ID</dt><dd class="receipt-id">{{ $order->item_id ?? 'Not available' }}</dd></div>

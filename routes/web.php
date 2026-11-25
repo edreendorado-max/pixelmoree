@@ -2,8 +2,10 @@
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use App\ArtworkRepository;
 use App\Support\SitePageContent;
+use App\Support\ArtworkPriceDashboard;
 use App\Models\Artwork;
 
 require_once base_path('app/Week12Helpers.php');
@@ -48,7 +50,18 @@ Route::get('/creators/{creator}', [$creatorController, 'show'])
     ->whereNumber('creator')
     ->name('creators.show');
 
-Route::middleware('throttle:120,1')->group(function () use ($engagementController): void {
+Route::middleware('throttle:120,1')->group(function () use ($engagementController, $week12ArtworkStore): void {
+    Route::get('/api/artworks/market-prices', static function () use ($week12ArtworkStore) {
+        $prices = [];
+        foreach ($week12ArtworkStore()->listed() as $artwork) {
+            $prices[$artwork['id']] = ArtworkPriceDashboard::simulatedMinutePrice(
+                (float) $artwork['estimated_market_value'],
+                (string) $artwork['id'],
+            );
+        }
+
+        return response()->json(['updated_at' => now()->toIso8601String(), 'prices' => $prices]);
+    })->name('api.artworks.market-prices');
     Route::get('/api/artworks/{artwork}/engagement', [$engagementController, 'showArtwork'])
         ->name('api.artworks.engagement');
     Route::post('/api/artworks/{artwork}/views', [$engagementController, 'viewArtwork'])
@@ -163,19 +176,32 @@ Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12A
 
     Route::redirect('/admin', '/week12/admin')->name('admin');
     Route::get('/admin/payment-orders', function () {
+        $resales = DB::table('resale_listings')->join('artworks', 'artworks.id', '=', 'resale_listings.artwork_id')
+            ->join('users', 'users.id', '=', 'resale_listings.seller_id')
+            ->select('resale_listings.*', 'artworks.title', 'users.name as seller_name')
+            ->latest('resale_listings.created_at')->limit(100)->get();
+        $resaleReceipts = DB::table('resale_listings as listings')
+            ->join('artwork_items as items', function ($join): void {
+                $join->on('items.artwork_id', '=', 'listings.artwork_id');
+            })
+            ->join('ownership_transfers as transfers', function ($join): void {
+                $join->on('transfers.item_id', '=', 'items.item_id')
+                    ->on('transfers.to_user_id', '=', 'listings.seller_id');
+            })
+            ->join('payment_orders as orders', 'orders.purchase_id', '=', 'transfers.purchase_id')
+            ->whereIn('listings.id', $resales->pluck('id'))
+            ->select('listings.id as listing_id', 'orders.purchase_id', 'items.item_id')
+            ->orderBy('orders.created_at')
+            ->get()
+            ->groupBy('listing_id');
+
         return view('admin.payment-orders', [
             'orders' => \App\Models\PaymentOrder::query()->where('payment_method', 'simulation')->where('type', 'nft_purchase')->with(['buyer', 'seller', 'artwork'])->latest()->limit(100)->get(),
             'payouts' => \App\Models\PaymentOrder::query()->where('payment_method', 'simulation')->where('type', 'creator_payout')->with('buyer')->latest()->limit(100)->get(),
-            'resales' => DB::table('resale_listings')->join('artworks', 'artworks.id', '=', 'resale_listings.artwork_id')
-                ->join('users', 'users.id', '=', 'resale_listings.seller_id')
-                ->select('resale_listings.*', 'artworks.title', 'users.name as seller_name')->latest('resale_listings.created_at')->limit(100)->get(),
+            'resales' => $resales,
+            'resaleReceipts' => $resaleReceipts,
         ]);
     })->name('admin.payment-orders');
-    Route::get('/admin/resales/{listing}/evidence', function (int $listing) {
-        $path = DB::table('resale_listings')->where('id', $listing)->value('evidence_path');
-        abort_unless(is_string($path) && \Illuminate\Support\Facades\Storage::disk('local')->exists($path), 404);
-        return \Illuminate\Support\Facades\Storage::disk('local')->response($path);
-    })->name('admin.resales.evidence');
     Route::post('/admin/resales/{listing}/review', [$resaleListingController, 'review'])->whereNumber('listing')->name('admin.resales.review');
 
     Route::get('/admin/users', [$adminController, 'users'])->name('admin.users');
@@ -200,9 +226,27 @@ Route::middleware(['auth', 'can:manage-admin'])->group(function () use ($week12A
         ]);
     })->name('week12.admin');
 
-    Route::get('/week12/admin/artworks', function () use ($week12ArtworkStore) {
+    Route::get('/week12/admin/artworks', function (Request $request) use ($week12ArtworkStore) {
+        $filters = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'min_price' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            'max_price' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            'release_from' => ['nullable', 'date_format:Y-m-d'],
+            'release_to' => ['nullable', 'date_format:Y-m-d'],
+            'creator' => ['nullable', 'string', 'max:80'],
+            'resale' => ['nullable', 'in:active,pending_review,sold,none'],
+        ]);
+        $creators = DB::table('artworks')
+            ->leftJoin('users', 'users.id', '=', 'artworks.user_id')
+            ->selectRaw('COALESCE(users.name, artworks.creator) AS creator')
+            ->distinct()
+            ->orderBy('creator')
+            ->pluck('creator');
+
         return view('week12.admin.artworks', [
-            'artworks' => $week12ArtworkStore()->all(),
+            'artworks' => $week12ArtworkStore()->all($filters),
+            'creators' => $creators,
+            'filters' => $filters,
         ]);
     })->name('week12.admin.artworks');
 
@@ -251,6 +295,13 @@ Route::get('/week12/artworks/{id}', function (string $id) use ($week12ArtworkSto
             ->whereNotNull('acquired_purchase_id')
             ->count()
         : 0;
+    $artwork['simulated_market_value'] = ArtworkPriceDashboard::simulatedMinutePrice(
+        (float) $artwork['estimated_market_value'],
+        $id,
+    );
+    $artwork['resale_price_minor'] = (int) round(
+        $artwork['simulated_market_value'] * (int) config('payments.php_per_eth', 200000) * 100,
+    );
 
     return view('week12.client.show', ['artwork' => $artwork]);
 })->where('id', '[a-z0-9-]+')->name('week12.client.artwork');

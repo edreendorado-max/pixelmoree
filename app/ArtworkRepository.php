@@ -16,17 +16,68 @@ final class ArtworkRepository
     {
     }
 
-    public function all(): array
+    public function all(array $filters = []): array
     {
-        $statement = $this->pdo->query(
-            'SELECT artworks.id, artworks.product_id, artworks.user_id, artworks.title,
-                    COALESCE(users.name, artworks.creator) AS creator,
-                    artworks.category, artworks.price, artworks.item_count, artworks.image,
-                    artworks.image_hash, artworks.description, artworks.status, artworks.created_at
-             FROM artworks
-             LEFT JOIN users ON users.id = artworks.user_id
-             ORDER BY artworks.created_at DESC, artworks.title ASC'
-        );
+        $conditions = [];
+        $parameters = [];
+        if (!empty($filters['q'])) {
+            $conditions[] = '(artworks.title LIKE :search_title OR COALESCE(users.name, artworks.creator) LIKE :search_creator OR artworks.category LIKE :search_category)';
+            $search = '%'.$filters['q'].'%';
+            $parameters += [
+                'search_title' => $search,
+                'search_creator' => $search,
+                'search_category' => $search,
+            ];
+        }
+        if (isset($filters['min_price']) && $filters['min_price'] !== '') {
+            $conditions[] = 'artworks.price >= :min_price';
+            $parameters['min_price'] = $filters['min_price'];
+        }
+        if (isset($filters['max_price']) && $filters['max_price'] !== '') {
+            $conditions[] = 'artworks.price <= :max_price';
+            $parameters['max_price'] = $filters['max_price'];
+        }
+        if (!empty($filters['release_from'])) {
+            $conditions[] = 'artworks.created_at >= :release_from';
+            $parameters['release_from'] = $filters['release_from'].' 00:00:00';
+        }
+        if (!empty($filters['release_to'])) {
+            $conditions[] = 'artworks.created_at < :release_to';
+            $parameters['release_to'] = CarbonImmutable::parse($filters['release_to'])->addDay()->toDateString().' 00:00:00';
+        }
+        if (!empty($filters['creator'])) {
+            $conditions[] = 'COALESCE(users.name, artworks.creator) = :creator';
+            $parameters['creator'] = $filters['creator'];
+        }
+
+        switch ($filters['resale'] ?? '') {
+            case 'active':
+                $conditions[] = "resale_listings.status = 'listed'";
+                break;
+            case 'pending_review':
+            case 'sold':
+                $conditions[] = 'resale_listings.status = :resale_status';
+                $parameters['resale_status'] = $filters['resale'];
+                break;
+            case 'none':
+                $conditions[] = "(resale_listings.id IS NULL OR resale_listings.status = 'rejected')";
+                break;
+        }
+
+        $sql = 'SELECT artworks.id, artworks.product_id, artworks.user_id, artworks.title,
+                       COALESCE(users.name, artworks.creator) AS creator,
+                       artworks.category, artworks.price, artworks.item_count, artworks.image,
+                       artworks.image_hash, artworks.description, artworks.status, artworks.created_at,
+                       resale_listings.status AS resale_status
+                FROM artworks
+                LEFT JOIN users ON users.id = artworks.user_id
+                LEFT JOIN resale_listings ON resale_listings.artwork_id = artworks.id';
+        if ($conditions !== []) {
+            $sql .= ' WHERE '.implode(' AND ', $conditions);
+        }
+        $sql .= ' ORDER BY artworks.created_at DESC, artworks.title ASC';
+        $statement = $this->pdo->prepare($sql);
+        $statement->execute($parameters);
 
         return $this->addMarketEstimates($statement->fetchAll());
     }

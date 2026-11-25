@@ -14,7 +14,7 @@ class ArtworkPriceDashboard
     {
         $estimate = $artwork->marketEstimate();
         $baseValue = (float) $estimate['value'];
-        $simulatedValue = self::simulatedDailyPrice(
+        $simulatedValue = self::simulatedMinutePrice(
             $baseValue,
             (string) $artwork->getKey(),
             $date,
@@ -44,6 +44,30 @@ class ArtworkPriceDashboard
         return round(max(0, $baseValue * (1 + $basisPoints / 10000)), 2);
     }
 
+    public static function simulatedMinutePrice(
+        float $baseValue,
+        string $artworkId,
+        CarbonInterface|string|null $time = null,
+    ): float {
+        $minute = $time === null
+            ? CarbonImmutable::now()
+            : ($time instanceof CarbonInterface ? CarbonImmutable::instance($time) : CarbonImmutable::parse($time));
+        $minute = $minute->startOfMinute();
+        $dailyValue = self::simulatedDailyPrice($baseValue, $artworkId, $minute);
+        // A bounded triangle wave makes the simulated value advance each minute without a scheduler.
+        $amplitudeCents = max(1, (int) round($dailyValue * 2));
+        $stepCents = max(1, (int) round($dailyValue * 0.05));
+        $stepsToPeak = (int) ceil($amplitudeCents / $stepCents);
+        $cycleLength = $stepsToPeak * 2;
+        $phase = hexdec(substr(hash('sha256', $artworkId), 0, 8)) % $cycleLength;
+        $minuteIndex = intdiv($minute->getTimestamp(), 60);
+        $position = ($minuteIndex + $phase) % $cycleLength;
+        $movementSteps = $position <= $stepsToPeak ? $position : $cycleLength - $position;
+        $offsetCents = ($movementSteps * $stepCents) - intdiv($stepsToPeak * $stepCents, 2);
+
+        return round(max(0, $dailyValue + $offsetCents / 100), 2);
+    }
+
     public function captureDailySnapshot(): int
     {
         $artworks = Artwork::query()
@@ -71,11 +95,12 @@ class ArtworkPriceDashboard
         $snapshotDate = $now->toDateString();
         $rows = $artworks->map(function (Artwork $artwork) use ($creatorSales, $now, $snapshotDate): array {
             $artwork->setAttribute('creator_sold_count', (int) ($creatorSales[$artwork->user_id] ?? 0));
+            $baseValue = (float) $artwork->marketEstimate()['value'];
 
             return [
                 'artwork_id' => $artwork->id,
                 'snapshot_date' => $snapshotDate,
-                'price' => $this->simulatedEstimate($artwork, $now)['value'],
+                'price' => self::simulatedDailyPrice($baseValue, (string) $artwork->getKey(), $now),
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
@@ -103,18 +128,13 @@ class ArtworkPriceDashboard
             ->pluck('price', 'artwork_id');
 
         $movers = $artworks->map(function (Artwork $artwork) use ($previousPrices, $comparisonDate): ?Artwork {
-            $currentEstimate = $artwork->getAttribute('simulated_market_estimate');
-            if (! is_array($currentEstimate)) {
-                $currentEstimate = $this->simulatedEstimate($artwork);
-                $artwork->setAttribute('simulated_market_estimate', $currentEstimate);
-            }
-
+            $baseValue = (float) $artwork->marketEstimate()['value'];
             $previousPrice = (float) ($previousPrices[$artwork->id] ?? 0);
             if ($previousPrice <= 0) {
-                $previousPrice = $this->simulatedEstimate($artwork, $comparisonDate)['value'];
+                $previousPrice = self::simulatedDailyPrice($baseValue, (string) $artwork->getKey(), $comparisonDate);
             }
 
-            $currentPrice = (float) $currentEstimate['value'];
+            $currentPrice = self::simulatedDailyPrice($baseValue, (string) $artwork->getKey());
             $change = $currentPrice - $previousPrice;
 
             if ($change == 0.0) {

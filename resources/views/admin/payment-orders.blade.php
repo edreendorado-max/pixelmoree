@@ -13,8 +13,8 @@
     @if (session('status'))<div class="cms-alert cms-alert-success" role="status"><i class="bi bi-check-circle" aria-hidden="true"></i>{{ session('status') }}</div>@endif
     <section class="payment-review-section"><h2>NFT purchases</h2>
         @forelse ($orders as $order)
-            <article class="payment-review-card"><strong>{{ $order->artwork?->title ?? 'Artwork unavailable' }} · PHP {{ number_format($order->amount_minor / 100, 2) }}</strong>
-                <p>Receipt: {{ $order->purchase_id }} · Edition: {{ $order->item_id }}<br>Buyer: {{ $order->buyer?->name }} ({{ $order->buyer?->email }}) · Seller: {{ $order->seller?->name ?? 'Unavailable' }}<br>Recorded creator amount: PHP {{ number_format($order->amount_minor / 100, 2) }} · {{ ucfirst($order->status) }} · {{ $order->created_at?->format('M j, Y g:i A') }}</p>
+            <article class="payment-review-card" id="receipt-{{ $order->purchase_id }}"><strong>{{ $order->artwork?->title ?? 'Artwork unavailable' }} · PHP {{ number_format($order->amount_minor / 100, 2) }}</strong>
+                <p>{{ $order->artwork && (int) $order->seller_id !== (int) $order->artwork->user_id ? 'Resale purchase' : 'Creator purchase' }} · Receipt: {{ $order->purchase_id }} · Edition: {{ $order->item_id }}<br>Buyer: {{ $order->buyer?->name }} ({{ $order->buyer?->email }}) · Seller: {{ $order->seller?->name ?? 'Unavailable' }}<br>Recorded seller amount: PHP {{ number_format($order->amount_minor / 100, 2) }} · {{ ucfirst($order->status) }} · {{ $order->created_at?->format('M j, Y g:i A') }}</p>
             </article>
         @empty<p class="payment-review-empty">No NFT orders have been recorded.</p>@endforelse
     </section>
@@ -27,7 +27,15 @@
     </section>
     <section class="payment-review-section"><h2>Resale copyright review</h2><p>Resale moderation is a separate review task. Approval publishes a listing; it does not verify copyright ownership.</p>
         @forelse ($resales as $resale)
-            <article class="payment-review-card"><strong>{{ $resale->title }}</strong><p>Seller: {{ $resale->seller_name }} · {{ number_format((int) $resale->quantity) }} item(s) · PHP {{ number_format($resale->price_minor / 100, 2) }} each · {{ ucfirst(str_replace('_', ' ', $resale->status)) }}</p><p><a href="{{ route('admin.resales.evidence', $resale->id) }}">View private ownership evidence</a> · {{ $resale->ownership_declaration }}</p>
+            <article class="payment-review-card"><strong>{{ $resale->title }}</strong><p>Seller: {{ $resale->seller_name }} · {{ number_format((int) $resale->quantity) }} item(s) · PHP {{ number_format($resale->price_minor / 100, 2) }} each · {{ ucfirst(str_replace('_', ' ', $resale->status)) }}</p>
+                <p>Ownership purchase receipts:
+                    @forelse ($resaleReceipts->get($resale->id, collect()) as $receipt)
+                        <a href="#receipt-{{ $receipt->purchase_id }}">{{ $receipt->purchase_id }} (item {{ $receipt->item_id }})</a>@if (! $loop->last); @endif
+                    @empty
+                        <span>No purchase receipt is recorded for the seller's current items.</span>
+                    @endforelse
+                </p>
+                <p>{{ $resale->ownership_declaration }}</p>
                 @if ($resale->status === 'pending_review')<form class="payment-review-actions" method="post" action="{{ route('admin.resales.review', $resale->id) }}">@csrf<button class="w12-btn-primary" name="decision" value="approve">Approve listing</button><button class="w12-btn-danger" name="decision" value="reject">Reject</button></form>@endif
             </article>
         @empty<p class="payment-review-empty">No resale submissions.</p>@endforelse

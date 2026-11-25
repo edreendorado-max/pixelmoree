@@ -775,6 +775,9 @@ body{font-family:Inter,system-ui,sans-serif}
 .art-engagement>span{display:inline-flex;align-items:center;gap:4px}
 .art-engagement-like{display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:transparent;color:#9f98ac;font:inherit;text-decoration:none;cursor:pointer}
 .art-engagement-like:hover,.art-engagement-like[aria-pressed="true"]{color:#f18bed}
+.art-buy-button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:32px;margin-top:9px;border:1px solid #8a47a5;border-radius:7px;background:#281634;color:#f5eaff;font-size:10px;font-weight:700;text-decoration:none}
+.art-buy-button:hover{border-color:#c64bc9;background:#3a1c49;color:#fff}
+.art-buy-button:focus-visible{outline:3px solid #8be3f3;outline-offset:3px}
 .art-items{min-width:38px;padding-left:8px;border-left:1px solid #ffffff1a;text-align:right;display:flex;flex-direction:column;gap:3px}
 .load-more-wrap{display:flex;justify-content:center;margin:22px auto 4px}
 .load-more-wrap[hidden]{display:none}

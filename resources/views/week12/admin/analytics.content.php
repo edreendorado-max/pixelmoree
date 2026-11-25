@@ -9,13 +9,13 @@
         <div class="col-12">
             <section class="w12-panel">
                 <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
-                    <div><h2 class="h5 mb-1">Estimated value history</h2><p class="text-secondary small mb-0" data-price-note>Loading historical snapshots…</p></div>
+                    <div><h2 class="h5 mb-1">Estimated value history</h2><p class="text-secondary small mb-0" data-price-note>Loading simulated minute-by-minute history…</p></div>
                     <label class="analytics-select-label" for="analytics-artwork">Artwork
                         <select class="form-select" id="analytics-artwork" disabled><option>Loading artwork…</option></select>
                     </label>
                 </div>
-                <div class="analytics-chart-wrap"><canvas id="analytics-price-chart" aria-label="Estimated market value history chart"></canvas></div>
-                <p class="analytics-chart-empty" data-chart-empty hidden>No daily snapshots are available yet. The scheduled job records a daily estimate for listed artwork.</p>
+                <div class="analytics-chart-wrap"><canvas id="analytics-price-chart" aria-label="Simulated estimated market value over the last 60 minutes"></canvas></div>
+                <p class="analytics-chart-empty" data-chart-empty hidden>No listed artwork is available to simulate yet.</p>
             </section>
         </div>
         <div class="col-xl-7">
@@ -114,7 +114,7 @@
         const points = history.map((point, index) => ({
             x: pad.left + chartWidth * (history.length === 1 ? .5 : index / (history.length - 1)),
             y: pad.top + chartHeight * (high + span * .1 - point.value) / (span * 1.2),
-            date: point.date,
+            time: point.time,
         }));
         context.strokeStyle = '#55dfff';
         context.lineWidth = 3;
@@ -129,9 +129,9 @@
         });
         context.fillStyle = '#aaa7bd';
         context.textAlign = 'left';
-        context.fillText(points[0].date, pad.left, height - 8);
+        context.fillText(points[0].time, pad.left, height - 8);
         context.textAlign = 'right';
-        context.fillText(points[points.length - 1].date, width - pad.right, height - 8);
+        context.fillText(points[points.length - 1].time, width - pad.right, height - 8);
         context.textAlign = 'start';
     }
 
@@ -141,9 +141,13 @@
 
     async function loadAnalytics() {
         try {
-            const response = await fetch(root.dataset.endpoint, {headers: {'Accept': 'application/json'}});
+            const response = await fetch(root.dataset.endpoint, {
+                cache: 'no-store',
+                headers: {'Accept': 'application/json'},
+            });
             if (!response.ok) throw new Error(`Analytics request failed (${response.status}).`);
             const data = await response.json();
+            const selectedArtworkId = artworkSelect.value;
             artworks = data.artworks;
             priceNote.textContent = data.price_note;
 
@@ -174,6 +178,9 @@
                 artworkRows.append(emptyRow(5, 'No listed artwork yet.'));
                 emptyMessage.hidden = false;
             } else {
+                artworkSelect.value = artworks.some(artwork => artwork.id === selectedArtworkId)
+                    ? selectedArtworkId
+                    : artworks[0].id;
                 selectArtwork();
             }
             if (data.creators.length === 0) {
@@ -189,5 +196,6 @@
     artworkSelect.addEventListener('change', selectArtwork);
     window.addEventListener('resize', selectArtwork);
     loadAnalytics();
+    window.setInterval(loadAnalytics, 60_000);
 })();
 </script>

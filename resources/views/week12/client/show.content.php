@@ -27,20 +27,21 @@
                     <summary class="btn w12-btn-primary w12-detail-buy">
                         <i class="bi bi-arrow-left-right" aria-hidden="true"></i> Resell owned item
                     </summary>
-                    <form class="w12-resale-form" method="post" action="<?= week12_escape(route('user.artworks.resale', ['artwork' => $artwork['id']])) ?>" enctype="multipart/form-data">
+                    <form class="w12-resale-form" method="post" action="<?= week12_escape(route('user.artworks.resale', ['artwork' => $artwork['id']])) ?>">
                         <?= csrf_field() ?>
-                        <label for="resalePrice">Resale price per item (PHP)
-                            <input id="resalePrice" name="price_php" type="number" min="1" max="10000000" value="<?= week12_escape(old('price_php', '')) ?>" required>
-                            <?php if ($errors->has('price_php')): ?><small class="w12-resale-error" role="alert"><?= week12_escape($errors->first('price_php')) ?></small><?php endif; ?>
-                        </label>
+                        <?php if ($errors->has('price_php') || $errors->has('evidence')): ?>
+                            <p class="w12-resale-error" role="alert">
+                                Resale prices are set from the current market estimate, and uploaded evidence is not accepted. Ownership is checked against your purchase history.
+                            </p>
+                        <?php endif; ?>
+                        <p class="w12-info-note">
+                            Current estimated resale price: <strong>PHP <?= number_format((int) $artwork['resale_price_minor'] / 100, 2) ?></strong> per item
+                            (Ξ <?= number_format((float) $artwork['simulated_market_value'], 2) ?>). The price is recalculated when submitted.
+                        </p>
                         <label for="resaleQuantity">Number of items to resell
                             <input id="resaleQuantity" name="quantity" type="number" min="1" max="<?= (int) $artwork['owned_item_count'] ?>" value="<?= week12_escape(old('quantity', (int) $artwork['owned_item_count'])) ?>" required>
                             <small>You can list up to <?= number_format((int) $artwork['owned_item_count']) ?> purchased item(s).</small>
                             <?php if ($errors->has('quantity')): ?><small class="w12-resale-error" role="alert"><?= week12_escape($errors->first('quantity')) ?></small><?php endif; ?>
-                        </label>
-                        <label class="w12-resale-evidence" for="resaleEvidence">Ownership/authorization evidence
-                            <input id="resaleEvidence" name="evidence" type="file" accept="image/png,image/jpeg,application/pdf" required>
-                            <?php if ($errors->has('evidence')): ?><small class="w12-resale-error" role="alert"><?= week12_escape($errors->first('evidence')) ?></small><?php endif; ?>
                         </label>
                         <label class="w12-resale-declaration"><input name="ownership_declaration" type="checkbox" value="1" <?= old('ownership_declaration') ? 'checked' : '' ?> required> I own or am authorized to resell this artwork and the submission is accurate.</label>
                         <?php if ($errors->has('ownership_declaration')): ?><p class="w12-resale-error" role="alert"><?= week12_escape($errors->first('ownership_declaration')) ?></p><?php endif; ?>

@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Models\Artwork;
 use App\Models\PaymentOrder;
 use App\Models\User;
+use App\Support\ArtworkPriceDashboard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -126,6 +126,28 @@ class ManualPaymentsAndResaleTest extends TestCase
         ])->assertSessionHasErrors('payment_method');
     }
 
+    public function test_homepage_refreshes_market_estimates_and_links_buy_buttons_directly_to_checkout(): void
+    {
+        $creator = $this->user('homepage-creator@example.test');
+        $artwork = $this->artwork($creator);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Market est.')
+            ->assertSee('data-artwork-buy', false)
+            ->assertSee(route('user.checkout', ['artworkId' => $artwork->id]), false)
+            ->assertSee(route('api.artworks.market-prices'), false);
+
+        $expectedEstimate = (new ArtworkPriceDashboard())->simulatedEstimate($artwork->fresh())['value'];
+        $this->getJson(route('api.artworks.market-prices'))
+            ->assertOk()
+            ->assertJsonPath("prices.{$artwork->id}", $expectedEstimate);
+
+        $this->actingAs($creator)->get(route('user'))
+            ->assertOk()
+            ->assertDontSee('data-artwork-buy', false);
+    }
+
     public function test_each_checkout_option_records_the_same_account_purchase_without_processing_payment(): void
     {
         $seller = $this->user('options-seller@example.test');
@@ -178,15 +200,30 @@ class ManualPaymentsAndResaleTest extends TestCase
         DB::table('artwork_items')->where('item_id', $itemId)->update([
             'owner_id' => $seller->id, 'status' => 'owned', 'acquired_purchase_id' => $oldOrder->purchase_id,
         ]);
+        DB::table('ownership_transfers')->insert([
+            'product_id' => $artwork->product_id, 'item_id' => $itemId,
+            'from_user_id' => $creator->id, 'to_user_id' => $seller->id,
+            'purchase_id' => $oldOrder->purchase_id, 'amount_minor' => $oldOrder->amount_minor,
+            'currency' => 'PHP', 'created_at' => now(), 'updated_at' => now(),
+        ]);
         DB::table('artwork_ownerships')->insert([
             'artwork_id' => $artwork->id, 'owner_id' => $seller->id,
             'acquired_purchase_id' => $oldOrder->purchase_id, 'created_at' => now(), 'updated_at' => now(),
         ]);
 
+        $marketValueEth = (new ArtworkPriceDashboard())->simulatedEstimate($artwork->fresh())['value'];
+        $expectedResalePriceMinor = (int) round($marketValueEth * (int) config('payments.php_per_eth') * 100);
         $this->actingAs($seller)->post(route('user.artworks.resale', $artwork), [
-            'price_php' => 200, 'quantity' => 1, 'ownership_declaration' => '1', 'evidence' => $this->proofImage('ownership.png'),
+            'price_php' => 200, 'quantity' => 1, 'ownership_declaration' => '1', 'evidence' => 'seller-uploaded-proof',
+        ])->assertSessionHasErrors(['price_php', 'evidence']);
+        $this->assertDatabaseCount('resale_listings', 0);
+
+        $this->actingAs($seller)->post(route('user.artworks.resale', $artwork), [
+            'quantity' => 1, 'ownership_declaration' => '1',
         ])->assertRedirect();
         $listingId = DB::table('resale_listings')->value('id');
+        $this->assertSame($expectedResalePriceMinor, (int) DB::table('resale_listings')->where('id', $listingId)->value('price_minor'));
+        $this->assertNull(DB::table('resale_listings')->where('id', $listingId)->value('evidence_path'));
         $this->actingAs($admin)->post(route('admin.resales.review', $listingId), ['decision' => 'approve'])->assertRedirect();
         $this->actingAs($buyer)->get(route('user.checkout', $artwork->id))->assertOk();
         $this->post(route('user.purchase-orders.store'), [
@@ -197,6 +234,17 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->assertSame($buyer->id, (int) DB::table('artwork_items')->where('item_id', $itemId)->value('owner_id'));
         $this->assertSame('sold', DB::table('resale_listings')->where('id', $listingId)->value('status'));
         $this->assertSame('approved', PaymentOrder::query()->where('buyer_id', $buyer->id)->value('status'));
+        $resaleOrder = PaymentOrder::query()->where('buyer_id', $buyer->id)->firstOrFail();
+        $this->assertSame($expectedResalePriceMinor, (int) $resaleOrder->amount_minor);
+        $this->actingAs($buyer)->get(route('user.purchase-orders.receipt', $resaleOrder))
+            ->assertOk()
+            ->assertSee('Resale purchase receipt')
+            ->assertSee('Transaction type')
+            ->assertSee('Resale purchase');
+        $this->actingAs($admin)->get(route('admin.payment-orders'))
+            ->assertOk()
+            ->assertSee('Ownership purchase receipts:')
+            ->assertSee($oldOrder->purchase_id);
     }
 
     public function test_buyer_can_resell_only_the_selected_quantity_of_purchased_items(): void
@@ -232,14 +280,12 @@ class ManualPaymentsAndResaleTest extends TestCase
             ->assertDontSee('Resale price per item (PHP)');
 
         $this->post(route('user.artworks.resale', $artwork), [
-            'price_php' => 200, 'quantity' => 4, 'ownership_declaration' => '1',
-            'evidence' => $this->proofImage('too-many-items.png'),
+            'quantity' => 4, 'ownership_declaration' => '1',
         ])->assertSessionHasErrors('quantity');
         $this->assertDatabaseCount('resale_listings', 0);
 
         $this->post(route('user.artworks.resale', $artwork), [
-            'price_php' => 200, 'quantity' => 2, 'ownership_declaration' => '1',
-            'evidence' => $this->proofImage('two-items.png'),
+            'quantity' => 2, 'ownership_declaration' => '1',
         ])->assertRedirect();
         $listingId = DB::table('resale_listings')->value('id');
         $this->assertSame(2, (int) DB::table('resale_listings')->where('id', $listingId)->value('quantity'));
@@ -292,7 +338,9 @@ class ManualPaymentsAndResaleTest extends TestCase
         $this->actingAs($owner)->get(route('week12.client.artwork', ['id' => $artwork->id]))
             ->assertOk()
             ->assertSee('Resell owned item')
-            ->assertSee('name="price_php"', false)
+            ->assertSee('Current estimated resale price')
+            ->assertDontSee('name="price_php"', false)
+            ->assertDontSee('name="evidence"', false)
             ->assertSee('class="w12-resale-disclosure mt-3"', false)
             ->assertDontSee('class="w12-resale-disclosure mt-3" open', false);
         $this->actingAs($visitor)->get(route('week12.client.artwork', ['id' => $artwork->id]))
@@ -323,11 +371,4 @@ class ManualPaymentsAndResaleTest extends TestCase
         ]);
     }
 
-    private function proofImage(string $filename): UploadedFile
-    {
-        $contents = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/y5sAAAAASUVORK5CYII=', true);
-        $this->assertIsString($contents);
-
-        return UploadedFile::fake()->createWithContent($filename, $contents);
-    }
 }

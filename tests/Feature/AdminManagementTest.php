@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Artwork;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class AdminManagementTest extends TestCase
@@ -54,22 +55,22 @@ class AdminManagementTest extends TestCase
             ->assertSee('Store previews are not available in the administrator workspace.')
             ->assertDontSee(route('store'), false);
 
-        \Illuminate\Support\Facades\DB::table('artwork_price_snapshots')->insert([
-            'artwork_id' => 'dashboard-artwork',
-            'snapshot_date' => today()->toDateString(),
-            'price' => 14.25,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-        $this->getJson(route('admin.api.analytics'))
+        $this->travelTo(now()->startOfMinute()->addSeconds(30));
+        $analytics = $this->getJson(route('admin.api.analytics'))
             ->assertOk()
             ->assertJsonPath('price_metric', 'estimated_market_value')
+            ->assertJsonPath('price_note', 'Simulated estimated values update every minute; these are not completed sale prices.')
             ->assertJsonPath('artworks.0.id', 'dashboard-artwork')
             ->assertJsonPath('artworks.0.asking_price', 12.5)
-            ->assertJsonPath('artworks.0.price_history.0.value', 14.25)
+            ->assertJsonCount(60, 'artworks.0.price_history')
+            ->assertJsonPath('artworks.0.price_history.59.time', now()->format('H:i'))
             ->assertJsonPath('creators.0.name', 'Dashboard Creator')
             ->assertJsonMissingPath('artworks.0.creator_followers')
             ->assertJsonMissingPath('creators.0.followers');
+        $this->assertSame(
+            $analytics->json('artworks.0.estimated_market_value'),
+            $analytics->json('artworks.0.price_history.59.value'),
+        );
     }
 
     public function test_admin_can_monitor_accounts_and_update_creator_asking_prices(): void
@@ -105,6 +106,63 @@ class AdminManagementTest extends TestCase
             ->assertRedirect()
             ->assertSessionHas('status');
         $this->assertEquals(24.95, $artwork->fresh()->price);
+    }
+
+    public function test_admin_artwork_filters_combine_search_price_release_creator_and_resale_status(): void
+    {
+        $admin = $this->createUser('Filter Admin', 'filter-admin@example.test', 'admin');
+        $creator = $this->createUser('Filtered Creator', 'filtered-creator@example.test');
+        $otherCreator = $this->createUser('Other Creator', 'other-creator@example.test');
+        $matchingArtwork = Artwork::create([
+            'id' => 'filter-match',
+            'user_id' => $creator->id,
+            'title' => 'Filtered Moon',
+            'creator' => $creator->name,
+            'category' => 'Digital Art',
+            'price' => 2.50,
+            'image' => 'filter-match.png',
+            'description' => 'Artwork matching admin filters.',
+            'status' => 'Listed',
+        ]);
+        $releasedAt = now()->subDays(3);
+        $matchingArtwork->forceFill(['created_at' => $releasedAt, 'updated_at' => $releasedAt])->save();
+        Artwork::create([
+            'id' => 'filter-other',
+            'user_id' => $otherCreator->id,
+            'title' => 'Other Artwork',
+            'creator' => $otherCreator->name,
+            'category' => 'Photography',
+            'price' => 20,
+            'image' => 'filter-other.png',
+            'description' => 'Artwork outside the selected filters.',
+            'status' => 'Listed',
+        ]);
+        DB::table('resale_listings')->insert([
+            'artwork_id' => $matchingArtwork->id,
+            'seller_id' => $creator->id,
+            'price_minor' => 25000,
+            'evidence_path' => null,
+            'ownership_declaration' => 'Seller confirms authorization.',
+            'status' => 'listed',
+            'quantity' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('week12.admin.artworks', [
+                'q' => 'Filtered',
+                'min_price' => '2',
+                'max_price' => '3',
+                'release_from' => now()->subDays(4)->toDateString(),
+                'release_to' => now()->subDays(2)->toDateString(),
+                'creator' => $creator->name,
+                'resale' => 'active',
+            ]))
+            ->assertOk()
+            ->assertSee('Filtered Moon')
+            ->assertSee('Active resale')
+            ->assertDontSee('Other Artwork');
     }
 
     public function test_admin_can_edit_user_profile_and_email_without_verification_status(): void
